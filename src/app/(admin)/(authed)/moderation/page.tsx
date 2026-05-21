@@ -10,73 +10,76 @@ import { Pill } from "@/components/ui/Pill";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Card, CardBody } from "@/components/ui/Card";
-import {
-  reports,
-  Report,
-  ReportPriority,
-  ReportStatus,
-} from "@/lib/fixtures/reports";
-import { getUser } from "@/lib/fixtures/users";
-import { Avatar } from "@/components/ui/Avatar";
-import { formatDateTime, initials } from "@/lib/utils/format";
+import { reportsApi, type Report, type ReportStatus, type ReportTargetType } from "@/lib/api";
+import { formatDateTime } from "@/lib/utils/format";
 
-const priorityTone: Record<ReportPriority, React.ComponentProps<typeof Pill>["tone"]> = {
-  low: "neutral",
-  medium: "info",
-  high: "warning",
-  critical: "danger",
-};
-const priorityLabel: Record<ReportPriority, string> = {
-  low: "Faible",
-  medium: "Moyen",
-  high: "Élevé",
-  critical: "Critique",
-};
+// Mapping presentation depuis les statuts backend ----------------------------
+
 const statusTone: Record<ReportStatus, React.ComponentProps<typeof Pill>["tone"]> = {
-  open: "warning",
-  in_review: "info",
-  resolved: "success",
-  dismissed: "neutral",
+  OPEN: "warning",
+  REVIEWING: "info",
+  ACTIONED: "success",
+  DISMISSED: "neutral",
 };
 const statusLabel: Record<ReportStatus, string> = {
-  open: "Ouvert",
-  in_review: "En cours",
-  resolved: "Résolu",
-  dismissed: "Rejeté",
+  OPEN: "Ouvert",
+  REVIEWING: "En cours",
+  ACTIONED: "Résolu",
+  DISMISSED: "Rejeté",
 };
 
-const targetIcon = {
-  listing: <FileText className="h-3.5 w-3.5" />,
-  user: <UserIcon className="h-3.5 w-3.5" />,
-  message: <MessageSquare className="h-3.5 w-3.5" />,
-} as const;
+const targetIcon: Record<ReportTargetType, React.ReactNode> = {
+  LISTING: <FileText className="h-3.5 w-3.5" />,
+  USER: <UserIcon className="h-3.5 w-3.5" />,
+  THREAD: <MessageSquare className="h-3.5 w-3.5" />,
+  MESSAGE: <MessageSquare className="h-3.5 w-3.5" />,
+};
 
-const targetLabel = {
-  listing: "Annonce",
-  user: "Utilisateur",
-  message: "Message",
-} as const;
+const targetLabel: Record<ReportTargetType, string> = {
+  LISTING: "Annonce",
+  USER: "Utilisateur",
+  THREAD: "Conversation",
+  MESSAGE: "Message",
+};
 
 export default function ModerationPage() {
   const [query, setQuery] = React.useState("");
-  const [priority, setPriority] = React.useState<ReportPriority | "all">("all");
-  const [status, setStatus] = React.useState<ReportStatus | "all">("all");
-  const [targetType, setTargetType] = React.useState<"all" | "listing" | "user" | "message">(
-    "all",
-  );
+  const [statusFilter, setStatusFilter] = React.useState<ReportStatus | "all">("all");
+  const [targetType, setTargetType] = React.useState<ReportTargetType | "all">("all");
+  const [reports, setReports] = React.useState<Report[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const open = reports.filter((r) => r.status === "open").length;
-  const inReview = reports.filter((r) => r.status === "in_review").length;
-  const resolvedToday = reports.filter((r) => r.status === "resolved").length;
+  // Load + refresh quand on change le filtre statut
+  React.useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    reportsApi
+      .list({
+        status: statusFilter === "all" ? undefined : statusFilter,
+        targetType: targetType === "all" ? undefined : targetType,
+        size: 100,
+      })
+      .then((res) => {
+        if (alive) setReports(res.content);
+      })
+      .catch((err) => {
+        if (alive) setError(err?.message ?? "Chargement impossible");
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [statusFilter, targetType]);
 
-  const queue = reports.filter((r) => r.status === "open" || r.status === "in_review");
-
-  const filtered = queue.filter((r) => {
-    if (priority !== "all" && r.priority !== priority) return false;
-    if (status !== "all" && r.status !== status) return false;
-    if (targetType !== "all" && r.targetType !== targetType) return false;
-    return true;
-  });
+  // KPIs (calcules depuis la page courante — pour des compteurs reels on
+  // pourrait ajouter /admin/reports/counts plus tard)
+  const open = reports.filter((r) => r.status === "OPEN").length;
+  const inReview = reports.filter((r) => r.status === "REVIEWING").length;
+  const resolved = reports.filter((r) => r.status === "ACTIONED").length;
 
   const columns = React.useMemo<ColumnDef<Report>[]>(
     () => [
@@ -91,49 +94,23 @@ export default function ModerationPage() {
                 {targetIcon[r.targetType]}
               </span>
               <div className="min-w-0">
-                <p className="text-body-sm font-medium text-ink truncate">{r.targetTitle}</p>
-                <p className="text-caption text-n-500">{targetLabel[r.targetType]}</p>
+                <p className="text-body-sm font-medium text-ink truncate">
+                  {targetLabel[r.targetType]} · {r.targetId.slice(0, 8)}
+                </p>
+                <p className="text-caption text-n-500 truncate">{r.reason}</p>
               </div>
             </div>
           );
         },
       },
       {
-        id: "reason",
-        header: "Motif",
+        id: "details",
+        header: "Détails",
         cell: ({ row }) => (
-          <span className="text-body-sm text-n-700 capitalize">
-            {row.original.reason.replace(/_/g, " ")}
+          <span className="text-body-sm text-n-700 line-clamp-2">
+            {row.original.details ?? <span className="text-n-400">—</span>}
           </span>
         ),
-      },
-      {
-        id: "priority",
-        header: "Priorité",
-        accessorKey: "priority",
-        cell: ({ row }) => (
-          <Pill tone={priorityTone[row.original.priority]} dot>
-            {priorityLabel[row.original.priority]}
-          </Pill>
-        ),
-      },
-      {
-        id: "reporter",
-        header: "Signalé par",
-        cell: ({ row }) => {
-          const u = getUser(row.original.reporterId);
-          if (!u) return <span className="text-n-400">—</span>;
-          return (
-            <Link
-              href={`/users/${u.id}`}
-              className="inline-flex items-center gap-2 text-body-sm text-n-700 hover:text-primary"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Avatar initials={initials(u.name)} seed={u.id} size="xs" />
-              {u.name}
-            </Link>
-          );
-        },
       },
       {
         id: "createdAt",
@@ -181,32 +158,20 @@ export default function ModerationPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <KpiTile label="Ouverts" value={open} tone="warning" />
         <KpiTile label="En cours" value={inReview} tone="info" />
-        <KpiTile label="Résolus aujourd'hui" value={resolvedToday} tone="success" />
+        <KpiTile label="Résolus" value={resolved} tone="success" />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          placeholder="Rechercher cible, motif…"
+          placeholder="Rechercher motif, détails…"
           value={query}
           onChange={(e) => setQuery(e.currentTarget.value)}
           leadingIcon={<Search className="h-4 w-4" />}
           className="w-80"
         />
         <Select
-          value={priority}
-          onChange={(e) => setPriority(e.currentTarget.value as ReportPriority | "all")}
-          className="w-40"
-        >
-          <option value="all">Toutes priorités</option>
-          {(Object.keys(priorityLabel) as ReportPriority[]).map((p) => (
-            <option key={p} value={p}>
-              {priorityLabel[p]}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.currentTarget.value as ReportStatus | "all")}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.currentTarget.value as ReportStatus | "all")}
           className="w-40"
         >
           <option value="all">Tous statuts</option>
@@ -218,24 +183,32 @@ export default function ModerationPage() {
         </Select>
         <Select
           value={targetType}
-          onChange={(e) =>
-            setTargetType(e.currentTarget.value as "all" | "listing" | "user" | "message")
-          }
+          onChange={(e) => setTargetType(e.currentTarget.value as ReportTargetType | "all")}
           className="w-40"
         >
           <option value="all">Toutes cibles</option>
-          <option value="listing">Annonce</option>
-          <option value="user">Utilisateur</option>
-          <option value="message">Message</option>
+          {(Object.keys(targetLabel) as ReportTargetType[]).map((tt) => (
+            <option key={tt} value={tt}>
+              {targetLabel[tt]}
+            </option>
+          ))}
         </Select>
       </div>
 
+      {error ? (
+        <Card>
+          <CardBody>
+            <p className="text-body-sm text-danger">{error}</p>
+          </CardBody>
+        </Card>
+      ) : null}
+
       <DataTable
         columns={columns}
-        data={filtered}
+        data={reports}
         globalFilter={query}
         getRowId={(r) => r.id}
-        empty="Aucun signalement à examiner."
+        empty={loading ? "Chargement…" : "Aucun signalement à examiner."}
       />
     </div>
   );

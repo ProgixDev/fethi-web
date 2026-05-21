@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Activity,
@@ -20,9 +20,11 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  LogOut,
 } from "lucide-react";
 import { Mark, Wordmark } from "@/components/shared/Wordmark";
 import { cn } from "@/lib/utils/cn";
+import { authApi } from "@/lib/api";
 
 type LeafItem = {
   href: string;
@@ -181,7 +183,19 @@ const STORAGE_KEY = "mystreet:admin-sidebar-collapsed";
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = React.useState<boolean>(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await authApi.logout();
+    } catch {
+      // ignore — on déconnecte localement de toute façon
+    }
+    router.push("/login");
+  }
 
   // Hydrate persisted preference. Default = expanded.
   React.useEffect(() => {
@@ -283,28 +297,56 @@ export function AdminSidebar() {
       </nav>
 
       <div className={cn("border-t border-n-100", collapsed ? "p-2" : "p-3")}>
-        <Link
-          href="/profile"
-          title="Profil — Fadi A."
-          className={cn(
-            "flex items-center gap-2.5 rounded-md hover:bg-n-50",
-            collapsed ? "justify-center p-1" : "p-2",
-          )}
-        >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent text-caption font-semibold">
-            FA
-          </span>
-          {collapsed ? null : (
-            <span className="flex-1 min-w-0">
-              <span className="block truncate text-body-sm font-medium text-ink">
-                Fadi A.
+        {collapsed ? (
+          <div className="flex flex-col items-center gap-1">
+            <Link
+              href="/profile"
+              title="Profil"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent text-caption font-semibold hover:opacity-90"
+            >
+              FA
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              title="Se déconnecter"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-n-500 hover:bg-n-100 hover:text-danger disabled:opacity-50"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-md p-2 hover:bg-n-50">
+            <Link
+              href="/profile"
+              title="Profil"
+              className="flex flex-1 min-w-0 items-center gap-2.5"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent text-caption font-semibold">
+                FA
               </span>
-              <span className="block truncate text-caption text-n-500">
-                fadiprogix@gmail.com
+              <span className="flex-1 min-w-0">
+                <span className="block truncate text-body-sm font-medium text-ink">
+                  Admin MyStreet
+                </span>
+                <span className="block truncate text-caption text-n-500">
+                  Espace équipe
+                </span>
               </span>
-            </span>
-          )}
-        </Link>
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              title="Se déconnecter"
+              aria-label="Se déconnecter"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-n-500 hover:bg-n-100 hover:text-danger disabled:opacity-50"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -1,3 +1,6 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
 import { ArrowUpRight, Banknote, FileText, KeyRound, Receipt } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
@@ -5,24 +8,35 @@ import { KPIStat } from "@/components/ui/KPIStat";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button } from "@/components/ui/Button";
-import { summary, dailyGmv } from "@/lib/fixtures/metrics";
+import { financeApi, type FinanceSummary } from "@/lib/api";
 import { formatEuro, formatNumber } from "@/lib/utils/format";
 
-export const metadata = { title: "Finance" };
-
-const last7 = dailyGmv.slice(-7).reduce((acc, d) => acc + d.value, 0);
-const prev7 = dailyGmv.slice(-14, -7).reduce((acc, d) => acc + d.value, 0);
-const wow = (last7 - prev7) / prev7;
-
 const subModules = [
-  { href: "/finance/payouts", label: "Versements", desc: "Cycles vers vendeurs", icon: Banknote, count: "14 580 €" },
-  { href: "/finance/subscriptions", label: "Abonnements", desc: "Boost & Pro tiers", icon: Receipt, count: "168" },
-  { href: "/finance/invoices", label: "Factures", desc: "Émises B2B", icon: FileText, count: "12 ce mois" },
-  { href: "/finance/tax", label: "TVA", desc: "Déclaration trimestre", icon: Receipt, count: "T2 ouverte" },
-  { href: "/finance/stripe-sync", label: "Stripe sync", desc: "Webhooks & événements", icon: KeyRound, count: "Sain" },
+  { href: "/finance/payouts", label: "Versements", desc: "Cycles vers vendeurs", icon: Banknote },
+  { href: "/finance/subscriptions", label: "Abonnements", desc: "Boost & Pro tiers", icon: Receipt },
+  { href: "/finance/invoices", label: "Factures", desc: "Émises B2B", icon: FileText },
+  { href: "/finance/tax", label: "TVA", desc: "Déclaration trimestre", icon: Receipt },
+  { href: "/finance/stripe-sync", label: "Stripe sync", desc: "Webhooks & événements", icon: KeyRound },
 ];
 
 export default function FinancePage() {
+  const [summary, setSummary] = React.useState<FinanceSummary | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let alive = true;
+    financeApi
+      .summary()
+      .then((s) => {
+        if (alive) setSummary(s);
+      })
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const placeholder = loading ? "…" : "—";
   return (
     <div className="container-admin py-8 space-y-8">
       <PageHeader
@@ -38,10 +52,26 @@ export default function FinancePage() {
       />
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-        <KPIStat label="GMV — mois" value={formatEuro(summary.gmvMonth)} delta={summary.gmvDelta} hint="Volume des transactions" />
-        <KPIStat label="Revenu net" value={formatEuro(summary.revenueMonth)} delta={summary.revenueDelta} hint="Commission 5 % + abonnements" />
-        <KPIStat label="Versements en attente" value={formatEuro(summary.pendingPayouts)} hint={`Cycle ${summary.payoutCycleDays} j`} />
-        <KPIStat label="GMV — 7 derniers jours" value={formatEuro(last7)} delta={wow} hint="vs. semaine précédente" />
+        <KPIStat
+          label="GMV — commandes payées"
+          value={summary ? formatEuro(summary.totalGmvCents / 100) : placeholder}
+          hint="Volume cumulé des transactions finalisées"
+        />
+        <KPIStat
+          label="Revenu — commissions"
+          value={summary ? formatEuro(summary.totalFeesCents / 100) : placeholder}
+          hint="Commission plateforme 5 %"
+        />
+        <KPIStat
+          label="Commandes finalisées"
+          value={summary ? formatNumber(summary.completedOrders) : placeholder}
+          hint={summary ? `${summary.pendingOrders} en cours` : undefined}
+        />
+        <KPIStat
+          label="Remboursements"
+          value={summary ? formatNumber(summary.refundedOrders) : placeholder}
+          hint="Commandes refundées"
+        />
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -59,7 +89,6 @@ export default function FinancePage() {
             </div>
             <p className="mt-6 text-body font-medium text-ink">{m.label}</p>
             <p className="mt-0.5 text-body-sm text-n-500">{m.desc}</p>
-            <p className="mt-4 text-h3 font-medium tabular text-ink">{m.count}</p>
           </Link>
         ))}
       </div>

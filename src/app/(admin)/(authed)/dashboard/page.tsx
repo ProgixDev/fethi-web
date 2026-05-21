@@ -1,3 +1,6 @@
+"use client";
+
+import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -13,19 +16,69 @@ import {
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { KPIStat } from "@/components/ui/KPIStat";
 import { Pill } from "@/components/ui/Pill";
-import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Sparkline } from "@/components/admin/charts/Chart";
 import { DashboardGmvChart } from "@/components/admin/charts/DashboardGmvChart";
-import { dailyGmv, newSignups, summary, categoryMix } from "@/lib/fixtures/metrics";
+import { dailyGmv, newSignups } from "@/lib/fixtures/metrics";
 import { activity } from "@/lib/fixtures/activity";
-import { listings } from "@/lib/fixtures/listings";
-import { reports } from "@/lib/fixtures/reports";
-import { getUser } from "@/lib/fixtures/users";
+import {
+  analyticsApi,
+  financeApi,
+  listingsApi,
+  reportsApi,
+  type UsersSummary,
+  type FinanceSummary,
+  type Listing,
+} from "@/lib/api";
 import { formatEuro, formatNumber, timeAgo, formatDate } from "@/lib/utils/format";
 import { colors } from "@/lib/tokens";
 
-export const metadata = { title: "Tableau de bord" };
+// Mini hook : agrege les 4 ressources dont on a besoin pour les KPIs +
+// queue + top listings. On les lance en parallele pour ne pas faire 4
+// requetes en cascade.
+function useDashboardData() {
+  const [users, setUsers] = React.useState<UsersSummary | null>(null);
+  const [finance, setFinance] = React.useState<FinanceSummary | null>(null);
+  const [topListings, setTopListings] = React.useState<Listing[]>([]);
+  const [activeListingsCount, setActiveListingsCount] = React.useState<number>(0);
+  const [openReports, setOpenReports] = React.useState<number>(0);
+  const [pendingKyc, setPendingKyc] = React.useState<number>(0);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let alive = true;
+    Promise.allSettled([
+      analyticsApi.summary(),
+      financeApi.summary(),
+      listingsApi.list({ status: "ACTIVE", size: 5, sort: "viewCount,desc" }),
+      reportsApi.list({ status: "OPEN", size: 1 }),
+    ])
+      .then(([uRes, fRes, lRes, rRes]) => {
+        if (!alive) return;
+        if (uRes.status === "fulfilled") {
+          setUsers(uRes.value);
+          setPendingKyc(uRes.value.kycPending);
+        }
+        if (fRes.status === "fulfilled") setFinance(fRes.value);
+        if (lRes.status === "fulfilled") {
+          setTopListings(lRes.value.content);
+          // totalElements vient de Spring Data Page<>
+          const total = (lRes.value as { totalElements?: number }).totalElements;
+          setActiveListingsCount(total ?? lRes.value.content.length);
+        }
+        if (rRes.status === "fulfilled") {
+          const total = (rRes.value as { totalElements?: number }).totalElements;
+          setOpenReports(total ?? rRes.value.content.length);
+        }
+      })
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return { users, finance, topListings, activeListingsCount, openReports, pendingKyc, loading };
+}
 
 const trendData = dailyGmv.slice(-14);
 
@@ -56,41 +109,46 @@ const activityLabel: Record<string, string> = {
 };
 
 export default function AdminDashboardPage() {
+  const {
+    users,
+    finance,
+    topListings,
+    activeListingsCount,
+    openReports,
+    pendingKyc,
+    loading,
+  } = useDashboardData();
+
   const queue = [
     {
       label: "Modération",
-      value: summary.pendingReviews,
+      value: openReports,
       href: "/moderation",
       tone: "warning" as const,
       hint: "À traiter",
     },
     {
       label: "Litiges",
-      value: summary.openDisputes,
+      value: finance?.refundedOrders ?? 0,
       href: "/disputes",
       tone: "danger" as const,
       hint: "Ouvert",
     },
     {
       label: "KYC en attente",
-      value: summary.pendingKyc,
+      value: pendingKyc,
       href: "/kyc",
       tone: "info" as const,
       hint: "Demandes",
     },
     {
       label: "Versements",
-      value: formatEuro(summary.pendingPayouts),
+      value: formatEuro((finance?.totalFeesCents ?? 0) / 100),
       href: "/finance/payouts",
       tone: "primary" as const,
-      hint: `cycle ${summary.payoutCycleDays} j`,
+      hint: "Commissions",
     },
   ];
-
-  const liveListings = listings
-    .filter((l) => l.status === "active")
-    .sort((a, b) => b.views - a.views)
-    .slice(0, 5);
 
   return (
     <div className="container-admin py-8 space-y-8">
@@ -110,44 +168,34 @@ export default function AdminDashboardPage() {
         }
       />
 
-      {/* KPIs */}
+      {/* KPIs — viennent des endpoints backend */}
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <KPIStat
           label="Utilisateurs"
-          value={formatNumber(summary.users)}
-          delta={summary.usersDelta}
-          hint={`Actifs 7j : ${formatNumber(summary.activeUsers7d)}`}
-          trend={
-            <Sparkline
-              data={newSignups.slice(-14)}
-              dataKey="value"
-              color={colors.primary}
-            />
-          }
+          value={users ? formatNumber(users.total) : loading ? "…" : "—"}
+          hint={users ? `Vérifiés KYC : ${formatNumber(users.kycVerified)}` : undefined}
+          trend={<Sparkline data={newSignups.slice(-14)} dataKey="value" color={colors.primary} />}
         />
         <KPIStat
-          label="GMV — mois en cours"
-          value={formatEuro(summary.gmvMonth)}
-          delta={summary.gmvDelta}
-          hint="Net hors frais d'expédition"
+          label="GMV — commandes payées"
+          value={finance ? formatEuro(finance.totalGmvCents / 100) : loading ? "…" : "—"}
+          hint={finance ? `${finance.completedOrders} ${finance.completedOrders > 1 ? "ventes" : "vente"} finalisée${finance.completedOrders > 1 ? "s" : ""}` : undefined}
           trend={<Sparkline data={trendData} color={colors.accent} />}
         />
         <KPIStat
           label="Annonces actives"
-          value={formatNumber(summary.liveListings)}
-          delta={summary.listingsDelta}
-          hint={`${formatNumber(summary.listings)} totales`}
+          value={loading ? "…" : formatNumber(activeListingsCount)}
+          hint={topListings.length > 0 ? `Plus vue : ${topListings[0].viewCount ?? 0}` : undefined}
         />
         <KPIStat
-          label="Revenu — mois"
-          value={formatEuro(summary.revenueMonth)}
-          delta={summary.revenueDelta}
-          hint="Commission 5 % + MyStreet+"
+          label="Revenu — commissions"
+          value={finance ? formatEuro(finance.totalFeesCents / 100) : loading ? "…" : "—"}
+          hint="Commission 5 %"
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        {/* GMV chart */}
+        {/* GMV chart — encore sur fixtures tant qu'on n'a pas /admin/analytics/finance/trend */}
         <section className="rounded-lg border border-n-100 bg-surface p-5">
           <header className="flex items-end justify-between gap-4 pb-4">
             <div>
@@ -155,7 +203,7 @@ export default function AdminDashboardPage() {
                 Volume de transactions — 30 jours
               </p>
               <p className="mt-1 text-h2 font-medium tabular tracking-tight text-ink">
-                {formatEuro(dailyGmv.reduce((acc, d) => acc + d.value, 0))}
+                {finance ? formatEuro(finance.totalGmvCents / 100) : "—"}
               </p>
             </div>
             <div className="flex items-center gap-3 text-caption text-n-500">
@@ -170,7 +218,7 @@ export default function AdminDashboardPage() {
           <DashboardGmvChart />
         </section>
 
-        {/* Queue */}
+        {/* File d'attente */}
         <section className="rounded-lg border border-n-100 bg-surface p-5">
           <header className="pb-4">
             <p className="text-label uppercase tracking-wide text-n-500">
@@ -194,9 +242,7 @@ export default function AdminDashboardPage() {
                     <span className="text-body text-ink">{q.label}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-h3 font-medium tabular text-ink">
-                      {q.value}
-                    </span>
+                    <span className="text-h3 font-medium tabular text-ink">{q.value}</span>
                     <ArrowUpRight className="h-4 w-4 text-n-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </div>
                 </Link>
@@ -207,14 +253,12 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        {/* Activity feed */}
+        {/* Activity — encore sur fixtures (pas de /admin/activity backend) */}
         <section className="rounded-lg border border-n-100 bg-surface">
           <header className="flex items-center justify-between border-b border-n-100 px-5 py-4">
             <div>
               <p className="text-h3 font-medium text-ink">Activité récente</p>
-              <p className="text-body-sm text-n-500">
-                Évènements live à travers la marketplace.
-              </p>
+              <p className="text-body-sm text-n-500">Évènements live à travers la marketplace.</p>
             </div>
             <Link
               href="/activity"
@@ -251,12 +295,12 @@ export default function AdminDashboardPage() {
           </ul>
         </section>
 
-        {/* Top listings */}
+        {/* Top listings — REAL backend data */}
         <section className="rounded-lg border border-n-100 bg-surface">
           <header className="flex items-center justify-between border-b border-n-100 px-5 py-4">
             <div>
               <p className="text-h3 font-medium text-ink">Annonces les plus vues</p>
-              <p className="text-body-sm text-n-500">7 derniers jours</p>
+              <p className="text-body-sm text-n-500">Top 5 actives</p>
             </div>
             <Link
               href="/listings"
@@ -266,114 +310,39 @@ export default function AdminDashboardPage() {
             </Link>
           </header>
           <ul className="divide-y divide-n-100">
-            {liveListings.map((l) => {
-              const seller = getUser(l.sellerId);
-              return (
-                <li key={l.id}>
-                  <Link
-                    href={`/listings/${l.id}`}
-                    className="flex items-center gap-3 px-5 py-3 hover:bg-n-50"
-                  >
-                    <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-n-100">
-                      {l.photo ? (
-                        <Image src={l.photo} alt="" fill sizes="40px" className="object-cover" />
-                      ) : null}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="line-clamp-1 text-body-sm font-medium text-ink">
-                        {l.title}
-                      </p>
-                      <p className="text-caption text-n-500">
-                        {seller?.name ?? "—"} · {formatEuro(l.price)} · {l.views} vues
-                      </p>
-                    </div>
-                    {l.featured ? (
-                      <Pill tone="primary">À la une</Pill>
+            {topListings.length === 0 && !loading ? (
+              <li className="px-5 py-6 text-body-sm text-n-500">Aucune annonce active.</li>
+            ) : null}
+            {topListings.map((l) => (
+              <li key={l.id}>
+                <Link
+                  href={`/listings/${l.id}`}
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-n-50"
+                >
+                  <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-n-100">
+                    {l.photos?.[0] ? (
+                      <Image
+                        src={l.photos[0]}
+                        alt=""
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                        unoptimized
+                      />
                     ) : null}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        {/* Category mix */}
-        <section className="rounded-lg border border-n-100 bg-surface p-5">
-          <header className="pb-4">
-            <p className="text-label uppercase tracking-wide text-n-500">
-              Mix par catégorie
-            </p>
-            <p className="mt-1 text-body-sm text-n-500">
-              Part du GMV ce mois
-            </p>
-          </header>
-          <ul className="space-y-2.5">
-            {categoryMix.map((c) => (
-              <li key={c.name}>
-                <div className="flex items-center justify-between text-body-sm">
-                  <span className="text-n-700">{c.name}</span>
-                  <span className="tabular text-n-500">{c.value}%</span>
-                </div>
-                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-n-100">
-                  <div
-                    className="h-full bg-primary"
-                    style={{ width: `${c.value * 3}%`, maxWidth: "100%" }}
-                  />
-                </div>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-body-sm font-medium text-ink truncate">{l.title}</p>
+                    <p className="text-caption text-n-500">
+                      {l.owner?.displayName ?? "Voisin·e"} · {l.neighborhood ?? "—"}
+                    </p>
+                  </div>
+                  <span className="text-caption tabular text-n-500">
+                    {l.viewCount ?? 0} vues
+                  </span>
+                </Link>
               </li>
             ))}
-          </ul>
-        </section>
-
-        {/* Reports preview */}
-        <section className="rounded-lg border border-n-100 bg-surface">
-          <header className="flex items-center justify-between border-b border-n-100 px-5 py-4">
-            <div>
-              <p className="text-h3 font-medium text-ink">Signalements ouverts</p>
-              <p className="text-body-sm text-n-500">À examiner</p>
-            </div>
-            <Link
-              href="/moderation"
-              className="text-body-sm font-medium text-primary hover:text-primary-hover"
-            >
-              Tout voir →
-            </Link>
-          </header>
-          <ul className="divide-y divide-n-100">
-            {reports
-              .filter((r) => r.status === "open" || r.status === "in_review")
-              .slice(0, 5)
-              .map((r) => (
-                <li key={r.id}>
-                  <Link
-                    href={`/moderation/${r.id}`}
-                    className="flex items-start gap-3 px-5 py-3 hover:bg-n-50"
-                  >
-                    <Avatar initials={r.reason.slice(0, 2).toUpperCase()} seed={r.id} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="line-clamp-1 text-body-sm font-medium text-ink">
-                        {r.targetTitle}
-                      </p>
-                      <p className="text-caption text-n-500">
-                        {r.reason.replace(/_/g, " ")} · {timeAgo(r.createdAt)}
-                      </p>
-                    </div>
-                    <Pill
-                      tone={
-                        r.priority === "critical"
-                          ? "danger"
-                          : r.priority === "high"
-                            ? "warning"
-                            : "neutral"
-                      }
-                    >
-                      {r.priority}
-                    </Pill>
-                  </Link>
-                </li>
-              ))}
           </ul>
         </section>
       </div>

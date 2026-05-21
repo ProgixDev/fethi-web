@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { PixelField } from "@/components/ui/PixelField";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { authApi, ApiError } from "@/lib/api";
 
 // Cursor-halftone tones invert with the theme:
 //   • Light mode: bg is brand terracotta, pixels are a deep warm-black.
@@ -21,6 +22,9 @@ export default function LoginPage() {
   const router = useRouter();
   const { theme } = useTheme();
   const [submitting, setSubmitting] = React.useState(false);
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
 
   const pixelTone = theme === "dark" ? TONE_DARK_PIXEL : TONE_LIGHT_PIXEL;
 
@@ -71,8 +75,22 @@ export default function LoginPage() {
             onSubmit={async (e) => {
               e.preventDefault();
               setSubmitting(true);
-              await new Promise((r) => setTimeout(r, 600));
-              router.push("/dashboard");
+              setError(null);
+              try {
+                await authApi.login(email.trim().toLowerCase(), password);
+                router.push("/dashboard");
+              } catch (err) {
+                if (err instanceof ApiError) {
+                  setError(
+                    err.status === 401 || err.status === 403
+                      ? "E-mail ou mot de passe incorrect."
+                      : err.message || "Connexion impossible.",
+                  );
+                } else {
+                  setError("Erreur réseau — backend injoignable.");
+                }
+                setSubmitting(false);
+              }
             }}
           >
             <Field label="E-mail professionnel" required>
@@ -80,7 +98,8 @@ export default function LoginPage() {
                 type="email"
                 required
                 placeholder="vous@mystreet.fr"
-                defaultValue="fadiprogix@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.currentTarget.value)}
                 autoComplete="email"
               />
             </Field>
@@ -102,33 +121,27 @@ export default function LoginPage() {
                 type="password"
                 required
                 placeholder="••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.currentTarget.value)}
                 autoComplete="current-password"
                 leadingIcon={<Lock className="h-4 w-4" />}
               />
             </Field>
+
+            {error ? (
+              <p className="rounded-md bg-danger/10 px-3 py-2 text-caption text-danger">
+                {error}
+              </p>
+            ) : null}
 
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? "Connexion en cours…" : "Se connecter"}
               {!submitting ? <ArrowRight className="h-4 w-4" /> : null}
             </Button>
 
-            <div className="relative my-6">
-              <span className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-n-100" />
-              </span>
-              <span className="relative flex justify-center text-caption text-n-400">
-                <span className="bg-paper px-2">ou</span>
-              </span>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => router.push("/dashboard")}
-            >
-              Single sign-on (Google Workspace)
-            </Button>
+            {/* SSO Google Workspace : retire tant que l'OAuth backend
+                n'est pas branche. On le reactive quand /admin/auth/oauth/google
+                existera cote Spring. */}
           </form>
 
           <p className="text-caption text-n-400">
