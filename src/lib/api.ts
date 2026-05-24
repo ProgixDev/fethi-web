@@ -349,6 +349,31 @@ export const categoriesApi = {
 };
 
 // ---------------------------------------------------------------------------
+// Public user (consulte une fiche user depuis annonce / signalement / etc.)
+// ---------------------------------------------------------------------------
+
+export type PublicProfile = {
+  id: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  age: number | null;
+  profession: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  rating: number | null;
+  reviewsCount: number | null;
+  listingsCount: number | null;
+  salesCount: number | null;
+  createdAt: string;
+};
+
+export const publicUsersApi = {
+  get: (userId: string) =>
+    request<PublicProfile>(`/users/${userId}/public`, {}, { auth: false }),
+};
+
+// ---------------------------------------------------------------------------
 // Listings (admin)
 // ---------------------------------------------------------------------------
 

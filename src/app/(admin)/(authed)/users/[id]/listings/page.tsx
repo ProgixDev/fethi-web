@@ -1,31 +1,51 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
-import { getUser } from "@/lib/fixtures/users";
-import { listings } from "@/lib/fixtures/listings";
+import { useParams } from "next/navigation";
+import { Tag } from "lucide-react";
 import { Pill } from "@/components/ui/Pill";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Tag } from "lucide-react";
-import { formatEuro, formatDate } from "@/lib/utils/format";
+import { listingsApi, type Listing } from "@/lib/api";
+import { formatDate } from "@/lib/utils/format";
 
-const statusTone: Record<string, React.ComponentProps<typeof Pill>["tone"]> = {
-  active: "success",
-  pending: "warning",
-  sold: "neutral",
-  rejected: "danger",
-  flagged: "warning",
-  draft: "neutral",
+function formatEur(cents: number | null | undefined) {
+  if (cents == null) return "—";
+  return `${(cents / 100).toLocaleString("fr-FR")} €`;
+}
+
+const tone: Record<Listing["status"], React.ComponentProps<typeof Pill>["tone"]> = {
+  ACTIVE: "success",
+  DRAFT: "neutral",
+  PAUSED: "warning",
+  SOLD: "neutral",
+  ARCHIVED: "neutral",
 };
 
-export default async function UserListingsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const user = getUser(id);
-  if (!user) notFound();
-  const items = listings.filter((l) => l.sellerId === user.id);
+export default function UserListingsPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+  const [items, setItems] = React.useState<Listing[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
+  React.useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    listingsApi
+      .list({ ownerId: id, size: 100 })
+      .then((res) => {
+        if (alive) setItems(res.content);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  if (loading) return <p className="text-body text-n-500">Chargement…</p>;
   if (items.length === 0) {
     return (
       <EmptyState
@@ -45,7 +65,7 @@ export default async function UserListingsPage({
             <th className="px-4 py-2.5 text-left">Catégorie</th>
             <th className="px-4 py-2.5 text-left">Prix</th>
             <th className="px-4 py-2.5 text-left">Statut</th>
-            <th className="px-4 py-2.5 text-left">Vues</th>
+            <th className="px-4 py-2.5 text-left">Vues · ❤</th>
             <th className="px-4 py-2.5 text-left">Publiée</th>
           </tr>
         </thead>
@@ -57,12 +77,14 @@ export default async function UserListingsPage({
                   {l.title}
                 </Link>
               </td>
-              <td className="px-4 py-3 capitalize text-n-700">{l.category}</td>
-              <td className="px-4 py-3 tabular text-ink">{formatEuro(l.price)}</td>
+              <td className="px-4 py-3 text-n-700">{l.categoryLabel ?? "—"}</td>
+              <td className="px-4 py-3 tabular text-ink">{formatEur(l.priceCents)}</td>
               <td className="px-4 py-3">
-                <Pill tone={statusTone[l.status] ?? "neutral"} dot>{l.status}</Pill>
+                <Pill tone={tone[l.status]} dot>{l.status}</Pill>
               </td>
-              <td className="px-4 py-3 tabular text-n-700">{l.views}</td>
+              <td className="px-4 py-3 tabular text-n-700">
+                {l.viewCount ?? 0} · {l.favoritesCount ?? 0}
+              </td>
               <td className="px-4 py-3 text-caption text-n-500">{formatDate(l.createdAt)}</td>
             </tr>
           ))}

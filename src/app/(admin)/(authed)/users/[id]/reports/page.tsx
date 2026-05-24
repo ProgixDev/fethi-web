@@ -1,75 +1,81 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
-import { getUser } from "@/lib/fixtures/users";
-import { reports } from "@/lib/fixtures/reports";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Pill } from "@/components/ui/Pill";
+import { useParams } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
+import { Pill } from "@/components/ui/Pill";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { reportsApi, type Report } from "@/lib/api";
 import { formatDate } from "@/lib/utils/format";
 
-const priorityTone: Record<string, React.ComponentProps<typeof Pill>["tone"]> = {
-  critical: "danger",
-  high: "warning",
-  medium: "info",
-  low: "neutral",
+const tone: Record<Report["status"], React.ComponentProps<typeof Pill>["tone"]> = {
+  OPEN: "warning",
+  REVIEWING: "info",
+  ACTIONED: "success",
+  DISMISSED: "neutral",
 };
 
-export default async function UserReportsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const user = getUser(id);
-  if (!user) notFound();
+export default function UserReportsPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+  const [items, setItems] = React.useState<Report[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  const items = reports.filter(
-    (r) =>
-      r.reporterId === user.id ||
-      (r.targetType === "user" && r.targetId === user.id),
-  );
+  React.useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    reportsApi
+      .list({ targetType: "USER", size: 100 })
+      .then((res) => {
+        if (alive) setItems(res.content.filter((r) => r.targetId === id));
+      })
+      .catch(() => {})
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [id]);
 
+  if (loading) return <p className="text-body text-n-500">Chargement…</p>;
   if (items.length === 0) {
     return (
       <EmptyState
         icon={<ShieldAlert className="h-5 w-5" />}
         title="Aucun signalement"
-        description="Ni signalements émis, ni signalements reçus pour ce compte."
+        description="Aucun utilisateur n'a signalé ce compte."
       />
     );
   }
 
   return (
-    <ul className="space-y-3">
-      {items.map((r) => (
-        <li
-          key={r.id}
-          className="flex items-start gap-3 rounded-lg border border-n-100 bg-surface p-4"
-        >
-          <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning">
-            <ShieldAlert className="h-4 w-4" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-body-sm font-medium text-ink">
-                {r.reporterId === user.id ? "Émis par" : "Cible : "} {r.targetTitle}
-              </p>
-              <Pill tone={priorityTone[r.priority]}>{r.priority}</Pill>
-              <Pill>{r.status}</Pill>
-            </div>
-            <p className="mt-1 text-body-sm text-n-600">{r.detail}</p>
-            <p className="mt-1 text-caption text-n-400">
-              {r.reason.replace(/_/g, " ")} · {formatDate(r.createdAt)}
-            </p>
-          </div>
-          <Link
-            href={`/moderation/${r.id}`}
-            className="text-body-sm font-medium text-primary hover:text-primary-hover"
-          >
-            Ouvrir →
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <div className="overflow-hidden rounded-lg border border-n-100 bg-surface">
+      <table className="w-full text-body-sm">
+        <thead>
+          <tr className="border-b border-n-100 bg-paper text-label uppercase tracking-wide text-n-500">
+            <th className="px-4 py-2.5 text-left">Motif</th>
+            <th className="px-4 py-2.5 text-left">Détails</th>
+            <th className="px-4 py-2.5 text-left">Statut</th>
+            <th className="px-4 py-2.5 text-left">Reçu le</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((r) => (
+            <tr key={r.id} className="border-b border-n-100 last:border-0 hover:bg-n-50">
+              <td className="px-4 py-3 text-n-700">{r.reason}</td>
+              <td className="px-4 py-3 text-n-700 truncate max-w-xs">{r.details ?? "—"}</td>
+              <td className="px-4 py-3">
+                <Pill tone={tone[r.status]} dot>{r.status}</Pill>
+              </td>
+              <td className="px-4 py-3 text-caption text-n-500">
+                <Link href={`/moderation/${r.id}`} className="text-primary hover:underline">
+                  {formatDate(r.createdAt)}
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

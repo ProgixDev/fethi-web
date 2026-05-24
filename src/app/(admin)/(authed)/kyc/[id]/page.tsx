@@ -1,23 +1,48 @@
-import { notFound } from "next/navigation";
-import { CheckCircle2, FileBadge, Image as ImageIcon, Shield } from "lucide-react";
-import { getUser } from "@/lib/fixtures/users";
-import { neighborhoodName } from "@/lib/fixtures/neighborhoods";
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { useParams, notFound } from "next/navigation";
+import { CheckCircle2, FileBadge, Shield, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Avatar } from "@/components/ui/Avatar";
 import { Pill } from "@/components/ui/Pill";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { Field } from "@/components/ui/Field";
-import { Textarea } from "@/components/ui/Textarea";
-import { formatDate, initials } from "@/lib/utils/format";
+import { publicUsersApi, kycApi, type PublicProfile } from "@/lib/api";
+import { initials, formatDate } from "@/lib/utils/format";
 
-export default async function KycDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const user = getUser(id);
+export default function KycDetailPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+  const [user, setUser] = React.useState<PublicProfile | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [pending, setPending] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    publicUsersApi.get(id)
+      .then((p) => { if (alive) setUser(p); })
+      .catch(() => alive && setUser(null))
+      .finally(() => alive && setLoading(false));
+    return () => { alive = false; };
+  }, [id]);
+
+  const updateKyc = async (next: "VERIFIED" | "REJECTED") => {
+    if (!id) return;
+    setPending(true);
+    try {
+      await kycApi.setStatus(id, next);
+      alert(`Statut mis à jour: ${next}`);
+    } catch (err) {
+      alert("Échec: " + (err as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  if (loading) return <div className="container-admin py-8"><p className="text-body text-n-500">Chargement…</p></div>;
   if (!user) notFound();
 
   return (
@@ -26,149 +51,58 @@ export default async function KycDetailPage({
         crumbs={[
           { href: "/dashboard", label: "Tableau de bord" },
           { href: "/kyc", label: "KYC" },
-          { label: user.name },
+          { label: user.displayName ?? "—" },
         ]}
-        title={user.name}
-        description="Vérification d'identité — comparez les pièces fournies aux infos déclarées."
-        actions={
-          <>
-            <Button variant="outline" size="sm">Demander une preuve complémentaire</Button>
-            <Button variant="outline" size="sm">Refuser</Button>
-            <Button size="sm">Approuver</Button>
-          </>
-        }
+        title={`Dossier KYC — ${user.displayName ?? "Voisin·e"}`}
+        description={`Quartier : ${user.neighborhood ?? "—"}`}
       />
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
-          <Card>
-            <CardBody>
-              <h3 className="text-h3 font-medium text-ink">Pièces fournies</h3>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <DocumentTile label="Carte nationale d'identité" subtitle="Recto + verso" />
-                <DocumentTile label="Justificatif de domicile" subtitle="Facture EDF — Avril 2026" />
-                <DocumentTile label="Selfie" subtitle="Liveness vérifié" verified />
-                <DocumentTile label="IBAN — Crédit du Nord" subtitle="FR76 ... 4521" verified />
+          <Card><CardBody>
+            <div className="flex items-center gap-3">
+              <Avatar initials={initials(user.displayName ?? "?")} seed={user.id} size="lg" />
+              <div>
+                <p className="text-body font-medium text-ink">{user.displayName ?? "Voisin·e"}</p>
+                <p className="text-caption text-n-500">{user.neighborhood ?? "—"} · inscrit le {formatDate(user.createdAt)}</p>
               </div>
-            </CardBody>
-          </Card>
+            </div>
+            {user.bio ? <p className="mt-3 text-body-sm text-n-700">{user.bio}</p> : null}
+          </CardBody></Card>
 
-          <Card>
-            <CardBody>
-              <h3 className="text-h3 font-medium text-ink">Infos déclarées</h3>
-              <ul className="mt-3 space-y-2 text-body-sm">
-                <Row label="Nom complet" value={user.name} />
-                <Row label="Date de naissance" value="14 mars 1992" />
-                <Row label="Adresse" value={`${neighborhoodName(user.neighborhood)} — Lille`} />
-                <Row label="Téléphone" value={user.phone} />
-                <Row label="E-mail" value={user.email} />
-                <Row label="Inscrit le" value={formatDate(user.joinedAt)} />
-              </ul>
-            </CardBody>
-          </Card>
+          <Card><CardBody>
+            <h3 className="text-h3 font-medium text-ink mb-3 flex items-center gap-2">
+              <FileBadge className="h-4 w-4" /> Pièces fournies
+            </h3>
+            <p className="text-body-sm text-n-500">
+              L'upload des pièces (CNI, selfie, justificatif) sera disponible quand l'endpoint
+              <code className="font-mono"> /me/kyc/upload </code> sera créé côté backend.
+            </p>
+          </CardBody></Card>
 
-          <Card>
-            <CardBody>
-              <h3 className="text-h3 font-medium text-ink">Note de décision</h3>
-              <Field className="mt-3" label="Justification (visible uniquement par les admins)">
-                <Textarea placeholder="Pourquoi vous validez ou refusez cette demande" />
-              </Field>
-            </CardBody>
-          </Card>
+          <Card><CardBody>
+            <h3 className="text-h3 font-medium text-ink mb-3">Décision</h3>
+            <div className="flex gap-3">
+              <Button onClick={() => updateKyc("VERIFIED")} disabled={pending}>
+                <CheckCircle2 className="h-4 w-4" /> Approuver
+              </Button>
+              <Button variant="outline" onClick={() => updateKyc("REJECTED")} disabled={pending}>
+                <XCircle className="h-4 w-4" /> Refuser
+              </Button>
+            </div>
+          </CardBody></Card>
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardBody className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Avatar initials={initials(user.name)} seed={user.id} size="lg" />
-                <div>
-                  <p className="text-body font-medium text-ink">{user.name}</p>
-                  <p className="text-caption text-n-500">{user.email}</p>
-                </div>
-              </div>
-              <div className="space-y-1.5 border-t border-n-100 pt-4 text-body-sm">
-                <Row label="Statut KYC" value={<Pill tone="warning">À examiner</Pill>} />
-                <Row label="Score risque" value="Faible" />
-                <Row label="Vérification e-mail" value={<CheckOk />} />
-                <Row label="Vérification téléphone" value={<CheckOk />} />
-                <Row label="Vérification adresse" value={<Pill tone="warning">En cours</Pill>} />
-                <Row label="Liveness selfie" value={<CheckOk />} />
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody>
-              <h3 className="text-h3 font-medium text-ink">Vérifications externes</h3>
-              <ul className="mt-3 space-y-2 text-body-sm">
-                <li className="flex items-center justify-between">
-                  <span className="text-n-500">Sumsub — ID</span>
-                  <Pill tone="success" dot>200</Pill>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span className="text-n-500">Sumsub — Liveness</span>
-                  <Pill tone="success" dot>OK</Pill>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span className="text-n-500">Sanctions list</span>
-                  <Pill tone="success" dot>Aucun match</Pill>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span className="text-n-500">PEP</span>
-                  <Pill tone="success" dot>Aucun match</Pill>
-                </li>
-              </ul>
-            </CardBody>
-          </Card>
+          <Card><CardBody className="space-y-3">
+            <div className="flex justify-between"><span className="text-caption text-n-500">Note</span><span className="text-body-sm text-ink">{user.rating != null ? user.rating.toFixed(1) : "—"}</span></div>
+            <div className="flex justify-between"><span className="text-caption text-n-500">Annonces</span><span className="text-body-sm text-ink">{user.listingsCount ?? 0}</span></div>
+            <div className="flex justify-between"><span className="text-caption text-n-500">Ventes</span><span className="text-body-sm text-ink">{user.salesCount ?? 0}</span></div>
+            <div className="flex justify-between"><span className="text-caption text-n-500">Avis</span><span className="text-body-sm text-ink">{user.reviewsCount ?? 0}</span></div>
+            <hr className="border-n-100" />
+            <Link href={`/users/${user.id}`} className="text-body-sm text-primary hover:underline">Voir le profil complet →</Link>
+          </CardBody></Card>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function CheckOk() {
-  return (
-    <span className="inline-flex items-center gap-1 text-success">
-      <CheckCircle2 className="h-3.5 w-3.5" /> Validé
-    </span>
-  );
-}
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <li className="flex items-center justify-between gap-3">
-      <span className="text-n-500">{label}</span>
-      <span className="text-right">{value}</span>
-    </li>
-  );
-}
-
-function DocumentTile({ label, subtitle, verified }: { label: string; subtitle: string; verified?: boolean }) {
-  return (
-    <div className="overflow-hidden rounded-md border border-n-100 bg-paper">
-      <div
-        className="aspect-[4/3] flex items-center justify-center"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(31,36,33,0.06) 0%, rgba(31,36,33,0.02) 100%)",
-        }}
-      >
-        <span className="inline-flex items-center gap-2 text-n-500">
-          <ImageIcon className="h-5 w-5" />
-          Aperçu protégé
-        </span>
-      </div>
-      <div className="flex items-center justify-between gap-2 px-3 py-2">
-        <div className="min-w-0">
-          <p className="text-body-sm font-medium text-ink truncate">{label}</p>
-          <p className="text-caption text-n-500 truncate">{subtitle}</p>
-        </div>
-        {verified ? (
-          <Pill tone="success" dot>OK</Pill>
-        ) : (
-          <Shield className="h-4 w-4 text-n-400" />
-        )}
       </div>
     </div>
   );

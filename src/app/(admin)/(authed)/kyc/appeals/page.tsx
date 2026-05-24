@@ -1,34 +1,30 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
 import { Scale } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
-import { Pill } from "@/components/ui/Pill";
 import { Avatar } from "@/components/ui/Avatar";
+import { Pill } from "@/components/ui/Pill";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { users } from "@/lib/fixtures/users";
+import { usersApi, type AdminUserListItem } from "@/lib/api";
 import { initials, formatDate } from "@/lib/utils/format";
 
-export const metadata = { title: "Recours KYC" };
-
-const appeals = [
-  {
-    userId: "u_julien_p",
-    submittedAt: "2026-04-22T14:00:00Z",
-    reason: "Justificatif d'identité refusé",
-    detail:
-      "L'IBAN fourni ne correspond pas à mon nom car je viens de me marier. Je joins l'attestation INSEE.",
-    status: "open",
-  },
-  {
-    userId: "u_hugo_f",
-    submittedAt: "2026-04-29T10:14:00Z",
-    reason: "Adresse non vérifiable",
-    detail:
-      "Je viens de déménager. La nouvelle facture arrive en mai, je peux fournir un bail.",
-    status: "in_review",
-  },
-];
-
+// "Appeals" : utilisateurs avec KYC REJECTED qui pourraient demander un recours.
+// L'API backend n'a pas d'endpoint "appeals" dédié — on liste juste les REJECTED.
 export default function KycAppealsPage() {
+  const [items, setItems] = React.useState<AdminUserListItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let alive = true;
+    usersApi.list({ kyc: "REJECTED", size: 100 } as never)
+      .then((res) => { if (alive) setItems(res.content); })
+      .catch(() => {})
+      .finally(() => alive && setLoading(false));
+    return () => { alive = false; };
+  }, []);
+
   return (
     <div className="container-admin py-8 space-y-6">
       <PageHeader
@@ -37,54 +33,37 @@ export default function KycAppealsPage() {
           { href: "/kyc", label: "KYC" },
           { label: "Recours" },
         ]}
-        title="Recours"
-        description="Demandes de revue après refus initial. Examiner sous 5 jours ouvrés."
+        title="Recours KYC"
+        description={`${items.length} compte(s) avec KYC refusé.`}
       />
-      {appeals.length === 0 ? (
-        <EmptyState
-          icon={<Scale className="h-5 w-5" />}
-          title="Aucun recours"
-          description="Aucune demande de revue n'est en attente."
-        />
+      {loading ? <p className="text-body text-n-500">Chargement…</p> : items.length === 0 ? (
+        <EmptyState icon={<Scale className="h-5 w-5" />} title="Aucun recours" description="Aucun compte n'a été refusé." />
       ) : (
-        <ul className="space-y-3">
-          {appeals.map((a, i) => {
-            const u = users.find((x) => x.id === a.userId);
-            if (!u) return null;
-            return (
-              <li
-                key={i}
-                className="flex items-start gap-4 rounded-lg border border-n-100 bg-surface p-4"
-              >
-                <Avatar initials={initials(u.name)} seed={u.id} size="md" />
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/users/${u.id}`}
-                      className="text-body font-medium text-ink hover:text-primary"
-                    >
-                      {u.name}
+        <div className="overflow-hidden rounded-lg border border-n-100 bg-surface">
+          <table className="w-full text-body-sm">
+            <thead><tr className="border-b border-n-100 bg-paper text-label uppercase tracking-wide text-n-500">
+              <th className="px-4 py-2.5 text-left">Utilisateur</th>
+              <th className="px-4 py-2.5 text-left">Quartier</th>
+              <th className="px-4 py-2.5 text-left">Statut</th>
+              <th className="px-4 py-2.5 text-left">Inscrit le</th>
+            </tr></thead>
+            <tbody>
+              {items.map((u) => (
+                <tr key={u.id} className="border-b border-n-100 last:border-0 hover:bg-n-50">
+                  <td className="px-4 py-3">
+                    <Link href={`/users/${u.id}`} className="flex items-center gap-3 hover:text-primary">
+                      <Avatar initials={initials(u.name)} seed={u.id} size="sm" />
+                      <span className="font-medium text-ink">{u.name}</span>
                     </Link>
-                    <Pill tone={a.status === "open" ? "warning" : "info"} dot>
-                      {a.status === "open" ? "À examiner" : "En cours"}
-                    </Pill>
-                  </div>
-                  <p className="text-body-sm text-n-700">{a.reason}</p>
-                  <p className="text-body-sm text-n-500">{a.detail}</p>
-                  <p className="text-caption text-n-400">
-                    Soumis le {formatDate(a.submittedAt)}
-                  </p>
-                </div>
-                <Link
-                  href={`/kyc/${u.id}`}
-                  className="text-body-sm font-medium text-primary hover:text-primary-hover"
-                >
-                  Ouvrir →
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                  </td>
+                  <td className="px-4 py-3 text-n-700">{u.neighborhood ?? "—"}</td>
+                  <td className="px-4 py-3"><Pill tone="danger" dot>Refusé</Pill></td>
+                  <td className="px-4 py-3 text-caption text-n-500">{formatDate(u.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -1,24 +1,33 @@
-import Link from "next/link";
-import { Plus, Star } from "lucide-react";
-import { PageHeader } from "@/components/admin/shell/PageHeader";
-import { Pill } from "@/components/ui/Pill";
-import { Button } from "@/components/ui/Button";
-import { listings, ListingStatus } from "@/lib/fixtures/listings";
-import { getUser } from "@/lib/fixtures/users";
-import { neighborhoodName } from "@/lib/fixtures/neighborhoods";
-import { formatDistance, formatEuro } from "@/lib/utils/format";
+"use client";
 
-const statusTone: Record<ListingStatus, "neutral" | "primary" | "accent" | "success" | "warning" | "danger" | "info" | "ink"> = {
-  active: "success",
-  pending: "warning",
-  sold: "neutral",
-  rejected: "danger",
-  flagged: "warning",
-  draft: "neutral",
-};
+import * as React from "react";
+import Link from "next/link";
+import { Star } from "lucide-react";
+import { PageHeader } from "@/components/admin/shell/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { listingsApi, type Listing } from "@/lib/api";
+
+function eur(c: number | null | undefined) { return c == null ? "—" : `${(c / 100).toLocaleString("fr-FR")} €`; }
 
 export default function ListingsFeaturedPage() {
-  const featured = listings.filter((l) => l.featured === true);
+  const [items, setItems] = React.useState<Listing[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let alive = true;
+    listingsApi.list({ status: "ACTIVE", size: 100 })
+      .then((res) => {
+        const sorted = [...res.content].sort((a, b) => {
+          const sa = (b.favoritesCount ?? 0) - (a.favoritesCount ?? 0);
+          if (sa !== 0) return sa;
+          return (b.viewCount ?? 0) - (a.viewCount ?? 0);
+        });
+        if (alive) setItems(sorted.slice(0, 30));
+      })
+      .catch(() => {})
+      .finally(() => alive && setLoading(false));
+    return () => { alive = false; };
+  }, []);
 
   return (
     <div className="container-admin py-8 space-y-6">
@@ -26,76 +35,37 @@ export default function ListingsFeaturedPage() {
         crumbs={[
           { href: "/dashboard", label: "Tableau de bord" },
           { href: "/listings", label: "Annonces" },
-          { label: "À la une" },
+          { label: "Mises en avant" },
         ]}
-        title="Annonces à la une"
-        description={`${featured.length} annonces mises en avant sur la page d'accueil et les recherches géolocalisées.`}
-        actions={
-          <Button variant="outline" size="sm" href="/listings">
-            Gérer les annonces
-          </Button>
-        }
+        title="Annonces vedettes"
+        description="Top 30 annonces par engagement (favoris + vues)."
       />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {featured.map((l) => {
-          const seller = getUser(l.sellerId);
-          return (
-            <Link
-              key={l.id}
-              href={`/listings/${l.id}`}
-              className="group overflow-hidden rounded-lg border border-n-100 bg-surface transition-all duration-300 hover:-translate-y-0.5 hover:shadow-medium"
-            >
-              <div
-                className="relative aspect-[4/3]"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(200,85,61,0.18) 0%, rgba(47,107,94,0.10) 100%)",
-                }}
-              >
-                <div className="absolute top-2 left-2">
-                  <Pill tone={statusTone[l.status]} dot>
-                    {l.status}
-                  </Pill>
-                </div>
-                <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-caption font-medium text-warning">
-                  <Star className="h-3 w-3 fill-warning" /> À la une
-                </span>
-                <div className="absolute inset-x-0 bottom-0 p-3">
-                  <span className="font-serif text-h2 italic text-primary-ink/40">
-                    {l.title.split(" ")[0]}
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-1 px-4 py-3">
-                <p className="line-clamp-1 text-body-sm font-medium text-ink">{l.title}</p>
-                <div className="flex items-center justify-between text-caption text-n-500">
-                  <span>
-                    {neighborhoodName(l.neighborhood)} · {formatDistance(l.distanceMeters)}
-                  </span>
-                  <span className="text-body-sm font-semibold tabular text-primary-ink">
-                    {formatEuro(l.price)}
-                  </span>
-                </div>
-                <p className="text-caption text-n-400">{seller?.name ?? "—"}</p>
-              </div>
-            </Link>
-          );
-        })}
-
-        <Link
-          href="/listings"
-          className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-n-200 bg-paper px-4 py-12 text-center transition-colors hover:border-primary hover:bg-primary-soft/30"
-        >
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-n-100 text-n-500">
-            <Plus className="h-5 w-5" />
-          </span>
-          <p className="text-body-sm font-medium text-ink">Promouvoir une annonce</p>
-          <p className="text-caption text-n-500 max-w-[18ch]">
-            Choisissez une annonce active et activez le badge "À la une".
-          </p>
-        </Link>
-      </div>
+      {loading ? <p className="text-body text-n-500">Chargement…</p> : items.length === 0 ? (
+        <EmptyState icon={<Star className="h-5 w-5" />} title="Aucune annonce active" description="Reviens quand les annonces auront des engagements." />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-n-100 bg-surface">
+          <table className="w-full text-body-sm">
+            <thead><tr className="border-b border-n-100 bg-paper text-label uppercase tracking-wide text-n-500">
+              <th className="px-4 py-2.5 text-left">Rang</th>
+              <th className="px-4 py-2.5 text-left">Annonce</th>
+              <th className="px-4 py-2.5 text-left">Prix</th>
+              <th className="px-4 py-2.5 text-left">Vues</th>
+              <th className="px-4 py-2.5 text-left">Favoris</th>
+            </tr></thead>
+            <tbody>
+              {items.map((l, i) => (
+                <tr key={l.id} className="border-b border-n-100 last:border-0 hover:bg-n-50">
+                  <td className="px-4 py-3 font-medium tabular text-ink">#{i + 1}</td>
+                  <td className="px-4 py-3"><Link href={`/listings/${l.id}`} className="text-ink hover:text-primary">{l.title}</Link></td>
+                  <td className="px-4 py-3 tabular text-ink">{eur(l.priceCents)}</td>
+                  <td className="px-4 py-3 tabular text-n-700">{l.viewCount ?? 0}</td>
+                  <td className="px-4 py-3 tabular text-n-700">{l.favoritesCount ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

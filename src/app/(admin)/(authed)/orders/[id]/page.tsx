@@ -1,54 +1,57 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
-import { CheckCircle2, Circle, ArrowRight } from "lucide-react";
-import { getOrder } from "@/lib/fixtures/orders";
-import { getUser } from "@/lib/fixtures/users";
-import { getListing } from "@/lib/fixtures/listings";
+import { useParams, notFound } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
-import { formatEuro, formatDateTime, initials } from "@/lib/utils/format";
+import { ordersApi, publicUsersApi, type AdminOrder, type PublicProfile } from "@/lib/api";
+import { formatDate } from "@/lib/utils/format";
 
-const statusFlow = [
-  { id: "created", label: "Commande créée" },
-  { id: "paid", label: "Paiement validé" },
-  { id: "shipped_or_pickup", label: "Expédiée ou remise" },
-  { id: "completed", label: "Finalisée par l'acheteur" },
-  { id: "payout", label: "Versement vendeur" },
-];
+const tone: Record<AdminOrder["status"], React.ComponentProps<typeof Pill>["tone"]> = {
+  COMPLETED: "success",
+  AWAITING_PICKUP: "warning",
+  HANDOFF_PENDING: "info",
+  DISPUTED: "danger",
+  REFUNDED: "danger",
+  CANCELLED: "neutral",
+};
+const label: Record<AdminOrder["status"], string> = {
+  COMPLETED: "Finalisée",
+  AWAITING_PICKUP: "En attente de remise",
+  HANDOFF_PENDING: "Remise en cours",
+  DISPUTED: "Litige",
+  REFUNDED: "Remboursée",
+  CANCELLED: "Annulée",
+};
+function eur(c: number | null | undefined) { return c == null ? "—" : `${(c / 100).toLocaleString("fr-FR")} €`; }
 
-function statusIndex(status: string) {
-  switch (status) {
-    case "pending_payment":
-      return 0;
-    case "shipped":
-    case "in_transit":
-      return 2;
-    case "completed":
-      return 4;
-    case "disputed":
-    case "refunded":
-    case "cancelled":
-      return 1;
-    default:
-      return 0;
-  }
-}
+export default function OrderDetailPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+  const [order, setOrder] = React.useState<AdminOrder | null>(null);
+  const [buyer, setBuyer] = React.useState<PublicProfile | null>(null);
+  const [seller, setSeller] = React.useState<PublicProfile | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
-export default async function OrderDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const order = getOrder(id);
+  React.useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    ordersApi.get(id).then(async (o) => {
+      if (!alive) return;
+      setOrder(o);
+      Promise.all([
+        publicUsersApi.get(o.buyerId).catch(() => null),
+        publicUsersApi.get(o.sellerId).catch(() => null),
+      ]).then(([b, s]) => { if (alive) { setBuyer(b); setSeller(s); } });
+    }).catch(() => alive && setOrder(null)).finally(() => alive && setLoading(false));
+    return () => { alive = false; };
+  }, [id]);
+
+  if (loading) return <div className="container-admin py-8"><p className="text-body text-n-500">Chargement…</p></div>;
   if (!order) notFound();
-  const buyer = getUser(order.buyerId);
-  const seller = getUser(order.sellerId);
-  const listing = getListing(order.listingId);
-  const idx = statusIndex(order.status);
 
   return (
     <div className="container-admin py-8 space-y-6">
@@ -56,154 +59,65 @@ export default async function OrderDetailPage({
         crumbs={[
           { href: "/dashboard", label: "Tableau de bord" },
           { href: "/orders", label: "Commandes" },
-          { label: order.ref },
+          { label: `#${order.id.slice(0, 8)}` },
         ]}
-        title={order.ref}
-        description={`Transaction ${listing?.title ?? order.listingId}`}
-        actions={
-          <>
-            <Button variant="outline" size="sm">Voir Stripe</Button>
-            <Button variant="outline" size="sm">Rembourser</Button>
-            {order.status !== "disputed" ? (
-              <Button size="sm">Notes admin</Button>
-            ) : (
-              <Button href={`/disputes/${order.id}`} size="sm">Ouvrir le litige</Button>
-            )}
-          </>
-        }
+        title={`Commande #${order.id.slice(0, 8)}`}
+        description={order.listingTitleSnapshot ?? "—"}
       />
-
-      {/* progress */}
-      <Card>
-        <CardBody>
-          <div className="flex items-center gap-3 overflow-x-auto">
-            {statusFlow.map((s, i) => {
-              const done = i <= idx;
-              return (
-                <div key={s.id} className="flex shrink-0 items-center gap-2">
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full border ${
-                      done
-                        ? "border-success bg-success-soft text-success"
-                        : "border-n-200 bg-paper text-n-400"
-                    }`}
-                  >
-                    {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
-                  </span>
-                  <span className={`text-body-sm ${done ? "text-ink" : "text-n-500"}`}>
-                    {s.label}
-                  </span>
-                  {i < statusFlow.length - 1 ? (
-                    <ArrowRight className={`h-3 w-3 ${done ? "text-success" : "text-n-300"}`} />
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </CardBody>
-      </Card>
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
-          <Card>
-            <CardBody>
-              <h3 className="text-h3 font-medium text-ink">Annonce</h3>
-              {listing ? (
-                <div className="mt-3 flex items-start gap-3">
-                  <span
-                    className="h-14 w-14 shrink-0 rounded-md"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, rgba(200,85,61,0.18) 0%, rgba(47,107,94,0.10) 100%)",
-                    }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      href={`/listings/${listing.id}`}
-                      className="text-body font-medium text-ink hover:text-primary"
-                    >
-                      {listing.title}
-                    </Link>
-                    <p className="text-caption text-n-500 capitalize">
-                      {listing.category} · {listing.type}
-                    </p>
-                  </div>
-                  <span className="text-body-sm tabular text-ink">{formatEuro(listing.price)}</span>
-                </div>
-              ) : null}
-            </CardBody>
-          </Card>
+          <Card><CardBody className="space-y-2">
+            <h3 className="text-h3 font-medium text-ink">Montants</h3>
+            <dl className="space-y-2 text-body-sm">
+              <div className="flex justify-between"><dt className="text-n-500">Montant</dt><dd className="tabular text-ink">{eur(order.amountCents)}</dd></div>
+              <div className="flex justify-between"><dt className="text-n-500">Commission</dt><dd className="tabular text-ink">{eur(order.feeCents)}</dd></div>
+              {order.depositCents ? <div className="flex justify-between"><dt className="text-n-500">Caution</dt><dd className="tabular text-ink">{eur(order.depositCents)}</dd></div> : null}
+            </dl>
+          </CardBody></Card>
 
-          <Card>
-            <CardBody>
-              <h3 className="text-h3 font-medium text-ink">Détails financiers</h3>
-              <ul className="mt-3 space-y-2 text-body-sm">
-                <li className="flex justify-between"><span className="text-n-500">Montant brut</span><span className="tabular text-ink">{formatEuro(order.amount)}</span></li>
-                <li className="flex justify-between"><span className="text-n-500">Commission MyStreet (5 %)</span><span className="tabular text-n-700">−{formatEuro(order.fee, { decimals: 2 })}</span></li>
-                <li className="flex justify-between border-t border-n-100 pt-2"><span className="text-n-700 font-medium">Net vendeur</span><span className="tabular text-ink font-medium">{formatEuro(order.net)}</span></li>
-                <li className="flex justify-between"><span className="text-n-500">Mode d&apos;envoi</span><span className="text-ink capitalize">{order.shippingMethod.replace("_", " ")}</span></li>
-              </ul>
-            </CardBody>
-          </Card>
+          <Card><CardBody className="space-y-2">
+            <h3 className="text-h3 font-medium text-ink">Paiement Stripe</h3>
+            <dl className="space-y-2 text-body-sm">
+              <div className="flex justify-between"><dt className="text-n-500">Intent ID</dt><dd className="text-ink font-mono text-caption">{order.paymentIntentId ?? "—"}</dd></div>
+              <div className="flex justify-between"><dt className="text-n-500">Statut</dt><dd className="text-ink">{order.paymentStatus ?? "—"}</dd></div>
+              <div className="flex justify-between"><dt className="text-n-500">Payé le</dt><dd className="text-ink">{order.paidAt ? formatDate(order.paidAt) : "—"}</dd></div>
+            </dl>
+          </CardBody></Card>
 
-          <Card>
-            <CardBody>
-              <h3 className="text-h3 font-medium text-ink">Chronologie</h3>
-              <ol className="mt-3 space-y-3 border-l border-n-100 pl-4">
-                <Step done label="Commande créée" at={order.createdAt} />
-                {order.paidAt ? <Step done label="Paiement reçu (Stripe)" at={order.paidAt} /> : null}
-                {order.completedAt ? <Step done label="Finalisée par l'acheteur" at={order.completedAt} /> : null}
-                {order.payoutAt ? <Step done label="Virement vendeur" at={order.payoutAt} /> : null}
-              </ol>
-            </CardBody>
-          </Card>
+          <Card><CardBody>
+            <h3 className="text-h3 font-medium text-ink mb-3">Remise</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-md bg-paper p-3 flex items-center gap-2">
+                <CheckCircle2 className={`h-4 w-4 ${order.buyerConfirmed ? "text-success" : "text-n-300"}`} />
+                <span className="text-body-sm text-n-700">Acheteur {order.buyerConfirmed ? "confirmé" : "en attente"}</span>
+              </div>
+              <div className="rounded-md bg-paper p-3 flex items-center gap-2">
+                <CheckCircle2 className={`h-4 w-4 ${order.sellerConfirmed ? "text-success" : "text-n-300"}`} />
+                <span className="text-body-sm text-n-700">Vendeur {order.sellerConfirmed ? "confirmé" : "en attente"}</span>
+              </div>
+            </div>
+          </CardBody></Card>
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardBody className="space-y-4">
-              <div>
-                <p className="text-label uppercase tracking-wide text-n-500">Statut</p>
-                <Pill tone={order.status === "completed" ? "success" : order.status === "disputed" || order.status === "refunded" ? "danger" : "info"} dot>
-                  {order.status}
-                </Pill>
-              </div>
-              <PartyCard label="Acheteur" user={buyer} />
-              <PartyCard label="Vendeur" user={seller} />
-            </CardBody>
-          </Card>
+          <Card><CardBody className="space-y-3">
+            <div className="flex justify-between"><span className="text-caption text-n-500">Statut</span><Pill tone={tone[order.status]} dot>{label[order.status]}</Pill></div>
+            <div className="flex justify-between"><span className="text-caption text-n-500">Type</span><span className="text-body-sm text-n-700">{order.listingType}</span></div>
+            <div className="flex justify-between"><span className="text-caption text-n-500">Créée le</span><span className="text-body-sm text-n-700">{formatDate(order.createdAt)}</span></div>
+            {order.completedAt ? <div className="flex justify-between"><span className="text-caption text-n-500">Terminée</span><span className="text-body-sm text-n-700">{formatDate(order.completedAt)}</span></div> : null}
+          </CardBody></Card>
+
+          <Card><CardBody>
+            <h3 className="text-h3 font-medium text-ink mb-3">Parties</h3>
+            <div className="space-y-3 text-body-sm">
+              <div><p className="text-caption text-n-500">Acheteur</p><Link href={`/users/${order.buyerId}`} className="text-ink hover:text-primary">{buyer?.displayName ?? `#${order.buyerId.slice(0,8)}`}</Link></div>
+              <div><p className="text-caption text-n-500">Vendeur</p><Link href={`/users/${order.sellerId}`} className="text-ink hover:text-primary">{seller?.displayName ?? `#${order.sellerId.slice(0,8)}`}</Link></div>
+              <div><p className="text-caption text-n-500">Annonce</p><Link href={`/listings/${order.listingId}`} className="text-ink hover:text-primary">{order.listingTitleSnapshot ?? "Voir"}</Link></div>
+            </div>
+          </CardBody></Card>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Step({ label, at, done }: { label: string; at: string; done?: boolean }) {
-  return (
-    <li className="relative">
-      <span
-        className={`absolute -left-[22px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-paper ${
-          done ? "bg-success" : "bg-n-300"
-        }`}
-      />
-      <p className="text-body-sm text-ink">{label}</p>
-      <p className="text-caption text-n-500">{formatDateTime(at)}</p>
-    </li>
-  );
-}
-
-function PartyCard({ label, user }: { label: string; user: ReturnType<typeof getUser> }) {
-  if (!user) return null;
-  return (
-    <div className="border-t border-n-100 pt-4">
-      <p className="text-label uppercase tracking-wide text-n-500">{label}</p>
-      <Link href={`/users/${user.id}`} className="mt-2 flex items-center gap-2.5">
-        <Avatar initials={initials(user.name)} seed={user.id} size="sm" />
-        <span className="min-w-0">
-          <span className="block text-body-sm font-medium text-ink truncate hover:text-primary">{user.name}</span>
-          <span className="block text-caption text-n-500 truncate">{user.email}</span>
-        </span>
-      </Link>
     </div>
   );
 }
