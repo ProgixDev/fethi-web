@@ -9,7 +9,7 @@ complete — see `COPY_AUDIT.md`. Marketing footer has an admin entry point
 ## How to run
 
 ```bash
-cd /Users/achrafarabi/Dev/my-street-project/mystreet-web
+cd /Users/macbookpro/Progix/fethi-web
 npm run dev          # http://localhost:3000
 npm run build        # full type check + static export
 ```
