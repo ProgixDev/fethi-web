@@ -1,0 +1,67 @@
+# Supabase config for the ONE shared MyStreet database.
+# fethi-web is the DB OWNER (migrations, RLS, Edge Functions, seed, generated
+# types are authored here and only here). See docs/db/COORDINATION.md.
+#
+# project_id is the linked remote project-ref. Keep it in sync with the
+# SUPABASE_PROJECT_ID secret used by `npm run db:types` and CI.
+project_id = "lksjbehxpfndviesnlgm"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+
+# Email testing server. Captures outbound dev emails (OTP, magic links).
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+# The site URL is the admin/marketing app origin in dev.
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+# Phone OTP is configured per-environment (SMS provider) — off locally.
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+
+[analytics]
+enabled = false

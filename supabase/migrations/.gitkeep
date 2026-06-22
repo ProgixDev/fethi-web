@@ -1,0 +1,2 @@
+# Forward-only, additive migrations live here. Authored ONLY in fethi-web via an
+# accepted SCR (docs/db/COORDINATION.md). Never edit a merged migration.

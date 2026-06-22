@@ -1,0 +1,8 @@
+-- Seed data for local Supabase (`supabase db reset` runs this after migrations).
+--
+-- Keep this idempotent and safe to run repeatedly. No schema lives here — schema
+-- is authored only in supabase/migrations/ via an accepted SCR (see
+-- docs/db/COORDINATION.md §3). Seeds reference tables that those migrations create.
+--
+-- Empty for now (WEB-001 stands up the rails only; no schema yet). The first
+-- real schema task (WEB-003) adds categories/reference seeds here.
