@@ -8,6 +8,24 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-06-22 · SCR-001 · Core marketplace schema is live
+
+- **What:** First real schema applied to the shared DB. New tables `profiles`,
+  `categories`, `listings`, `listing_photos`, `favorites`, `saved_searches`; the
+  `public_profiles` security-definer view; native enums (`listing_type` =
+  VENTE/LOCATION/SERVICE, `listing_status`, `user_status`, `kyc_status`,
+  `listing_condition`); PostGIS + generated `geography` location columns (ADR-0001);
+  RLS on every table; Storage buckets `listing-photos` + `avatars` (public-read,
+  owner-scoped write). Regenerated `database.types.ts` (schema-version a68c9530f30c).
+- **Mobile must:** the vendored `src/shared/types/database.types.ts` +
+  `applied-scrs.json` are updated (SCR-001 applied) — this unblocks **TASK-004**
+  (profiles/avatar), **TASK-005** (categories + public listings read), **TASK-006**
+  (listing authoring + photos), **TASK-008** (favorites/saved searches). Read tables
+  behind the `api.ts` seam. Notes: enum values are the French uppercase tokens
+  already in `api.ts`; exact `lat/lng` are private (use `public_profiles` for other
+  members); only ACTIVE listings are anon-readable; upload to a path prefixed by
+  your own `auth.uid()`.
+
 ## 2026-06-21 · SCR-000 · Coordination protocol established
 
 - **What:** `fethi-web` is the canonical owner of the shared Supabase database.
