@@ -1,0 +1,191 @@
+{
+  "project": "MyStreet Web (admin + marketing) — DB OWNER",
+  "currentFocus": "Own the shared Supabase backend (schema, RLS, Edge Functions) and wire the admin dashboard; coordinate all DB changes with fethi-mobile via SCRs",
+  "currentMilestone": "10-day production launch — shared backend + admin surface, two parallel build lanes",
+  "updated": "2026-06-21",
+  "recommendedStart": "WEB-001 (Dev A) and WEB-002 (Dev B) in parallel",
+  "coordination": "fethi-web is the canonical owner of the shared Supabase DB. Every schema/RLS/Edge change goes through an SCR in docs/db/decisions/ and updates docs/MOBILE-SYNC-NOTES.md. See docs/db/COORDINATION.md.",
+  "lanes": {
+    "Dev A": "Shared backend authority: schema, RLS, Edge Functions, seed, generated types (these unblock mobile)",
+    "Dev B": "Admin app: auth/RBAC + admin dashboard screens that consume the schema",
+    "Either": "Cross-cutting / marketing tasks any free developer can pull"
+  },
+  "columns": [
+    "Backlog",
+    "Ready",
+    "In Progress",
+    "Review",
+    "Blocked",
+    "Done"
+  ],
+  "tasks": [
+    {
+      "id": "WEB-001",
+      "title": "Shared DB contract + coordination protocol (supabase home, types, SCR, CI guard)",
+      "status": "Ready",
+      "priority": "P0",
+      "owner": "Dev A",
+      "path": ".agent-board/tasks/WEB-001.md",
+      "blockedBy": []
+    },
+    {
+      "id": "WEB-002",
+      "title": "Admin app architecture: data-access seam, env, supabase client",
+      "status": "Ready",
+      "priority": "P0",
+      "owner": "Dev B",
+      "path": ".agent-board/tasks/WEB-002.md",
+      "blockedBy": []
+    },
+    {
+      "id": "WEB-003",
+      "title": "Core schema + RLS: profiles, listings, categories, favorites, saved_searches",
+      "status": "Backlog",
+      "priority": "P0",
+      "owner": "Dev A",
+      "path": ".agent-board/tasks/WEB-003.md",
+      "blockedBy": [
+        "WEB-001"
+      ]
+    },
+    {
+      "id": "WEB-004",
+      "title": "Admin auth + staff RBAC + route protection",
+      "status": "Backlog",
+      "priority": "P0",
+      "owner": "Dev B",
+      "path": ".agent-board/tasks/WEB-004.md",
+      "blockedBy": [
+        "WEB-001",
+        "WEB-002"
+      ]
+    },
+    {
+      "id": "WEB-005",
+      "title": "Messaging/offers/orders schema + RLS + transition Edge Functions",
+      "status": "Backlog",
+      "priority": "P1",
+      "owner": "Dev A",
+      "path": ".agent-board/tasks/WEB-005.md",
+      "blockedBy": [
+        "WEB-003"
+      ]
+    },
+    {
+      "id": "WEB-006",
+      "title": "Stripe Connect Express + payment/webhook Edge Functions (shared)",
+      "status": "Backlog",
+      "priority": "P0",
+      "owner": "Dev A",
+      "path": ".agent-board/tasks/WEB-006.md",
+      "blockedBy": [
+        "WEB-005"
+      ]
+    },
+    {
+      "id": "WEB-007",
+      "title": "Notifications schema + push-dispatch Edge Function (shared)",
+      "status": "Backlog",
+      "priority": "P1",
+      "owner": "Dev A",
+      "path": ".agent-board/tasks/WEB-007.md",
+      "blockedBy": [
+        "WEB-003"
+      ]
+    },
+    {
+      "id": "WEB-008",
+      "title": "Reviews/reports schema + account deletion/export + KYC-status Edge Functions",
+      "status": "Backlog",
+      "priority": "P1",
+      "owner": "Dev A",
+      "path": ".agent-board/tasks/WEB-008.md",
+      "blockedBy": [
+        "WEB-005"
+      ]
+    },
+    {
+      "id": "WEB-009",
+      "title": "User management (list/search/suspend/ban) wired to Supabase",
+      "status": "Backlog",
+      "priority": "P1",
+      "owner": "Dev B",
+      "path": ".agent-board/tasks/WEB-009.md",
+      "blockedBy": [
+        "WEB-004",
+        "WEB-003"
+      ]
+    },
+    {
+      "id": "WEB-010",
+      "title": "Listing management + moderation queue",
+      "status": "Backlog",
+      "priority": "P1",
+      "owner": "Dev B",
+      "path": ".agent-board/tasks/WEB-010.md",
+      "blockedBy": [
+        "WEB-004",
+        "WEB-003"
+      ]
+    },
+    {
+      "id": "WEB-011",
+      "title": "Reports / moderation review workflow",
+      "status": "Backlog",
+      "priority": "P1",
+      "owner": "Dev B",
+      "path": ".agent-board/tasks/WEB-011.md",
+      "blockedBy": [
+        "WEB-004",
+        "WEB-008"
+      ]
+    },
+    {
+      "id": "WEB-012",
+      "title": "KYC verification dashboard (Stripe Connect status)",
+      "status": "Backlog",
+      "priority": "P1",
+      "owner": "Dev B",
+      "path": ".agent-board/tasks/WEB-012.md",
+      "blockedBy": [
+        "WEB-004",
+        "WEB-006"
+      ]
+    },
+    {
+      "id": "WEB-013",
+      "title": "Orders, disputes, finance, refunds",
+      "status": "Backlog",
+      "priority": "P1",
+      "owner": "Dev B",
+      "path": ".agent-board/tasks/WEB-013.md",
+      "blockedBy": [
+        "WEB-004",
+        "WEB-006"
+      ]
+    },
+    {
+      "id": "WEB-014",
+      "title": "Analytics & reporting read models",
+      "status": "Backlog",
+      "priority": "P2",
+      "owner": "Dev B",
+      "path": ".agent-board/tasks/WEB-014.md",
+      "blockedBy": [
+        "WEB-004",
+        "WEB-003"
+      ]
+    },
+    {
+      "id": "WEB-015",
+      "title": "Marketing site + waitlist/referral",
+      "status": "Ready",
+      "priority": "P2",
+      "owner": "Either",
+      "path": ".agent-board/tasks/WEB-015.md",
+      "blockedBy": [
+        "WEB-002"
+      ]
+    }
+  ]
+}

@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Source HEVC masters — we ship the H.264 .mp4 versions for the web
 *.mov
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
