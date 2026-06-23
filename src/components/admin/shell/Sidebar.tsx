@@ -25,7 +25,7 @@ import {
 import { Mark, Wordmark } from "@/components/shared/Wordmark";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
-import { hasRole, type StaffRole } from "@/lib/auth";
+import { hasRole, type StaffRole } from "@/lib/staff-roles";
 
 type LeafItem = {
   href: string;

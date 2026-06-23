@@ -1,10 +1,11 @@
 // Supabase SSR session refresh. Runs on every (non-static) request so Server
 // Components and the admin route guard always see a fresh session cookie.
-// See node_modules/next/dist/docs (AGENTS.md) + @supabase/ssr middleware guidance.
+// Next 16 renamed the `middleware` convention to `proxy` (see
+// node_modules/next/dist/docs/.../proxy.md, AGENTS.md).
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

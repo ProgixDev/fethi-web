@@ -5,7 +5,7 @@ import * as React from 'react';
 import { AdminSidebar } from '@/components/admin/shell/Sidebar';
 import { AdminTopBar } from '@/components/admin/shell/TopBar';
 import { CommandPaletteProvider } from '@/components/admin/shell/CommandPalette';
-import type { StaffRole } from '@/lib/auth';
+import type { StaffRole } from '@/lib/staff-roles';
 
 /**
  * Client shell for the authed admin area. The server guard

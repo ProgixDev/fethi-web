@@ -3,10 +3,11 @@
 // A role downgrade therefore takes effect on the very next request.
 import { redirect } from 'next/navigation';
 
-import type { Database } from '@/lib/database.types';
 import { createClient } from '@/lib/supabase/server';
+import type { StaffRole } from '@/lib/staff-roles';
 
-export type StaffRole = Database['public']['Enums']['staff_role'];
+export type { StaffRole } from '@/lib/staff-roles';
+export { hasRole } from '@/lib/staff-roles';
 
 export type StaffMember = {
   id: string;
@@ -38,9 +39,4 @@ export async function requireStaff(): Promise<StaffMember> {
   const staff = await getStaffMember();
   if (!staff) redirect('/login');
   return staff;
-}
-
-/** `admin` implies every role. Otherwise the member must hold one of `allowed`. */
-export function hasRole(roles: StaffRole[], ...allowed: StaffRole[]): boolean {
-  return roles.includes('admin') || allowed.some((r) => roles.includes(r));
 }
