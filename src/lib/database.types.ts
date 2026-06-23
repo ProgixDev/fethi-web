@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: a68c9530f30c
+ * schema-version: 95ac54a374bb
  */
 
 export type Json =
@@ -441,6 +441,27 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_members: {
+        Row: {
+          created_at: string
+          roles: Database["public"]["Enums"]["staff_role"][]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          roles?: Database["public"]["Enums"]["staff_role"][]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          roles?: Database["public"]["Enums"]["staff_role"][]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       geography_columns: {
@@ -794,6 +815,11 @@ export type Database = {
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       gettransactionid: { Args: never; Returns: unknown }
+      has_staff_role: {
+        Args: { role: Database["public"]["Enums"]["staff_role"]; uid: string }
+        Returns: boolean
+      }
+      is_staff: { Args: { uid: string }; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -1433,6 +1459,7 @@ export type Database = {
       listing_condition: "new" | "likenew" | "good" | "fair"
       listing_status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD" | "ARCHIVED"
       listing_type: "VENTE" | "LOCATION" | "SERVICE"
+      staff_role: "admin" | "moderator" | "finance" | "support"
       user_status: "ACTIVE" | "PENDING" | "SUSPENDED" | "BANNED"
     }
     CompositeTypes: {
@@ -1576,6 +1603,7 @@ export const Constants = {
       listing_condition: ["new", "likenew", "good", "fair"],
       listing_status: ["DRAFT", "ACTIVE", "PAUSED", "SOLD", "ARCHIVED"],
       listing_type: ["VENTE", "LOCATION", "SERVICE"],
+      staff_role: ["admin", "moderator", "finance", "support"],
       user_status: ["ACTIVE", "PENDING", "SUSPENDED", "BANNED"],
     },
   },

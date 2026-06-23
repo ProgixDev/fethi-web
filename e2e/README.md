@@ -36,3 +36,18 @@ E2E_BASE_URL=http://localhost:3000 npm run test:e2e   # against a running app
   401/400 on bad/missing signature.
 - A task that ships a schema change must also pass `npm run db:types` clean — see
   `.agent-board/README.md` and `docs/db/COORDINATION.md`.
+
+## E2E is mandatory (no task is exempt)
+
+Every board task ships a passing e2e before it can reach Review — enforced by
+`/build-task` §3.5/§4. There is no "pure-config" exemption; non-UI tasks ship an
+**equivalent** e2e:
+
+- **Contract e2e (schema / RLS):** hit the REST API with the **anon publishable
+  key** and assert the policy surface — public reads return rows, owner-only /
+  private rows return `[]`, required tables/enums exist. Example (SCR-001):
+  `GET /rest/v1/categories` returns rows; `GET /rest/v1/profiles` returns `[]`.
+- **Auth / proxy:** Playwright against `npm run dev` — unauth route redirects to
+  `/login`, sign-in reaches the guarded page, session persists.
+- **Tooling / no route:** a boot smoke that loads the built app and asserts it
+  renders with zero fatal errors.

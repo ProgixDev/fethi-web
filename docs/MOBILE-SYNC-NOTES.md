@@ -8,6 +8,15 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-06-23 · SCR-002 · Staff roles (admin RBAC) — no mobile action
+
+- **What:** Added `staff_role` enum + `staff_members` table + `is_staff` /
+  `has_staff_role` helpers for the web admin's role-based access. Regenerated
+  `database.types.ts` (schema-version 95ac54a374bb).
+- **Mobile must:** nothing. Staff roles are web-only; mobile RLS exposes no rows
+  of `staff_members`. The vendored types are refreshed only to keep the contract
+  byte-identical across repos.
+
 ## 2026-06-22 · SCR-001 · Core marketplace schema is live
 
 - **What:** First real schema applied to the shared DB. New tables `profiles`,

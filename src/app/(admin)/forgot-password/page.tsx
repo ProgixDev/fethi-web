@@ -7,6 +7,7 @@ import { Logo } from "@/components/shared/Wordmark";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = React.useState(false);
@@ -61,8 +62,14 @@ export default function ForgotPasswordPage() {
 
             <form
               className="space-y-4"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
+                const supabase = createClient();
+                // Don't reveal whether the address exists — always show "sent".
+                await supabase.auth.resetPasswordForEmail(
+                  email.trim().toLowerCase(),
+                  { redirectTo: `${window.location.origin}/reset-password` },
+                );
                 setSent(true);
               }}
             >

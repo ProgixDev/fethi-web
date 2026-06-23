@@ -7,6 +7,7 @@ import { Logo } from "@/components/shared/Wordmark";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function ResetPasswordPage() {
 
         <form
           className="space-y-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             if (pwd !== pwd2) {
               setError("Les deux mots de passe ne correspondent pas.");
@@ -42,6 +43,18 @@ export default function ResetPasswordPage() {
               return;
             }
             setError(null);
+            // The recovery link established a session; update the password on it.
+            const supabase = createClient();
+            const { error: updateError } = await supabase.auth.updateUser({
+              password: pwd,
+            });
+            if (updateError) {
+              setError(
+                "Lien expiré ou invalide. Redemandez un e-mail de réinitialisation.",
+              );
+              return;
+            }
+            await supabase.auth.signOut();
             router.push("/login");
           }}
         >

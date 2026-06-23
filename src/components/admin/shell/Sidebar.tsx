@@ -24,7 +24,8 @@ import {
 } from "lucide-react";
 import { Mark, Wordmark } from "@/components/shared/Wordmark";
 import { cn } from "@/lib/utils/cn";
-import { authApi } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
+import { hasRole, type StaffRole } from "@/lib/staff-roles";
 
 type LeafItem = {
   href: string;
@@ -181,20 +182,53 @@ function isLeaf(e: NavEntry): e is LeafItem {
 
 const STORAGE_KEY = "mystreet:admin-sidebar-collapsed";
 
-export function AdminSidebar() {
+// Role gates by route prefix. `admin` always sees everything; ungated routes are
+// visible to all staff. The REAL access enforcement is server-side (lib/auth +
+// the (authed) guard) — this only hides links a member can't use.
+const ROLE_GATES: { prefix: string; roles: StaffRole[] }[] = [
+  { prefix: "/moderation", roles: ["moderator"] },
+  { prefix: "/listings", roles: ["moderator"] },
+  { prefix: "/kyc", roles: ["moderator", "finance"] },
+  { prefix: "/orders", roles: ["finance"] },
+  { prefix: "/finance", roles: ["finance"] },
+  { prefix: "/refunds", roles: ["finance"] },
+  { prefix: "/disputes", roles: ["moderator", "finance"] },
+  { prefix: "/settings", roles: ["admin"] },
+];
+
+function canSee(href: string, roles: StaffRole[]): boolean {
+  const gate = ROLE_GATES.find((g) => href.startsWith(g.prefix));
+  return gate ? hasRole(roles, ...gate.roles) : true;
+}
+
+export function AdminSidebar({ roles }: { roles: StaffRole[] }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState<boolean>(false);
   const [loggingOut, setLoggingOut] = React.useState(false);
 
+  const visibleSections = React.useMemo(
+    () =>
+      sections
+        .map((section) => ({
+          ...section,
+          items: section.items.filter((item) =>
+            canSee("href" in item ? item.href : item.base, roles),
+          ),
+        }))
+        .filter((section) => section.items.length > 0),
+    [roles],
+  );
+
   async function handleLogout() {
     setLoggingOut(true);
     try {
-      await authApi.logout();
+      await createClient().auth.signOut();
     } catch {
       // ignore — on déconnecte localement de toute façon
     }
     router.push("/login");
+    router.refresh();
   }
 
   // Hydrate persisted preference. Default = expanded.
@@ -261,7 +295,7 @@ export function AdminSidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3">
-        {sections.map((section, si) => (
+        {visibleSections.map((section, si) => (
           <div key={si} className={cn("mb-4 last:mb-0", section.label && "mt-1")}>
             {section.label && !collapsed ? (
               <p className="px-2 mb-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-n-400">
