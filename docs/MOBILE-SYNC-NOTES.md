@@ -8,6 +8,31 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-06-23 · SCR-003 · Messaging / offers / orders transactional core is live
+
+- **What:** Second real schema applied to the shared DB. New tables `threads`,
+  `messages`, `message_attachments`, `offers`, `orders`, `order_events`, and an
+  `idempotency_keys` ledger; native enums `offer_status`
+  (PENDING/ACCEPTED/REJECTED/EXPIRED/WITHDRAWN), `order_status`
+  (AWAITING_PICKUP/HANDOFF_PENDING/COMPLETED/CANCELLED/REFUNDED/DISPUTED),
+  `message_kind` (TEXT/PHOTO/LOCATION/OFFER/PICKUP/SYSTEM) — all matching the
+  shipped `api.ts` tokens exactly. RLS on every table (participant-scoped). Realtime
+  enabled on `messages`/`threads`/`offers`/`orders`. Three Deno Edge Functions
+  authored (`offers-respond`, `orders-create`, `orders-transition`) — user-JWT auth,
+  service-role mutation, `Idempotency-Key` dedup. Regenerated `database.types.ts`
+  (schema-version 854df618007b). **Edge Function deploy is pending** (CLI needs Docker).
+- **Mobile must:** once the vendored `src/shared/types/database.types.ts` +
+  `applied-scrs.json` are refreshed (SCR-003 applied — **the web parent vendors them**,
+  not this PR), this unblocks **TASK-007** (messaging: read `threads`/`messages` under
+  RLS, subscribe to Realtime narrowed by `thread_id`, `sendPhoto` → `message_attachments`)
+  and **TASK-010** (offers/orders). Key contract notes: (1) **never mutate `offers`/`orders`
+  status directly** — call the Edge Functions (`offersApi.*`, `ordersApi.create/confirmPickup/
+  cancel`); raw clients have no write policy on order/offer status. (2) Open-or-retrieve a
+  thread is `unique(listing_id, buyer_id)`. (3) Send an `Idempotency-Key` header on
+  create/transition so retries don't duplicate. (4) Offers default to a 48h `expires_at`;
+  an accept on an expired offer is rejected. (5) `confirm-pickup` is two-sided (both parties
+  confirm → COMPLETED). Edge Functions must be deployed before TASK-010 can run end-to-end.
+
 ## 2026-06-23 · SCR-002 · Staff roles (admin RBAC) — no mobile action
 
 - **What:** Added `staff_role` enum + `staff_members` table + `is_staff` /

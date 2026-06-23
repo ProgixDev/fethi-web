@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 // E2E config for the MyStreet admin + marketing web app.
@@ -5,6 +7,18 @@ import { defineConfig, devices } from '@playwright/test';
 // Per-task flows live in e2e/tasks/WEB-XXX.spec.ts and are the e2e gate in
 // /build-task. Webhook/service-role flows use server route handlers, never the
 // browser session.
+
+// Load .env.local (gitignored) without adding a dotenv dependency, so contract
+// specs (e.g. WEB-005) can read NEXT_PUBLIC_SUPABASE_* without hardcoding keys.
+const envFile = resolve(__dirname, '.env.local');
+if (existsSync(envFile)) {
+  for (const line of readFileSync(envFile, 'utf8').split('\n')) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (m && process.env[m[1]] === undefined) {
+      process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    }
+  }
+}
 
 const PORT = Number(process.env.E2E_PORT ?? 3000);
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;

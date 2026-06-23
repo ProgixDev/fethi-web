@@ -40,7 +40,7 @@ Each dev pulls their lane: `npm run board:next:a` (Dev A) / `npm run board:next:
 | WEB-002 | Admin app architecture: data-access seam, env, supabase client | Done | Dev B | P0 |
 | WEB-003 | Core schema + RLS: profiles, listings, categories, favorites, saved_searches | Done | Dev A | P0 |
 | WEB-004 | Admin auth + staff RBAC + route protection | Done | Dev B | P0 |
-| WEB-005 | Messaging/offers/orders schema + RLS + transition Edge Functions | Backlog | Dev A | P1 |
+| WEB-005 | Messaging/offers/orders schema + RLS + transition Edge Functions | Review | Dev A | P1 |
 | WEB-006 | Stripe Connect Express + payment/webhook Edge Functions (shared) | Backlog | Dev A | P0 |
 | WEB-007 | Notifications schema + push-dispatch Edge Function (shared) | Backlog | Dev A | P1 |
 | WEB-008 | Reviews/reports schema + account deletion/export + KYC-status Edge Functions | Backlog | Dev A | P1 |
