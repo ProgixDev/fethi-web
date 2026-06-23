@@ -2,6 +2,7 @@
   "_comment": "CANONICAL list of merged+accepted Schema Change Requests. fethi-web appends an SCR id here in the SAME PR that merges the SCR's migration + regenerated types, then copies this file (and database.types.ts) into fethi-mobile/src/shared/types/. The mobile coordination gate (scripts/check-scr.mjs) reads the vendored copy to block consumer tasks whose SCR hasn't shipped. See docs/db/COORDINATION.md.",
   "applied": [
     "SCR-000",
-    "SCR-001"
+    "SCR-001",
+    "SCR-002"
   ]
 }

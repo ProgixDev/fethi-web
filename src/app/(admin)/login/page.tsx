@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { PixelField } from "@/components/ui/PixelField";
 import { useTheme } from "@/components/providers/ThemeProvider";
-import { authApi, ApiError } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
 
 // Cursor-halftone tones invert with the theme:
 //   • Light mode: bg is brand terracotta, pixels are a deep warm-black.
@@ -76,21 +76,31 @@ export default function LoginPage() {
               e.preventDefault();
               setSubmitting(true);
               setError(null);
-              try {
-                await authApi.login(email.trim().toLowerCase(), password);
-                router.push("/dashboard");
-              } catch (err) {
-                if (err instanceof ApiError) {
-                  setError(
-                    err.status === 401 || err.status === 403
-                      ? "E-mail ou mot de passe incorrect."
-                      : err.message || "Connexion impossible.",
-                  );
-                } else {
-                  setError("Erreur réseau — backend injoignable.");
-                }
+              const supabase = createClient();
+              const { data, error: signInError } =
+                await supabase.auth.signInWithPassword({
+                  email: email.trim().toLowerCase(),
+                  password,
+                });
+              if (signInError || !data.user) {
+                setError("E-mail ou mot de passe incorrect.");
                 setSubmitting(false);
+                return;
               }
+              // Authorize: only staff members may enter the admin.
+              const { data: staff } = await supabase
+                .from("staff_members")
+                .select("roles")
+                .eq("user_id", data.user.id)
+                .maybeSingle();
+              if (!staff) {
+                await supabase.auth.signOut();
+                setError("Ce compte n'a pas d'accès à l'administration.");
+                setSubmitting(false);
+                return;
+              }
+              router.push("/dashboard");
+              router.refresh();
             }}
           >
             <Field label="E-mail professionnel" required>
