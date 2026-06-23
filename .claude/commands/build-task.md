@@ -41,16 +41,23 @@ Implement the scope behind `src/lib/api.ts` (swap implementation, keep interface
 - Stripe / payment Edge Functions → invoke **stripe-integration-expert**.
 Fix what they surface; summarize anything you deliberately skipped.
 
-## 3.5. Author the Playwright flow
+## 3.5. Author the e2e — MANDATORY, no task is exempt
 
-Write/update `e2e/tasks/$ARGUMENTS.spec.ts` covering this task's critical path + grilled edge cases (see `e2e/README.md`, `e2e/admin.smoke.spec.ts`, and `e2e/stripe-webhook.spec.ts` for the patterns). Webhook / service-role flows hit the server route handler directly and must assert idempotency + signature rejection. A pure-config task with no user-facing path or route may skip the spec — say so explicitly in the PR.
+Every task ships a passing end-to-end test. Write/update `e2e/tasks/$ARGUMENTS.spec.ts` covering this task's critical path + grilled edge cases (see `e2e/README.md`, `e2e/admin.smoke.spec.ts`, and `e2e/stripe-webhook.spec.ts`). Webhook / service-role flows hit the server route handler directly and must assert idempotency + signature rejection.
+
+**There is no "pure-config" exemption.** If the task has no UI path, it still ships an *equivalent* e2e that exercises the real artifact end-to-end — pick the one that fits:
+- **Schema / RLS / migration** → assert the contract against the **live DB with the anon (publishable) key**: public reads succeed, owner-only/private rows are blocked, enums/columns exist (see `e2e/README.md` "contract e2e").
+- **Auth / guards / middleware (proxy)** → drive the real flow in a browser (Playwright against `npm run dev`): unauth redirect, sign-in, authed access, session persistence.
+- **Tooling / client setup with no route** → a boot smoke that loads the built app and asserts it renders with the new code in the graph, with zero fatal errors.
+
+Whatever the task, the PR must link the e2e file/output. "No e2e" is never an acceptable answer.
 
 ## 4. Test — MANDATORY gates
 
 Paste real output of:
 - `npm run typecheck`
 - `npm run lint`
-- `npm run test:e2e e2e/tasks/$ARGUMENTS.spec.ts` — the local Playwright run is the **hard e2e gate** for any task with a UI path or route handler. (Needs `npx playwright install` once.) Pure-config tasks with no flow are exempt — state it.
+- `npm run test:e2e e2e/tasks/$ARGUMENTS.spec.ts` — the e2e run is a **hard, non-skippable gate for every task** (§3.5 defines the equivalent e2e for non-UI tasks; needs `npx playwright install` once). If the e2e can't run or fails, **HALT and report — do not open the PR or mark the task Done.** A task without a passing (or explicitly justified `manual`, human-ratified) e2e cannot reach Review.
 - For DB tasks: `npm run db:types` then `git diff --exit-code src/lib/database.types.ts` (must be clean — proves types match the migration), and append the SCR id to `supabase/applied-scrs.json` + copy it (with the types) into `fethi-mobile/src/shared/types/`.
 
 Fix failures before continuing.
