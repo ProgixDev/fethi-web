@@ -8,6 +8,21 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-06-23 · SCR-004 · Staff audit log (admin moderation)
+
+- **What:** One new table `staff_audit_log` (id, actor_id, action, target_type,
+  target_id, before/after jsonb, reason, created_at) recording every staff write
+  action — user suspend/ban/reactivate (WEB-009) and listing pause/archive/restore
+  (WEB-010). RLS is **enabled with no anon/authenticated policy**, so the table is
+  invisible to the browser; only the service-role admin Route Handlers (gated by
+  `requireStaff` + `hasRole`) read/write it. Regenerated `database.types.ts`
+  (schema-version 3a3f3151615b). No change to `profiles`/`listings` or any existing
+  enum — suspend/ban/pause/archive reuse the existing `user_status` /
+  `listing_status` enums.
+- **Mobile must:** **nothing.** This is a web-only, service-role-only audit table;
+  RLS exposes nothing to mobile. The vendored types + `applied-scrs.json` are
+  updated for contract completeness only. Flagged for human ratification in the PR.
+
 ## 2026-06-23 · SCR-003 · Messaging / offers / orders transactional core is live
 
 - **What:** Second real schema applied to the shared DB. New tables `threads`,

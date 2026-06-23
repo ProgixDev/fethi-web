@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 854df618007b
+ * schema-version: 3a3f3151615b
  */
 
 export type Json =
@@ -854,6 +854,42 @@ export type Database = {
           proj4text?: string | null
           srid?: number
           srtext?: string | null
+        }
+        Relationships: []
+      }
+      staff_audit_log: {
+        Row: {
+          action: string
+          actor_id: string
+          after: Json | null
+          before: Json | null
+          created_at: string
+          id: string
+          reason: string | null
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id?: string
+          target_type?: string
         }
         Relationships: []
       }

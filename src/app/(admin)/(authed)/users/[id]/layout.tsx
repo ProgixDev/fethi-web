@@ -4,6 +4,7 @@ import * as React from "react";
 import { notFound, useParams } from "next/navigation";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { UserHeader } from "@/components/admin/UserHeader";
+import { UserModerationActions } from "@/components/admin/users/UserModerationActions";
 import { publicUsersApi, type PublicProfile } from "@/lib/api";
 import type { User } from "@/lib/fixtures/users";
 
@@ -82,6 +83,9 @@ export default function UserDetailLayout({ children }: { children: React.ReactNo
         title={<span className="sr-only">{user.name}</span>}
       />
       <UserHeader user={user} />
+      <div className="rounded-lg border border-n-100 bg-surface px-4 py-3">
+        <UserModerationActions userId={user.id} />
+      </div>
       {children}
     </div>
   );

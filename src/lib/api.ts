@@ -98,6 +98,43 @@ async function throwApiError(res: Response): Promise<never> {
 }
 
 // ---------------------------------------------------------------------------
+// Internal seam — Next.js Route Handlers (same-origin, cookie session)
+//
+// Admin screens hit `/api/admin/*` route handlers in THIS app. The handlers
+// gate on `staff_members` (per request) and run the data access through the
+// repository layer (`src/lib/repositories/`) with the service-role client.
+// Service-role keys NEVER reach the browser; the session travels as the
+// httpOnly Supabase cookie (so `credentials: 'same-origin'`, no Bearer).
+// ---------------------------------------------------------------------------
+
+async function internalRequest<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Content-Type") && init.body && !(init.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+  const res = await fetch(`/api/admin${path}`, {
+    ...init,
+    headers,
+    credentials: "same-origin",
+  });
+  if (!res.ok) await throwApiError(res);
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+function toQuery(filters: Record<string, unknown>): string {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
+  });
+  const s = params.toString();
+  return s ? `?${s}` : "";
+}
+
+// ---------------------------------------------------------------------------
 // Auth admin
 // ---------------------------------------------------------------------------
 
@@ -197,31 +234,39 @@ export type UserMeta = {
   neighborhoods: string[];
 };
 
-export const usersApi = {
-  list: (filters: UserFilters = {}) => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
-    });
-    return request<PageResponse<AdminUserListItem>>(`/admin/users?${params}`);
-  },
+export type UserActionStatus = "ACTIVE" | "SUSPENDED" | "BANNED";
 
-  meta: () => request<UserMeta>("/admin/users/meta"),
+export const usersApi = {
+  list: (filters: UserFilters = {}) =>
+    internalRequest<PageResponse<AdminUserListItem>>(`/users${toQuery(filters)}`),
+
+  meta: () => internalRequest<UserMeta>("/users/meta"),
+
+  /** A single user with admin fields (status/kyc) for the detail moderation panel. */
+  get: (userId: string) =>
+    internalRequest<AdminUserListItem>(`/users/${userId}?view=admin`),
+
+  /**
+   * Suspend / ban / reactivate a user. Staff-gated, service-role write to
+   * `profiles.status` + audited (SCR-004), enforced server-side in the route
+   * handler — never from the browser, never off user_metadata.
+   */
+  setStatus: (userId: string, status: UserActionStatus, reason?: string) =>
+    internalRequest<AdminUserListItem>(`/users/${userId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, reason }),
+    }),
 
   async exportXlsx(filters: UserFilters = {}): Promise<void> {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
-    });
-    const res = await fetch(`${API_BASE}/admin/users/export?${params}`, {
-      headers: { Authorization: `Bearer ${tokenStore.getAccess()}` },
+    const res = await fetch(`/api/admin/users/export${toQuery(filters)}`, {
+      credentials: "same-origin",
     });
     if (!res.ok) await throwApiError(res);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `utilisateurs-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `utilisateurs-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -369,8 +414,11 @@ export type PublicProfile = {
 };
 
 export const publicUsersApi = {
+  // Admin context: a staff member viewing any user's profile. Goes through the
+  // staff-gated route handler (service-role read) so non-public fields the admin
+  // is allowed to see resolve, rather than the anon public view.
   get: (userId: string) =>
-    request<PublicProfile>(`/users/${userId}/public`, {}, { auth: false }),
+    internalRequest<PublicProfile>(`/users/${userId}`),
 };
 
 // ---------------------------------------------------------------------------
@@ -431,22 +479,28 @@ export type ListingFilters = {
   sort?: string;
 };
 
+export type ModerationListing = Listing & { reportsCount: number };
+
 export const listingsApi = {
-  list: (filters: ListingFilters = {}) => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
-    });
-    return request<PageResponse<Listing>>(`/listings?${params}`);
-  },
-  get: (id: string) => request<Listing>(`/listings/${id}`),
-  setStatus: (id: string, status: ListingStatus) =>
-    request<Listing>(`/listings/${id}`, {
+  list: (filters: ListingFilters = {}) =>
+    internalRequest<PageResponse<Listing>>(`/listings${toQuery(filters)}`),
+  get: (id: string) => internalRequest<Listing>(`/listings/${id}`),
+  /** Moderation queue: listings needing staff attention (flagged once WEB-008). */
+  moderationQueue: (
+    filters: { status?: ListingStatus; page?: number; size?: number } = {},
+  ) =>
+    internalRequest<PageResponse<ModerationListing>>(
+      `/listings/moderation${toQuery(filters)}`,
+    ),
+  // Staff moderation: pause / archive / restore / soft-hide. Service-role write
+  // + audited (SCR-004) in the route handler. `reason` is optional context.
+  setStatus: (id: string, status: ListingStatus, reason?: string) =>
+    internalRequest<Listing>(`/listings/${id}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, reason }),
     }),
   archive: (id: string) =>
-    request<void>(`/listings/${id}`, { method: "DELETE" }),
+    internalRequest<void>(`/listings/${id}`, { method: "DELETE" }),
 };
 
 // ---------------------------------------------------------------------------

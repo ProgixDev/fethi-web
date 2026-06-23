@@ -45,7 +45,7 @@ Each dev pulls their lane: `npm run board:next:a` (Dev A) / `npm run board:next:
 | WEB-007 | Notifications schema + push-dispatch Edge Function (shared) | Backlog | Dev A | P1 |
 | WEB-008 | Reviews/reports schema + account deletion/export + KYC-status Edge Functions | Backlog | Dev A | P1 |
 | WEB-009 | User management (list/search/suspend/ban) wired to Supabase | Backlog | Dev B | P1 |
-| WEB-010 | Listing management + moderation queue | Backlog | Dev B | P1 |
+| WEB-010 | Listing management + moderation queue | Review | Dev B | P1 |
 | WEB-011 | Reports / moderation review workflow | Backlog | Dev B | P1 |
 | WEB-012 | KYC verification dashboard (Stripe Connect status) | Backlog | Dev B | P1 |
 | WEB-013 | Orders, disputes, finance, refunds | Backlog | Dev B | P1 |
