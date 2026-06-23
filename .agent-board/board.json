@@ -31,7 +31,7 @@
     {
       "id": "WEB-002",
       "title": "Admin app architecture: data-access seam, env, supabase client",
-      "status": "Ready",
+      "status": "Done",
       "priority": "P0",
       "owner": "Dev B",
       "path": ".agent-board/tasks/WEB-002.md",
@@ -40,7 +40,7 @@
     {
       "id": "WEB-003",
       "title": "Core schema + RLS: profiles, listings, categories, favorites, saved_searches",
-      "status": "Backlog",
+      "status": "Done",
       "priority": "P0",
       "owner": "Dev A",
       "path": ".agent-board/tasks/WEB-003.md",

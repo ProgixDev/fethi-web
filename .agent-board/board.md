@@ -37,8 +37,8 @@ Each dev pulls their lane: `npm run board:next:a` (Dev A) / `npm run board:next:
 | Task | Title | Status | Owner | Priority |
 | --- | --- | --- | --- | --- |
 | WEB-001 | Shared DB contract + coordination protocol (supabase home, types, SCR, CI guard) | Done | Dev A | P0 |
-| WEB-002 | Admin app architecture: data-access seam, env, supabase client | Ready | Dev B | P0 |
-| WEB-003 | Core schema + RLS: profiles, listings, categories, favorites, saved_searches | Backlog | Dev A | P0 |
+| WEB-002 | Admin app architecture: data-access seam, env, supabase client | Done | Dev B | P0 |
+| WEB-003 | Core schema + RLS: profiles, listings, categories, favorites, saved_searches | Done | Dev A | P0 |
 | WEB-004 | Admin auth + staff RBAC + route protection | Backlog | Dev B | P0 |
 | WEB-005 | Messaging/offers/orders schema + RLS + transition Edge Functions | Backlog | Dev A | P1 |
 | WEB-006 | Stripe Connect Express + payment/webhook Edge Functions (shared) | Backlog | Dev A | P0 |
