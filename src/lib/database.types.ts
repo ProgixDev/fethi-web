@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 95ac54a374bb
+ * schema-version: 854df618007b
  */
 
 export type Json =
@@ -127,6 +127,45 @@ export type Database = {
           },
           {
             foreignKeyName: "favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idempotency_keys: {
+        Row: {
+          created_at: string
+          key: string
+          response: Json | null
+          scope: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          response?: Json | null
+          scope: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          response?: Json | null
+          scope?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idempotency_keys_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "idempotency_keys_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
@@ -260,6 +299,383 @@ export type Database = {
           {
             foreignKeyName: "listings_owner_id_fkey"
             columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_attachments: {
+        Row: {
+          byte_size: number | null
+          content_type: string | null
+          created_at: string
+          height: number | null
+          id: string
+          message_id: string
+          storage_path: string
+          width: number | null
+        }
+        Insert: {
+          byte_size?: number | null
+          content_type?: string | null
+          created_at?: string
+          height?: number | null
+          id?: string
+          message_id: string
+          storage_path: string
+          width?: number | null
+        }
+        Update: {
+          byte_size?: number | null
+          content_type?: string | null
+          created_at?: string
+          height?: number | null
+          id?: string
+          message_id?: string
+          storage_path?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          kind: Database["public"]["Enums"]["message_kind"]
+          metadata: Json | null
+          sender_id: string
+          text: string | null
+          thread_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          kind?: Database["public"]["Enums"]["message_kind"]
+          metadata?: Json | null
+          sender_id: string
+          text?: string | null
+          thread_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          kind?: Database["public"]["Enums"]["message_kind"]
+          metadata?: Json | null
+          sender_id?: string
+          text?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          amount_cents: number
+          buyer_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          listing_id: string
+          message: string | null
+          order_id: string | null
+          responded_at: string | null
+          response_message: string | null
+          seller_id: string
+          status: Database["public"]["Enums"]["offer_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          buyer_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          listing_id: string
+          message?: string | null
+          order_id?: string | null
+          responded_at?: string | null
+          response_message?: string | null
+          seller_id: string
+          status?: Database["public"]["Enums"]["offer_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          buyer_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          listing_id?: string
+          message?: string | null
+          order_id?: string | null
+          responded_at?: string | null
+          response_message?: string | null
+          seller_id?: string
+          status?: Database["public"]["Enums"]["offer_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          from_status: Database["public"]["Enums"]["order_status"] | null
+          id: string
+          metadata: Json | null
+          note: string | null
+          order_id: string
+          to_status: Database["public"]["Enums"]["order_status"]
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["order_status"] | null
+          id?: string
+          metadata?: Json | null
+          note?: string | null
+          order_id: string
+          to_status: Database["public"]["Enums"]["order_status"]
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["order_status"] | null
+          id?: string
+          metadata?: Json | null
+          note?: string | null
+          order_id?: string
+          to_status?: Database["public"]["Enums"]["order_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          amount_cents: number
+          buyer_confirmed: boolean
+          buyer_id: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          created_at: string
+          deposit_cents: number | null
+          deposit_released: boolean | null
+          fee_cents: number
+          id: string
+          listing_id: string
+          listing_thumb: string | null
+          listing_title: string | null
+          listing_type: Database["public"]["Enums"]["listing_type"]
+          offer_id: string | null
+          rental_end: string | null
+          rental_start: string | null
+          seller_confirmed: boolean
+          seller_id: string
+          status: Database["public"]["Enums"]["order_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          buyer_confirmed?: boolean
+          buyer_id: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deposit_cents?: number | null
+          deposit_released?: boolean | null
+          fee_cents?: number
+          id?: string
+          listing_id: string
+          listing_thumb?: string | null
+          listing_title?: string | null
+          listing_type: Database["public"]["Enums"]["listing_type"]
+          offer_id?: string | null
+          rental_end?: string | null
+          rental_start?: string | null
+          seller_confirmed?: boolean
+          seller_id: string
+          status?: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          buyer_confirmed?: boolean
+          buyer_id?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deposit_cents?: number | null
+          deposit_released?: boolean | null
+          fee_cents?: number
+          id?: string
+          listing_id?: string
+          listing_thumb?: string | null
+          listing_title?: string | null
+          listing_type?: Database["public"]["Enums"]["listing_type"]
+          offer_id?: string | null
+          rental_end?: string | null
+          rental_start?: string | null
+          seller_confirmed?: boolean
+          seller_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_seller_id_fkey"
+            columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
@@ -461,6 +877,98 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      threads: {
+        Row: {
+          buyer_id: string
+          buyer_unread: number
+          created_at: string
+          id: string
+          last_message: string | null
+          last_message_at: string | null
+          last_sender_id: string | null
+          listing_id: string
+          seller_id: string
+          seller_unread: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          buyer_unread?: number
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          last_sender_id?: string | null
+          listing_id: string
+          seller_id: string
+          seller_unread?: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          buyer_unread?: number
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          last_sender_id?: string | null
+          listing_id?: string
+          seller_id?: string
+          seller_unread?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "threads_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "threads_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "threads_last_sender_id_fkey"
+            columns: ["last_sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "threads_last_sender_id_fkey"
+            columns: ["last_sender_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "threads_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "threads_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "threads_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -820,6 +1328,10 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { uid: string }; Returns: boolean }
+      is_thread_participant: {
+        Args: { p_thread_id: string; p_uid: string }
+        Returns: boolean
+      }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -1459,6 +1971,26 @@ export type Database = {
       listing_condition: "new" | "likenew" | "good" | "fair"
       listing_status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD" | "ARCHIVED"
       listing_type: "VENTE" | "LOCATION" | "SERVICE"
+      message_kind:
+        | "TEXT"
+        | "PHOTO"
+        | "LOCATION"
+        | "OFFER"
+        | "PICKUP"
+        | "SYSTEM"
+      offer_status:
+        | "PENDING"
+        | "ACCEPTED"
+        | "REJECTED"
+        | "EXPIRED"
+        | "WITHDRAWN"
+      order_status:
+        | "AWAITING_PICKUP"
+        | "HANDOFF_PENDING"
+        | "COMPLETED"
+        | "CANCELLED"
+        | "REFUNDED"
+        | "DISPUTED"
       staff_role: "admin" | "moderator" | "finance" | "support"
       user_status: "ACTIVE" | "PENDING" | "SUSPENDED" | "BANNED"
     }
@@ -1603,6 +2135,16 @@ export const Constants = {
       listing_condition: ["new", "likenew", "good", "fair"],
       listing_status: ["DRAFT", "ACTIVE", "PAUSED", "SOLD", "ARCHIVED"],
       listing_type: ["VENTE", "LOCATION", "SERVICE"],
+      message_kind: ["TEXT", "PHOTO", "LOCATION", "OFFER", "PICKUP", "SYSTEM"],
+      offer_status: ["PENDING", "ACCEPTED", "REJECTED", "EXPIRED", "WITHDRAWN"],
+      order_status: [
+        "AWAITING_PICKUP",
+        "HANDOFF_PENDING",
+        "COMPLETED",
+        "CANCELLED",
+        "REFUNDED",
+        "DISPUTED",
+      ],
       staff_role: ["admin", "moderator", "finance", "support"],
       user_status: ["ACTIVE", "PENDING", "SUSPENDED", "BANNED"],
     },
