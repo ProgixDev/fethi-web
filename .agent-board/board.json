@@ -63,7 +63,7 @@
     {
       "id": "WEB-005",
       "title": "Messaging/offers/orders schema + RLS + transition Edge Functions",
-      "status": "Review",
+      "status": "Done",
       "priority": "P1",
       "owner": "Dev A",
       "path": ".agent-board/tasks/WEB-005.md",
