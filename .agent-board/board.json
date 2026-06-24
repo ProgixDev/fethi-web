@@ -107,7 +107,7 @@
     {
       "id": "WEB-009",
       "title": "User management (list/search/suspend/ban) wired to Supabase",
-      "status": "Backlog",
+      "status": "Review",
       "priority": "P1",
       "owner": "Dev B",
       "path": ".agent-board/tasks/WEB-009.md",
