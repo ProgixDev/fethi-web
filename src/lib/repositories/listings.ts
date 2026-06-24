@@ -145,6 +145,50 @@ export class ListingsRepository extends BaseRepository {
     };
   }
 
+  /**
+   * Moderation queue — listings that need staff attention. Until WEB-008 lands
+   * the `reports` feed, the queue is driven by listing state: DRAFT (awaiting
+   * review), PAUSED (soft-hidden), ARCHIVED (taken down). When `reports` exists
+   * this method will additionally surface reported listings (joined on
+   * target_id). `reportsCount` is 0 today and becomes the live count then.
+   */
+  async moderationQueue(
+    filters: { status?: ListingStatus; page?: number; size?: number } = {},
+  ): Promise<PageResponse<Listing & { reportsCount: number }>> {
+    const page = Math.max(0, Number(filters.page ?? 0));
+    const size = Math.min(MAX_SIZE, Math.max(1, Number(filters.size ?? DEFAULT_SIZE)));
+    const from = page * size;
+    const to = from + size - 1;
+
+    const queueStatuses: ListingStatus[] = ['DRAFT', 'PAUSED', 'ARCHIVED'];
+    let query = this.db.from('listings').select(SELECT, { count: 'exact' });
+    if (filters.status && queueStatuses.includes(filters.status)) {
+      query = query.eq('status', filters.status);
+    } else {
+      query = query.in('status', queueStatuses);
+    }
+    query = query.order('created_at', { ascending: false }).range(from, to);
+
+    const { data, count, error } = await query;
+    if (error) throw new Error(`listings.moderationQueue failed: ${error.message}`);
+
+    const content = ((data ?? []) as unknown as JoinedRow[]).map((r) => ({
+      ...mapListing(r),
+      reportsCount: 0, // becomes the live reports count once WEB-008 merges.
+    }));
+    const total = count ?? content.length;
+    const totalPages = Math.max(1, Math.ceil(total / size));
+    return {
+      content,
+      page,
+      size,
+      totalElements: total,
+      totalPages,
+      first: page === 0,
+      last: page >= totalPages - 1,
+    };
+  }
+
   async get(id: string): Promise<Listing | null> {
     const { data, error } = await this.db
       .from('listings')

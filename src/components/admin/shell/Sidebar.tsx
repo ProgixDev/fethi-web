@@ -65,6 +65,7 @@ const sections: NavSection[] = [
         base: "/listings",
         children: [
           { href: "/listings", label: "Toutes les annonces" },
+          { href: "/listings/moderation", label: "Modération" },
           { href: "/listings/grid", label: "Vue grille" },
           { href: "/listings/pending", label: "En attente", badge: 2 },
           { href: "/listings/featured", label: "À la une" },

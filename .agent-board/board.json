@@ -119,7 +119,7 @@
     {
       "id": "WEB-010",
       "title": "Listing management + moderation queue",
-      "status": "Backlog",
+      "status": "Review",
       "priority": "P1",
       "owner": "Dev B",
       "path": ".agent-board/tasks/WEB-010.md",

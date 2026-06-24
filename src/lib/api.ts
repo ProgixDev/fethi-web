@@ -479,10 +479,19 @@ export type ListingFilters = {
   sort?: string;
 };
 
+export type ModerationListing = Listing & { reportsCount: number };
+
 export const listingsApi = {
   list: (filters: ListingFilters = {}) =>
     internalRequest<PageResponse<Listing>>(`/listings${toQuery(filters)}`),
   get: (id: string) => internalRequest<Listing>(`/listings/${id}`),
+  /** Moderation queue: listings needing staff attention (flagged once WEB-008). */
+  moderationQueue: (
+    filters: { status?: ListingStatus; page?: number; size?: number } = {},
+  ) =>
+    internalRequest<PageResponse<ModerationListing>>(
+      `/listings/moderation${toQuery(filters)}`,
+    ),
   // Staff moderation: pause / archive / restore / soft-hide. Service-role write
   // + audited (SCR-004) in the route handler. `reason` is optional context.
   setStatus: (id: string, status: ListingStatus, reason?: string) =>
