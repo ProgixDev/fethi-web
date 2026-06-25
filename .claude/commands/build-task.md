@@ -66,9 +66,13 @@ Fix failures before continuing.
 
 Tick verified Acceptance / Pass criteria in the task file; annotate `manual` what needs a human/booted backend. Then `node scripts/agent-board.mjs set-status $ARGUMENTS "Review"`.
 
+## 5.5. Update the QA manual — MANDATORY
+
+Append or update this task's section in `docs/QA-MANUAL.md` so a human can verify it going forward. Mirror the existing format: a `## $ARGUMENTS — <title>` heading with concrete **what to do → what you should see** steps, tagged ✅ (automated — name the spec) / 🖐 (manual) / ⚠️ (known gap / not wired). If this task makes something previously listed under "Not yet shippable to QA" real, move it out of that section. The QA section ships in **this same PR**.
+
 ## 6. Open the PR
 
-Commit on `task/$ARGUMENTS`, open a PR into `dev` with `gh pr create`. Body must list: what was built; grilling-driven refinements; **the SCR id + cross-repo impact** (or "no schema change"); typecheck + lint results; green vs `manual` pass criteria; and "Merges only after a human reviews + approves."
+Commit on `task/$ARGUMENTS`, open a PR into `dev` with `gh pr create`. Body must list: what was built; grilling-driven refinements; **the SCR id + cross-repo impact** (or "no schema change"); typecheck + lint results; green vs `manual` pass criteria; **the QA-manual section added/updated (`docs/QA-MANUAL.md`)**; and "Merges only after a human reviews + approves."
 
 ## 7. Report back
 
