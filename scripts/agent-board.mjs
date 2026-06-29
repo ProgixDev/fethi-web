@@ -9,11 +9,14 @@
 // A task is "buildable" when its status is Backlog or Ready and every task in
 // its blockedBy list is Done. Candidates are ordered by priority then id.
 //
-// fethi-web is the DB OWNER. Any task whose blockedBy contains an "SCR-" id is
-// blocked on a merged Schema Change Request (docs/db/decisions/) — those are
-// tracked manually; the driver treats an unknown blocker id as NOT Done, so a
-// task gated on an unmerged SCR is correctly held back. Mark the SCR merged by
-// adding a Done pseudo-task, or remove the SCR blocker once accepted.
+// fethi-web is the DB OWNER. A task whose blockedBy contains an "SCR-" id is
+// blocked on a Schema Change Request (docs/db/decisions/). Those are resolved
+// AUTOMATICALLY against the canonical manifest `supabase/applied-scrs.json`: an
+// SCR blocker counts as Done iff it is in that manifest's `applied` list. This
+// replaces the old "tracked manually" scheme, which went stale (e.g. WEB-011
+// gated on the whole WEB-008 task when its real dependency — the reports/
+// blocked_users schema — already shipped via the accepted SCR-005). Any other
+// unknown blocker id still counts as NOT Done.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -23,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BOARD_JSON = path.join(ROOT, '.agent-board', 'board.json');
 const BOARD_MD = path.join(ROOT, '.agent-board', 'board.md');
+const APPLIED_SCRS = path.join(ROOT, 'supabase', 'applied-scrs.json');
 
 const COLUMNS = ['Backlog', 'Ready', 'In Progress', 'Review', 'Blocked', 'Done'];
 const BUILDABLE_FROM = new Set(['Backlog', 'Ready']);
@@ -37,19 +41,38 @@ function priorityRank(priority) {
   return match ? Number(match[1]) : 99;
 }
 
-function isBuildable(task, byId) {
+/** Set of accepted/applied SCR ids, read from the canonical manifest. */
+function readAppliedScrs() {
+  try {
+    return new Set(JSON.parse(readFileSync(APPLIED_SCRS, 'utf8')).applied ?? []);
+  } catch {
+    // Manifest missing/invalid: no SCR counts as applied (fail safe = blocked).
+    return new Set();
+  }
+}
+
+/** A blocker is satisfied if: an applied SCR, or a board task that is Done. */
+function isBlockerDone(id, byId, appliedScrs) {
+  if (id.startsWith('SCR-')) return appliedScrs.has(id);
+  return byId.get(id)?.status === 'Done';
+}
+
+function isBuildable(task, byId, appliedScrs) {
   if (!BUILDABLE_FROM.has(task.status)) {
     return false;
   }
-  // An SCR-* blocker (or any id not on the board) counts as NOT Done until it is
-  // added to the board as Done or removed — this is the coordination gate.
-  return (task.blockedBy ?? []).every((id) => byId.get(id)?.status === 'Done');
+  // SCR-* blockers resolve against the applied-SCRs manifest; other ids must be
+  // a Done board task. Any unknown non-SCR id counts as NOT Done (gate held).
+  return (task.blockedBy ?? []).every((id) =>
+    isBlockerDone(id, byId, appliedScrs),
+  );
 }
 
 function nextTask(board, lane) {
   const byId = new Map(board.tasks.map((task) => [task.id, task]));
+  const appliedScrs = readAppliedScrs();
   const candidates = board.tasks
-    .filter((task) => isBuildable(task, byId))
+    .filter((task) => isBuildable(task, byId, appliedScrs))
     .filter((task) => !lane || task.owner === lane || task.owner === 'Either')
     .sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority) || a.id.localeCompare(b.id));
 
@@ -122,8 +145,9 @@ function setStatus(id, status) {
 function list() {
   const board = readBoard();
   const byId = new Map(board.tasks.map((task) => [task.id, task]));
+  const appliedScrs = readAppliedScrs();
   for (const task of board.tasks) {
-    const flag = isBuildable(task, byId) ? 'BUILDABLE' : '         ';
+    const flag = isBuildable(task, byId, appliedScrs) ? 'BUILDABLE' : '         ';
     const blocked = (task.blockedBy ?? []).join(',') || '-';
     console.log(
       `${flag}  ${task.id}  ${task.priority}  ${String(task.owner).padEnd(6)}  ${task.status.padEnd(11)}  blockedBy=${blocked}  ${task.title}`,

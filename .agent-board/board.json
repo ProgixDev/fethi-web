@@ -137,7 +137,7 @@
       "path": ".agent-board/tasks/WEB-011.md",
       "blockedBy": [
         "WEB-004",
-        "WEB-008"
+        "SCR-005"
       ]
     },
     {
