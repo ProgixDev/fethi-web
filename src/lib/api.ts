@@ -585,16 +585,13 @@ export type ReportFilters = {
 };
 
 export const reportsApi = {
-  list: (filters: ReportFilters = {}) => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => {
-      if (v !== undefined && v !== null) params.set(k, String(v));
-    });
-    return request<PageResponse<Report>>(`/admin/reports?${params}`);
-  },
-  get: (id: string) => request<Report>(`/admin/reports/${id}`),
+  // Same-origin admin route handlers (cookie session), like usersApi/listingsApi
+  // — NOT the external `request()` base. Wired to WEB-011's /api/admin/reports*.
+  list: (filters: ReportFilters = {}) =>
+    internalRequest<PageResponse<Report>>(`/reports${toQuery(filters)}`),
+  get: (id: string) => internalRequest<Report>(`/reports/${id}`),
   setStatus: (id: string, status: ReportStatus, moderatorNote?: string) =>
-    request<Report>(`/admin/reports/${id}/status`, {
+    internalRequest<Report>(`/reports/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status, moderatorNote }),
     }),
