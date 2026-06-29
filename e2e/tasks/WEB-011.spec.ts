@@ -18,7 +18,13 @@ import { expect, test } from '@playwright/test';
 // Serial: both tests share one seeded report + a single beforeAll. Avoids the
 // fullyParallel race where two workers collide on the seed email AND hammer the
 // cold Next dev server's single-threaded route compiler (→ "Failed to fetch").
-test.describe.configure({ mode: 'serial' });
+// Retries absorb local-dev flakiness: this test hits THREE freshly-compiled
+// /api/admin/reports* routes (on-demand cold compile under `npm run dev`) plus
+// intermittent network to Supabase. CI uses `build && start` (precompiled), so
+// the cold-compile latency is a local-only artifact.
+test.describe.configure({ mode: 'serial', retries: 2 });
+
+const NAV_TIMEOUT = 30_000;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const SECRET_KEY = process.env.SUPABASE_SECRET_KEY ?? '';
@@ -104,13 +110,13 @@ test('staff sees the live report queue, then actions it with an audited note', a
   // Live data renders in the moderation queue.
   await page.goto('/moderation');
   await expect(page.getByText(REPORT_REASON, { exact: false }).first()).toBeVisible({
-    timeout: 20_000,
+    timeout: NAV_TIMEOUT,
   });
 
   // Open the detail and action the report with a moderator note.
   await page.goto(`/moderation/${reportId}`);
   await expect(page.getByText(REPORT_REASON, { exact: false }).first()).toBeVisible({
-    timeout: 20_000,
+    timeout: NAV_TIMEOUT,
   });
   const note = `Traité e2e ${stamp}`;
   await page.getByPlaceholder(/Justifie ta décision/i).fill(note);
