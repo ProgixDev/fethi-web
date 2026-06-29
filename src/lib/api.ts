@@ -286,8 +286,19 @@ export const usersApi = {
 };
 
 // ---------------------------------------------------------------------------
-// Analytics users
+// Analytics (WEB-014) — read-only server-side aggregations
+//
+// Same-origin admin route handlers (cookie session), like usersApi/reportsApi —
+// NOT the external `request()` base. Every aggregation runs in the staff-gated
+// route handler against the SERVICE-ROLE client; service-role keys never reach
+// the browser. All reads accept an optional `{ from, to }` date range (ISO date
+// strings, inclusive) that scopes the queries on `created_at`.
 // ---------------------------------------------------------------------------
+
+export type AnalyticsRange = { from?: string; to?: string };
+
+export type DistItem = { label: string; count: number };
+export type TrendPoint = { date: string; count: number };
 
 export type UsersSummary = {
   total: number;
@@ -297,25 +308,94 @@ export type UsersSummary = {
   banned: number;
   kycVerified: number;
   kycPending: number;
+  /** Rolling 30-day signups (range-independent KPI). */
   signupsLast30Days: number;
+  /** Signups within the selected range. */
+  signupsInRange: number;
   totalGmvCents: number;
   averageRating: number;
 };
 
-export type DistItem = { label: string; count: number };
-export type TrendPoint = { date: string; count: number };
+export type ListingsSummary = {
+  total: number;
+  byType: DistItem[];
+  byStatus: DistItem[];
+  topCategories: DistItem[];
+  totalViews: number;
+  totalFavorites: number;
+};
+
+export type MarketplaceSummary = {
+  totalUsers: number;
+  activeUsers: number;
+  totalListings: number;
+  totalOrders: number;
+  completedOrders: number;
+  gmvCents: number;
+  feesCents: number;
+  ordersByStatus: DistItem[];
+  gmvTrend: TrendPoint[];
+};
+
+export type EngagementSummary = {
+  messages: number;
+  threads: number;
+  offers: number;
+  favorites: number;
+  savedSearches: number;
+  signupsTrend: TrendPoint[];
+  messagesTrend: TrendPoint[];
+};
+
+export type GeoSummary = {
+  usersByNeighborhood: DistItem[];
+  listingsByNeighborhood: DistItem[];
+};
+
+export type ReportsAnalyticsSummary = {
+  total: number;
+  open: number;
+  byStatus: DistItem[];
+  byTargetType: DistItem[];
+  trend: TrendPoint[];
+};
+
+function rangeQuery(range: AnalyticsRange = {}): string {
+  return toQuery({ from: range.from, to: range.to });
+}
 
 export const analyticsApi = {
-  summary: () =>
-    request<UsersSummary>("/admin/analytics/users/summary"),
-  byStatus: () =>
-    request<DistItem[]>("/admin/analytics/users/by-status"),
-  byKyc: () =>
-    request<DistItem[]>("/admin/analytics/users/by-kyc"),
-  byNeighborhood: () =>
-    request<DistItem[]>("/admin/analytics/users/by-neighborhood"),
-  signupsTrend: () =>
-    request<TrendPoint[]>("/admin/analytics/users/signups-trend"),
+  // --- Users
+  summary: (range: AnalyticsRange = {}) =>
+    internalRequest<UsersSummary>(`/analytics/users/summary${rangeQuery(range)}`),
+  byStatus: (range: AnalyticsRange = {}) =>
+    internalRequest<DistItem[]>(`/analytics/users/by-status${rangeQuery(range)}`),
+  byKyc: (range: AnalyticsRange = {}) =>
+    internalRequest<DistItem[]>(`/analytics/users/by-kyc${rangeQuery(range)}`),
+  byNeighborhood: (range: AnalyticsRange = {}) =>
+    internalRequest<DistItem[]>(`/analytics/users/by-neighborhood${rangeQuery(range)}`),
+  signupsTrend: (range: AnalyticsRange = {}) =>
+    internalRequest<TrendPoint[]>(`/analytics/users/signups-trend${rangeQuery(range)}`),
+
+  // --- Listings
+  listings: (range: AnalyticsRange = {}) =>
+    internalRequest<ListingsSummary>(`/analytics/listings${rangeQuery(range)}`),
+
+  // --- Marketplace
+  marketplace: (range: AnalyticsRange = {}) =>
+    internalRequest<MarketplaceSummary>(`/analytics/marketplace${rangeQuery(range)}`),
+
+  // --- Engagement
+  engagement: (range: AnalyticsRange = {}) =>
+    internalRequest<EngagementSummary>(`/analytics/engagement${rangeQuery(range)}`),
+
+  // --- Geo
+  geo: (range: AnalyticsRange = {}) =>
+    internalRequest<GeoSummary>(`/analytics/geo${rangeQuery(range)}`),
+
+  // --- Reports
+  reports: (range: AnalyticsRange = {}) =>
+    internalRequest<ReportsAnalyticsSummary>(`/analytics/reports${rangeQuery(range)}`),
 };
 
 // ---------------------------------------------------------------------------

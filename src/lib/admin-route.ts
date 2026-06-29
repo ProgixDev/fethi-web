@@ -45,3 +45,14 @@ export function num(value: string | null): number | undefined {
   const n = Number(value);
   return Number.isFinite(n) ? n : undefined;
 }
+
+/** Parse the optional `?from=&to=` analytics date range from a request's query
+ * (ISO date strings, inclusive). Used by the analytics Route Handlers. */
+export function analyticsRange(
+  searchParams: URLSearchParams,
+): { from?: string; to?: string } {
+  return {
+    from: searchParams.get('from') ?? undefined,
+    to: searchParams.get('to') ?? undefined,
+  };
+}
