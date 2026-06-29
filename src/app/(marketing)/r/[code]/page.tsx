@@ -1,6 +1,5 @@
-import { ArrowRight } from "lucide-react";
 import { Container, Section, Eyebrow } from "@/components/marketing/shell/Container";
-import { Button } from "@/components/ui/Button";
+import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 
 const voices = [
   { quote: "On a vidé le grenier en une semaine. Je ne savais pas que mes voisins cherchaient autant de choses.", name: "Sophie D.", where: "Wazemmes" },
@@ -34,22 +33,12 @@ export default async function ReferralPage({
             utiliser sur votre première transaction.
           </p>
 
-          <form
-            className="mx-auto mt-10 flex max-w-xl flex-col gap-2 sm:flex-row"
-            action="/waitlist/confirmed"
-          >
-            <input
-              type="email"
-              required
-              name="email"
-              placeholder="vous@quartier.fr"
-              className="h-11 w-full rounded-full border border-n-200 bg-surface px-5 text-body text-ink placeholder:text-n-400 shadow-input-glass focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-            />
-            <Button type="submit" size="md" className="shrink-0">
-              Accepter l&apos;invitation
-              <ArrowRight className="h-[1em] w-[1em] shrink-0" strokeWidth={2.25} />
-            </Button>
-          </form>
+          <WaitlistForm
+            source="referral"
+            referralCode={code}
+            cta="Accepter l'invitation"
+            className="mx-auto mt-10"
+          />
           <p className="mt-3 text-caption text-n-500">
             Code utilisé : <span className="font-mono text-primary-ink">{code}</span>
           </p>

@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "motion/react";
-import { ArrowRight, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Container } from "../shell/Container";
-import { Button } from "@/components/ui/Button";
+import { WaitlistForm } from "../WaitlistForm";
 import { listings } from "@/lib/fixtures";
 import { formatDistance, formatEuro } from "@/lib/utils/format";
 import { neighborhoods } from "@/lib/fixtures/neighborhoods";
@@ -63,31 +63,15 @@ export function MarketingHero() {
               à pied. Pas d&apos;envoi, pas d&apos;arnaque, juste votre quartier.
             </motion.p>
 
-            <motion.form
+            <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease, delay: 0.25 }}
               id="waitlist"
-              className="mt-8 flex max-w-xl flex-col gap-2 sm:flex-row"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const form = e.currentTarget as HTMLFormElement;
-                form.reset();
-                window.location.href = "/waitlist/confirmed";
-              }}
+              className="mt-8"
             >
-              <input
-                type="email"
-                required
-                name="email"
-                placeholder="vous@quartier.fr"
-                className="h-11 w-full rounded-full border border-n-200 bg-surface px-5 text-body text-ink placeholder:text-n-400 shadow-input-glass focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-              />
-              <Button type="submit" size="md" className="shrink-0">
-                <span>Rejoindre la liste</span>
-                <ArrowRight className="h-[1em] w-[1em] shrink-0" strokeWidth={2.25} />
-              </Button>
-            </motion.form>
+              <WaitlistForm source="homepage" />
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0 }}

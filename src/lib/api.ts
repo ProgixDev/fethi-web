@@ -652,3 +652,54 @@ export const financeApi = {
   refunds: (page = 0, size = 20) =>
     ordersApi.list({ status: "REFUNDED", page, size }),
 };
+
+// ---------------------------------------------------------------------------
+// Marketing (PUBLIC — no auth, no /admin prefix)
+// ---------------------------------------------------------------------------
+//
+// The public marketing surface is the ONLY non-admin part of the app. Unlike
+// `request()` above (which talks to the Spring back-office at API_BASE with a
+// Bearer token), the marketing seam hits this Next app's OWN public route
+// handler at `/api/marketing/*` via a same-origin relative `fetch`. No token,
+// no cookies, no API_BASE. Screens never fetch directly — they go through
+// `marketingApi` so the data-access seam stays in one place.
+
+export type WaitlistSource = "homepage" | "footer" | "referral" | "app" | string;
+
+export type JoinWaitlistRequest = {
+  email: string;
+  referralCode?: string;
+  /** Which marketing surface the signup came from (for attribution). */
+  source?: WaitlistSource;
+};
+
+export type JoinWaitlistResponse = {
+  ok: true;
+  /** `true` when this email had already been seen in the same request batch. */
+  duplicate: boolean;
+  email: string;
+  referralCode: string | null;
+};
+
+export const marketingApi = {
+  /**
+   * Join the pre-launch waitlist (optionally with a referral code).
+   *
+   * Talks to the PUBLIC Next route handler `POST /api/marketing/waitlist` —
+   * NOT the admin backend. Throws an {@link ApiError} on a 4xx/5xx so callers
+   * (the waitlist form) can show validation/retry messaging.
+   */
+  async joinWaitlist(req: JoinWaitlistRequest): Promise<JoinWaitlistResponse> {
+    const res = await fetch("/api/marketing/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: req.email,
+        referralCode: req.referralCode,
+        source: req.source,
+      }),
+    });
+    if (!res.ok) await throwApiError(res);
+    return res.json();
+  },
+};

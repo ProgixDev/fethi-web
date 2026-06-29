@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Container, Section } from "../shell/Container";
-import { Button } from "@/components/ui/Button";
+import { WaitlistForm } from "../WaitlistForm";
 
 export function FinalCTA() {
   return (
@@ -42,23 +42,7 @@ export function FinalCTA() {
               votre quartier — on commence par le vôtre si vous nous laissez votre
               adresse e-mail.
             </p>
-            <form
-              className="mt-8 flex max-w-xl flex-col gap-2 sm:flex-row"
-              onSubmit={(e) => {
-                e.preventDefault();
-                window.location.href = "/waitlist/confirmed";
-              }}
-            >
-              <input
-                type="email"
-                required
-                placeholder="vous@quartier.fr"
-                className="h-11 w-full rounded-full border border-white/15 bg-white/5 px-5 text-body text-[#FBF8F4] placeholder:text-[#FBF8F4]/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-              <Button type="submit" size="md" className="shrink-0">
-                Rejoindre la liste
-              </Button>
-            </form>
+            <WaitlistForm source="footer" tone="dark" className="mt-8" />
             <p className="mt-3 text-caption text-[#FBF8F4]/50">
               Pas de spam. Une seule alerte quand on ouvre dans votre quartier.{" "}
               <Link href="/privacy" className="underline-offset-2 hover:underline">
