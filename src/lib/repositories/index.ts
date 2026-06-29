@@ -14,6 +14,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 
 import type { DbClient } from './base';
+import { AnalyticsRepository } from './analytics';
 import { AuditRepository } from './audit';
 import { ListingsRepository } from './listings';
 import { ReportsRepository } from './reports';
@@ -24,6 +25,7 @@ export function createRepositories(db: DbClient) {
     users: new UsersRepository(db),
     listings: new ListingsRepository(db),
     reports: new ReportsRepository(db),
+    analytics: new AnalyticsRepository(db),
     audit: new AuditRepository(db),
   } as const;
 }
@@ -39,6 +41,7 @@ export function createAdminRepositories() {
 export type Repositories = ReturnType<typeof createRepositories>;
 
 export { BaseRepository } from './base';
+export { AnalyticsRepository } from './analytics';
 export { AuditRepository } from './audit';
 export { ListingsRepository } from './listings';
 export { ReportsRepository } from './reports';

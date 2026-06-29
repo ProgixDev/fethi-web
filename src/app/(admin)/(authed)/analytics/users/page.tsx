@@ -4,10 +4,12 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { KPIStat } from "@/components/ui/KPIStat";
 import { LineChart, BarChart } from "@/components/admin/charts/Chart";
+import { DateRangeFilter, defaultRange } from "@/components/admin/analytics/DateRangeFilter";
 import { formatNumber, formatEuro } from "@/lib/utils/format";
 import { colors } from "@/lib/tokens";
 import {
   analyticsApi,
+  type AnalyticsRange,
   UsersSummary,
   DistItem,
   TrendPoint,
@@ -36,34 +38,34 @@ export default function AnalyticsUsersPage() {
   const [signupsTrend, setSignupsTrend] = React.useState<TrendPoint[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [range, setRange] = React.useState<Required<AnalyticsRange>>(defaultRange);
 
-  React.useEffect(() => {
-    let alive = true;
-    setLoading(true);
+  const load = React.useCallback(() => {
     Promise.all([
-      analyticsApi.summary(),
-      analyticsApi.byStatus(),
-      analyticsApi.byKyc(),
-      analyticsApi.byNeighborhood(),
-      analyticsApi.signupsTrend(),
+      analyticsApi.summary(range),
+      analyticsApi.byStatus(range),
+      analyticsApi.byKyc(range),
+      analyticsApi.byNeighborhood(range),
+      analyticsApi.signupsTrend(range),
     ])
       .then(([s, st, k, n, t]) => {
-        if (!alive) return;
         setSummary(s);
         setByStatus(st);
         setByKyc(k);
         setByNeighborhood(n);
         setSignupsTrend(t);
+        setError(null);
       })
       .catch((err) => {
         console.error("analytics load failed", err);
-        if (alive) setError("Impossible de charger les analytics.");
+        setError("Impossible de charger les analytics.");
       })
-      .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, []);
+      .finally(() => setLoading(false));
+  }, [range]);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
   // Données transformées pour les graphes
   const signupsData = signupsTrend.map((p) => ({
@@ -108,6 +110,8 @@ export default function AnalyticsUsersPage() {
         }
       />
 
+      <DateRangeFilter value={range} onApply={setRange} loading={loading} />
+
       {error ? (
         <div className="rounded-md bg-danger/10 px-3 py-2 text-body-sm text-danger">
           {error}
@@ -150,7 +154,7 @@ export default function AnalyticsUsersPage() {
       <section className="rounded-lg border border-n-100 bg-surface p-5">
         <header className="pb-4">
           <p className="text-label uppercase tracking-wide text-n-500">
-            Inscriptions — 30 jours
+            Inscriptions — {range.from} → {range.to}
           </p>
           <p className="mt-1 text-h2 font-medium tabular tracking-tight text-ink">
             {formatNumber(totalSignups)}
