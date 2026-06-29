@@ -49,7 +49,7 @@ Each dev pulls their lane: `npm run board:next:a` (Dev A) / `npm run board:next:
 | WEB-011 | Reports / moderation review workflow | Done | Dev B | P1 |
 | WEB-012 | KYC verification dashboard (Stripe Connect status) | Backlog | Dev B | P1 |
 | WEB-013 | Orders, disputes, finance, refunds | Backlog | Dev B | P1 |
-| WEB-014 | Analytics & reporting read models | Backlog | Dev B | P2 |
+| WEB-014 | Analytics & reporting read models | Done | Dev B | P2 |
 | WEB-015 | Marketing site + waitlist/referral | Done | Either | P2 |
 
 ## Recommended Start

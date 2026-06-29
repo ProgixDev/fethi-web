@@ -63,14 +63,18 @@ test('staff sees real aggregated analytics on /analytics/users, matching the DB'
   });
 
   // The total-users KPI resolves to a number (the "—" placeholder is replaced
-  // once the aggregation responds).
-  const totalCard = page
-    .locator('div', { has: page.getByText('Utilisateurs totaux', { exact: true }) })
+  // once the aggregation responds). Target the KPIStat card (div.rounded-lg
+  // holding the exact label) and read ONLY its value paragraph (p.text-h2) —
+  // reading the whole card/dashboard would concatenate every number on screen.
+  const totalValue = page
+    .locator('div.rounded-lg', { has: page.getByText('Utilisateurs totaux', { exact: true }) })
+    .first()
+    .locator('p.text-h2')
     .first();
   await expect
     .poll(
       async () => {
-        const txt = (await totalCard.innerText()).replace(/[^\d]/g, '');
+        const txt = (await totalValue.innerText()).replace(/[^\d]/g, '');
         return txt.length > 0 ? Number(txt) : null;
       },
       { timeout: NAV_TIMEOUT },
@@ -83,7 +87,7 @@ test('staff sees real aggregated analytics on /analytics/users, matching the DB'
     .select('*', { count: 'exact', head: true });
   const dbTotal = count ?? 0;
 
-  const rendered = Number((await totalCard.innerText()).replace(/[^\d]/g, ''));
+  const rendered = Number((await totalValue.innerText()).replace(/[^\d]/g, ''));
   expect(rendered).toBe(dbTotal);
 
   // A chart (recharts SVG) renders for the period.

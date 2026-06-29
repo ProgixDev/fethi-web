@@ -167,7 +167,7 @@
     {
       "id": "WEB-014",
       "title": "Analytics & reporting read models",
-      "status": "Backlog",
+      "status": "Done",
       "priority": "P2",
       "owner": "Dev B",
       "path": ".agent-board/tasks/WEB-014.md",
