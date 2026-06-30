@@ -8,6 +8,31 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-06-30 · SCR-008 · Reviews + account deletion/export + KYC-status
+
+- **What:** New table `reviews` (order-gated public reputation — `order_id`,
+  `author_id`, `target_user_id`, `rating 1..5`, `comment`, `created_at`; unique per
+  `(author, order, target)`). Public SELECT; INSERT only by the buyer/seller of a
+  **COMPLETED** order reviewing the counterparty; immutable from clients. An
+  `AFTER` trigger keeps `profiles.rating` (avg) + `profiles.reviews_count` in sync.
+  New nullable column `profiles.deleted_at` (account-deletion tombstone). Three new
+  Edge Functions (**deployed + ACTIVE** — no Docker): `account-delete`
+  (`POST /me/deletion` — 409 `DELETION_BLOCKED` on an active order/dispute, else
+  anonymise + ban + tombstone), `account-export` (`POST /me/export` — assembles the
+  RGPD archive, returns `QUEUED`), `kyc-status` (`GET /me/kyc-status` —
+  Connect→`KycStatus`, falls back to `profiles.kyc_status`).
+  `reports` + `blocked_users` were already live (SCR-005/007) — unchanged here.
+  Regenerated `database.types.ts`; `applied-scrs.json` appends **SCR-008**.
+- **Mobile must:** the vendored `src/shared/types/database.types.ts` +
+  `applied-scrs.json` are updated (SCR-008 applied) — this unblocks **TASK-013**
+  (reviews/reports) and the backend half of **TASK-014** (account deletion/export,
+  KYC). `reviewsApi.create` writes `reviews` (RLS enforces the COMPLETED-order +
+  counterparty gate — surface a clean error if rejected); `reviewsApi.listForUser`
+  reads them publicly. `meApi.requestDeletion` must relay the `DELETION_BLOCKED`
+  code as-is. Edge Functions are authored but **deploy is pending** (Docker/CLI
+  unavailable) — until deployed, `/me/deletion` + `/me/export` fail cleanly and the
+  UI stays safe.
+
 ## 2026-06-23 · SCR-004 · Staff audit log (admin moderation)
 
 - **What:** One new table `staff_audit_log` (id, actor_id, action, target_type,

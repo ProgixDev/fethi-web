@@ -3,7 +3,7 @@
 Project: MyStreet Web (admin + marketing)
 Current focus: Own the shared Supabase backend (schema, RLS, Edge Functions) and wire the admin dashboard; coordinate all DB changes with fethi-mobile via SCRs
 Current milestone: 10-day production launch — shared backend + admin surface, two parallel build lanes
-Updated: 2026-06-29
+Updated: 2026-06-30
 
 ## ⚠️ Database coordination (READ FIRST)
 
@@ -43,7 +43,7 @@ Each dev pulls their lane: `npm run board:next:a` (Dev A) / `npm run board:next:
 | WEB-005 | Messaging/offers/orders schema + RLS + transition Edge Functions | Done | Dev A | P1 |
 | WEB-006 | Stripe Connect Express + payment/webhook Edge Functions (shared) | Backlog | Dev A | P0 |
 | WEB-007 | Notifications schema + push-dispatch Edge Function (shared) | Backlog | Dev A | P1 |
-| WEB-008 | Reviews/reports schema + account deletion/export + KYC-status Edge Functions | Backlog | Dev A | P1 |
+| WEB-008 | Reviews/reports schema + account deletion/export + KYC-status Edge Functions | Done | Dev A | P1 |
 | WEB-009 | User management (list/search/suspend/ban) wired to Supabase | Done | Dev B | P1 |
 | WEB-010 | Listing management + moderation queue | Done | Dev B | P1 |
 | WEB-011 | Reports / moderation review workflow | Done | Dev B | P1 |
