@@ -1,0 +1,15 @@
+{
+  "_comment": "CANONICAL list of deployed Supabase Edge Functions on the shared project. fethi-web (the schema owner) appends a function slug here in the SAME PR that deploys it, then copies this file into fethi-mobile/src/shared/types/ alongside database.types.ts + applied-scrs.json. Edge Functions do NOT appear in database.types.ts (only tables/views/RPCs do), so this manifest is the contract the mobile coordination gate (scripts/check-scr.mjs) reads to block consumer tasks whose dispatch function isn't live yet. See docs/db/COORDINATION.md and docs/WEB-BACKEND-SYNC.md.",
+  "deployed": [
+    "offers-respond",
+    "orders-create",
+    "orders-transition",
+    "account-delete",
+    "account-export",
+    "kyc-status",
+    "payments-config",
+    "payments-create-intent",
+    "connect-onboarding",
+    "stripe-webhook"
+  ]
+}

@@ -7,6 +7,7 @@ import { CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import { Button } from "@/components/ui/Button";
 import { ordersApi, publicUsersApi, type AdminOrder, type PublicProfile } from "@/lib/api";
 import { formatDate } from "@/lib/utils/format";
 
@@ -35,6 +36,31 @@ export default function OrderDetailPage() {
   const [buyer, setBuyer] = React.useState<PublicProfile | null>(null);
   const [seller, setSeller] = React.useState<PublicProfile | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [refunding, setRefunding] = React.useState(false);
+  const [refundMsg, setRefundMsg] = React.useState<string | null>(null);
+
+  const canRefund =
+    order != null &&
+    order.paymentIntentId != null &&
+    order.status !== "REFUNDED" &&
+    order.status !== "CANCELLED";
+
+  async function handleRefund() {
+    if (!order) return;
+    setRefunding(true);
+    setRefundMsg(null);
+    try {
+      const updated = await ordersApi.refund(order.id);
+      setOrder(updated);
+      setRefundMsg(
+        "Remboursement initié auprès de Stripe. Le statut passera à « Remboursée » à la réception du webhook.",
+      );
+    } catch (e) {
+      setRefundMsg(e instanceof Error ? e.message : "Le remboursement a échoué.");
+    } finally {
+      setRefunding(false);
+    }
+  }
 
   React.useEffect(() => {
     if (!id) return;
@@ -106,6 +132,27 @@ export default function OrderDetailPage() {
             <div className="flex justify-between"><span className="text-caption text-n-500">Type</span><span className="text-body-sm text-n-700">{order.listingType}</span></div>
             <div className="flex justify-between"><span className="text-caption text-n-500">Créée le</span><span className="text-body-sm text-n-700">{formatDate(order.createdAt)}</span></div>
             {order.completedAt ? <div className="flex justify-between"><span className="text-caption text-n-500">Terminée</span><span className="text-body-sm text-n-700">{formatDate(order.completedAt)}</span></div> : null}
+          </CardBody></Card>
+
+          <Card><CardBody className="space-y-3">
+            <h3 className="text-h3 font-medium text-ink">Remboursement</h3>
+            <p className="text-caption text-n-500">
+              Émet un remboursement Stripe idempotent. Le webhook Stripe reste la
+              source de vérité et fait passer la commande à « Remboursée ».
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefund}
+              disabled={!canRefund || refunding}
+            >
+              {refunding
+                ? "Remboursement…"
+                : order.status === "REFUNDED"
+                  ? "Déjà remboursée"
+                  : "Rembourser la commande"}
+            </Button>
+            {refundMsg ? <p className="text-caption text-n-600">{refundMsg}</p> : null}
           </CardBody></Card>
 
           <Card><CardBody>

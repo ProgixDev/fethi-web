@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 57e8d7652043
+ * schema-version: 8d65f1913a01
  */
 
 export type Json =
@@ -619,6 +619,9 @@ export type Database = {
           listing_title: string | null
           listing_type: Database["public"]["Enums"]["listing_type"]
           offer_id: string | null
+          paid_at: string | null
+          payment_intent_id: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
           rental_end: string | null
           rental_start: string | null
           seller_confirmed: boolean
@@ -644,6 +647,9 @@ export type Database = {
           listing_title?: string | null
           listing_type: Database["public"]["Enums"]["listing_type"]
           offer_id?: string | null
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           rental_end?: string | null
           rental_start?: string | null
           seller_confirmed?: boolean
@@ -669,6 +675,9 @@ export type Database = {
           listing_title?: string | null
           listing_type?: Database["public"]["Enums"]["listing_type"]
           offer_id?: string | null
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           rental_end?: string | null
           rental_start?: string | null
           seller_confirmed?: boolean
@@ -730,6 +739,95 @@ export type Database = {
             foreignKeyName: "orders_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          metadata: Json | null
+          order_id: string
+          status: Database["public"]["Enums"]["payment_status"]
+          stripe_payment_intent_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          order_id: string
+          status: Database["public"]["Enums"]["payment_status"]
+          stripe_payment_intent_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          stripe_payment_intent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_accounts: {
+        Row: {
+          created_at: string
+          details_submitted: boolean
+          id: string
+          metadata: Json | null
+          onboarding_status: string
+          payouts_enabled: boolean
+          stripe_account_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details_submitted?: boolean
+          id?: string
+          metadata?: Json | null
+          onboarding_status: string
+          payouts_enabled?: boolean
+          stripe_account_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details_submitted?: boolean
+          id?: string
+          metadata?: Json | null
+          onboarding_status?: string
+          payouts_enabled?: boolean
+          stripe_account_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
@@ -1175,6 +1273,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webhook_deduplication: {
+        Row: {
+          id: string
+          processed_at: string
+          stripe_event_id: string
+        }
+        Insert: {
+          id?: string
+          processed_at?: string
+          stripe_event_id: string
+        }
+        Update: {
+          id?: string
+          processed_at?: string
+          stripe_event_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -2198,6 +2314,13 @@ export type Database = {
         | "CANCELLED"
         | "REFUNDED"
         | "DISPUTED"
+      payment_status:
+        | "PENDING"
+        | "SUCCEEDED"
+        | "FAILED"
+        | "REFUNDED"
+        | "DISPUTED"
+        | "PARTIALLY_REFUNDED"
       staff_role: "admin" | "moderator" | "finance" | "support"
       user_status: "ACTIVE" | "PENDING" | "SUSPENDED" | "BANNED"
     }
@@ -2351,6 +2474,14 @@ export const Constants = {
         "CANCELLED",
         "REFUNDED",
         "DISPUTED",
+      ],
+      payment_status: [
+        "PENDING",
+        "SUCCEEDED",
+        "FAILED",
+        "REFUNDED",
+        "DISPUTED",
+        "PARTIALLY_REFUNDED",
       ],
       staff_role: ["admin", "moderator", "finance", "support"],
       user_status: ["ACTIVE", "PENDING", "SUSPENDED", "BANNED"],

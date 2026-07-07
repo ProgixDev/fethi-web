@@ -627,17 +627,23 @@ export type OrderFilters = {
 };
 
 export const ordersApi = {
-  // V1 : le backend n'a pas encore /admin/orders dedie ; on utilise la
-  // route /me/orders (qui retourne celles ou l'admin est buyer ou seller).
-  // A remplacer par /admin/orders quand AdminOrderController existera.
-  list: (filters: OrderFilters = {}) => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
-    });
-    return request<PageResponse<AdminOrder>>(`/me/orders?${params}`);
-  },
-  get: (id: string) => request<AdminOrder>(`/me/orders/${id}`),
+  // WEB-013: wired to the same-origin admin routes (cookie session, staff-gated)
+  // backed by OrdersRepository on the service-role client — every order in scope,
+  // not just the admin's own. Replaces the old external `/me/orders` shim.
+  list: (filters: OrderFilters = {}) =>
+    internalRequest<PageResponse<AdminOrder>>(`/orders${toQuery(filters as Record<string, unknown>)}`),
+  get: (id: string) => internalRequest<AdminOrder>(`/orders/${id}`),
+
+  /**
+   * Issue an idempotent Stripe refund for an order (finance role only). The
+   * Stripe webhook remains the source of truth that flips the order to REFUNDED;
+   * this call only initiates the refund.
+   */
+  refund: (id: string, amountCents?: number) =>
+    internalRequest<AdminOrder>(`/orders/${id}`, {
+      method: "POST",
+      body: JSON.stringify({ action: "refund", amountCents }),
+    }),
 };
 
 // ---------------------------------------------------------------------------
@@ -683,28 +689,94 @@ export const reportsApi = {
 
 export type KycStatus = "UNVERIFIED" | "PENDING" | "REVIEW" | "VERIFIED" | "REJECTED";
 
+export type KycListItem = AdminUserListItem & {
+  /** Stripe Connect account ID (null if no Connect account exists) */
+  stripeAccountId: string | null;
+  /** Whether payouts are enabled in Stripe Connect */
+  payoutsEnabled: boolean;
+  /** Whether KYC details have been submitted to Stripe */
+  detailsSubmitted: boolean;
+  /** Stripe Connect onboarding status */
+  onboardingStatus: "PENDING" | "ENABLED" | "RESTRICTED" | "DISABLED" | null;
+  /** Source of the KYC status ('connect' | 'profile' | 'none') */
+  source: "connect" | "profile" | "none";
+};
+
+export type KycDetail = KycListItem & {
+  /** Stripe account requirements (currently due) */
+  currentlyDue: string[];
+  /** Stripe account requirements (past due) */
+  pastDue: string[];
+  /** Pending verification requirements */
+  pendingVerification: string[];
+  /** Timestamp when the Connect account was created */
+  connectCreatedAt: string | null;
+  /** Timestamp when the Connect account was last updated */
+  connectUpdatedAt: string | null;
+};
+
+export type KycFilters = {
+  q?: string;
+  status?: KycStatus;
+  source?: "connect" | "profile" | "none";
+  page?: number;
+  size?: number;
+  sort?: string;
+};
+
 export const kycApi = {
+  /**
+   * List sellers with their KYC/Connect status.
+   * Uses internal admin API (same-origin, cookie session).
+   */
+  list: (filters: KycFilters = {}) =>
+    internalRequest<PageResponse<KycListItem>>(`/kyc${toQuery(filters)}`),
+
+  /**
+   * Get detailed KYC info for a single user.
+   * Uses internal admin API (same-origin, cookie session).
+   */
+  get: (userId: string) =>
+    internalRequest<KycDetail>(`/kyc/${userId}`),
+
+  /**
+   * Refresh KYC status from Stripe.
+   * Calls the Edge Function to fetch fresh data.
+   */
+  refresh: (userId: string) =>
+    internalRequest<KycDetail>(`/kyc/${userId}`, {
+      method: "POST",
+      body: JSON.stringify({ action: "refresh" }),
+    }),
+
+  /**
+   * Resend onboarding link for incomplete Connect accounts.
+   * Calls the connect-onboarding Edge Function.
+   */
+  resendOnboarding: (userId: string) =>
+    internalRequest<{ url: string | null; accountId: string; onboardingStatus: string }>(`/kyc/${userId}`, {
+      method: "POST",
+      body: JSON.stringify({ action: "resend-onboarding" }),
+    }),
+
+  // Legacy methods for backward compatibility
   pending: (page = 0, size = 20) =>
-    request<PageResponse<AdminUserListItem>>(
-      `/admin/users?kyc=PENDING&page=${page}&size=${size}`,
+    internalRequest<PageResponse<AdminUserListItem>>(
+      `/kyc?status=PENDING&page=${page}&size=${size}`,
     ),
   verified: (page = 0, size = 20) =>
-    request<PageResponse<AdminUserListItem>>(
-      `/admin/users?kyc=VERIFIED&page=${page}&size=${size}`,
+    internalRequest<PageResponse<AdminUserListItem>>(
+      `/kyc?status=VERIFIED&page=${page}&size=${size}`,
     ),
-  setStatus: (userId: string, kycStatus: KycStatus) =>
-    request<AdminUserListItem>(`/admin/users/${userId}/kyc`, {
-      method: "PATCH",
-      body: JSON.stringify({ kycStatus }),
-    }),
 };
 
 // ---------------------------------------------------------------------------
 // Finance (admin)
 // ---------------------------------------------------------------------------
 //
-// Agrege une vue rapide cote client en attendant un endpoint backend
-// /admin/analytics/finance/* dedie.
+// WEB-013: the summary is aggregated in the database (OrdersRepository.summary)
+// behind the same-origin admin route, replacing the old client-side sum that
+// capped at 200 orders.
 
 export type FinanceSummary = {
   totalGmvCents: number;
@@ -715,20 +787,7 @@ export type FinanceSummary = {
 };
 
 export const financeApi = {
-  async summary(): Promise<FinanceSummary> {
-    const res = await ordersApi.list({ size: 200 });
-    const orders = res.content;
-    const completed = orders.filter((o) => o.status === "COMPLETED");
-    const pending = orders.filter((o) => o.status === "AWAITING_PICKUP" || o.status === "HANDOFF_PENDING");
-    const refunded = orders.filter((o) => o.status === "REFUNDED");
-    return {
-      totalGmvCents: completed.reduce((acc, o) => acc + (o.amountCents ?? 0), 0),
-      totalFeesCents: completed.reduce((acc, o) => acc + (o.feeCents ?? 0), 0),
-      completedOrders: completed.length,
-      pendingOrders: pending.length,
-      refundedOrders: refunded.length,
-    };
-  },
+  summary: () => internalRequest<FinanceSummary>(`/finance/summary`),
   refunds: (page = 0, size = 20) =>
     ordersApi.list({ status: "REFUNDED", page, size }),
 };

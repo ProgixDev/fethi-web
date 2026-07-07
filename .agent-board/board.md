@@ -3,7 +3,7 @@
 Project: MyStreet Web (admin + marketing)
 Current focus: Own the shared Supabase backend (schema, RLS, Edge Functions) and wire the admin dashboard; coordinate all DB changes with fethi-mobile via SCRs
 Current milestone: 10-day production launch — shared backend + admin surface, two parallel build lanes
-Updated: 2026-06-30
+Updated: 2026-07-07
 
 ## ⚠️ Database coordination (READ FIRST)
 
@@ -41,14 +41,14 @@ Each dev pulls their lane: `npm run board:next:a` (Dev A) / `npm run board:next:
 | WEB-003 | Core schema + RLS: profiles, listings, categories, favorites, saved_searches | Done | Dev A | P0 |
 | WEB-004 | Admin auth + staff RBAC + route protection | Done | Dev B | P0 |
 | WEB-005 | Messaging/offers/orders schema + RLS + transition Edge Functions | Done | Dev A | P1 |
-| WEB-006 | Stripe Connect Express + payment/webhook Edge Functions (shared) | Backlog | Dev A | P0 |
+| WEB-006 | Stripe Connect Express + payment/webhook Edge Functions (shared) | Done | Dev A | P0 |
 | WEB-007 | Notifications schema + push-dispatch Edge Function (shared) | Backlog | Dev A | P1 |
 | WEB-008 | Reviews/reports schema + account deletion/export + KYC-status Edge Functions | Done | Dev A | P1 |
 | WEB-009 | User management (list/search/suspend/ban) wired to Supabase | Done | Dev B | P1 |
 | WEB-010 | Listing management + moderation queue | Done | Dev B | P1 |
 | WEB-011 | Reports / moderation review workflow | Done | Dev B | P1 |
-| WEB-012 | KYC verification dashboard (Stripe Connect status) | Backlog | Dev B | P1 |
-| WEB-013 | Orders, disputes, finance, refunds | Backlog | Dev B | P1 |
+| WEB-012 | KYC verification dashboard (Stripe Connect status) | Review | Dev B | P1 |
+| WEB-013 | Orders, disputes, finance, refunds | Review | Dev B | P1 |
 | WEB-014 | Analytics & reporting read models | Done | Dev B | P2 |
 | WEB-015 | Marketing site + waitlist/referral | Done | Either | P2 |
 

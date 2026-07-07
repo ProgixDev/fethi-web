@@ -8,6 +8,48 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-07-06 · WEB-013 · Admin orders/finance/refunds (no schema change)
+
+- **What:** Wired the admin orders/disputes/finance/refunds surface to live
+  Supabase data via new same-origin routes (`/api/admin/orders`,
+  `/api/admin/orders/[id]`, `/api/admin/finance/summary`) backed by a new
+  `OrdersRepository` on the service-role client. Added an idempotent Stripe
+  refund action (finance role only; `Idempotency-Key: refund_<orderId>`). **No
+  new tables or columns** — reads the existing `orders` rows + SCR-009 payment
+  columns; the Stripe webhook remains the source of truth for the REFUNDED flip.
+- **Mobile must:** nothing. Admin-only change, no shared schema/type impact.
+
+---
+
+## 2026-07-06 · SCR-009 · Stripe Payments + Connect Express
+
+- **What:** New enum `payment_status` (PENDING/SUCCEEDED/FAILED/REFUNDED/DISPUTED/PARTIALLY_REFUNDED).
+  New columns on `orders`: `payment_intent_id`, `payment_status`, `paid_at` (all nullable).
+  New tables: `payments` (immutable payment records, service-role writes), `payout_accounts`
+  (seller Stripe Connect accounts, one per user), `webhook_deduplication` (at-least-once guard).
+  Four Edge Functions **deployed** (all ACTIVE on the shared project as of 2026-07-06):
+  `payments-config` (POST/GET returns publishable key + configured flag; `verify_jwt=true`),
+  `payments-create-intent` (POST creates/reuses PaymentIntent for an order, idempotent),
+  `connect-onboarding` (POST generates Connect Express onboarding link),
+  `stripe-webhook` (POST verifies signature, dedupes, mutates orders/payments on events;
+  **`verify_jwt=false`** — Stripe signature auth, not a user JWT). RLS on all tables;
+  clients can read their own payments/payout_accounts via order/user, never write. Webhook is
+  the source of truth for payment state. Regenerated `database.types.ts`; `applied-scrs.json`
+  appends **SCR-009**; `edge-functions.json` lists all four as deployed.
+  Edge secrets set: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
+  **Still pending (external Stripe steps):** `STRIPE_WEBHOOK_SECRET` (create the webhook
+  endpoint in the Stripe Dashboard first) and `STRIPE_CONNECT_CLIENT_ID` (enable Connect).
+  Until those land, `stripe-webhook` returns 503 `stripe_unconfigured` and Connect onboarding
+  can't complete — but `payments-config` and PaymentIntent creation work in test mode now.
+  Naming note: the client-invoked slug is **`connect-onboarding`** (not `connect-onboard`).
+- **Mobile must:** the vendored `src/shared/types/database.types.ts` + `applied-scrs.json`
+  are updated (SCR-009 applied) — this unblocks **TASK-011** (payments integration).
+  Call `paymentsApi.getConfig()` to get publishable key; `paymentsApi.createIntent(orderId)`
+  to create/reuse PaymentIntent; `connectApi.startOnboarding()` to generate Connect link.
+  Subscribe to `payments` Realtime for payment status changes; `orders.paymentStatus` updates
+  are driven by the webhook. Note: PaymentIntent creation is idempotent per order — a retry
+  returns the existing intent.
+
 ## 2026-06-30 · SCR-008 · Reviews + account deletion/export + KYC-status
 
 - **What:** New table `reviews` (order-gated public reputation — `order_id`,
