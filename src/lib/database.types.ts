@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 8d65f1913a01
+ * schema-version: 13219f99448f
  */
 
 export type Json =
@@ -143,6 +143,51 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_push_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string | null
+          platform: string | null
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          platform?: string | null
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          platform?: string | null
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -450,6 +495,57 @@ export type Database = {
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          href: string | null
+          id: string
+          kind: Database["public"]["Enums"]["notif_kind"]
+          read_at: string | null
+          title: string
+          unread: boolean | null
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["notif_kind"]
+          read_at?: string | null
+          title: string
+          unread?: boolean | null
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["notif_kind"]
+          read_at?: string | null
+          title?: string
+          unread?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2301,6 +2397,15 @@ export type Database = {
         | "OFFER"
         | "PICKUP"
         | "SYSTEM"
+      notif_kind:
+        | "MESSAGE"
+        | "OFFER"
+        | "BOOKING_REQUEST"
+        | "LISTING_SOLD"
+        | "ORDER_UPDATE"
+        | "REVIEW"
+        | "PAYOUT"
+        | "SYSTEM"
       offer_status:
         | "PENDING"
         | "ACCEPTED"
@@ -2466,6 +2571,16 @@ export const Constants = {
       listing_status: ["DRAFT", "ACTIVE", "PAUSED", "SOLD", "ARCHIVED"],
       listing_type: ["VENTE", "LOCATION", "SERVICE"],
       message_kind: ["TEXT", "PHOTO", "LOCATION", "OFFER", "PICKUP", "SYSTEM"],
+      notif_kind: [
+        "MESSAGE",
+        "OFFER",
+        "BOOKING_REQUEST",
+        "LISTING_SOLD",
+        "ORDER_UPDATE",
+        "REVIEW",
+        "PAYOUT",
+        "SYSTEM",
+      ],
       offer_status: ["PENDING", "ACCEPTED", "REJECTED", "EXPIRED", "WITHDRAWN"],
       order_status: [
         "AWAITING_PICKUP",

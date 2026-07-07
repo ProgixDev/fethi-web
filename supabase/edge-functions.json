@@ -10,6 +10,7 @@
     "payments-config",
     "payments-create-intent",
     "connect-onboarding",
-    "stripe-webhook"
+    "stripe-webhook",
+    "notifications-dispatch"
   ]
 }

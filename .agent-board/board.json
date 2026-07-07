@@ -85,7 +85,7 @@
     {
       "id": "WEB-007",
       "title": "Notifications schema + push-dispatch Edge Function (shared)",
-      "status": "Backlog",
+      "status": "Review",
       "priority": "P1",
       "owner": "Dev A",
       "path": ".agent-board/tasks/WEB-007.md",

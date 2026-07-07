@@ -42,7 +42,7 @@ Each dev pulls their lane: `npm run board:next:a` (Dev A) / `npm run board:next:
 | WEB-004 | Admin auth + staff RBAC + route protection | Done | Dev B | P0 |
 | WEB-005 | Messaging/offers/orders schema + RLS + transition Edge Functions | Done | Dev A | P1 |
 | WEB-006 | Stripe Connect Express + payment/webhook Edge Functions (shared) | Done | Dev A | P0 |
-| WEB-007 | Notifications schema + push-dispatch Edge Function (shared) | Backlog | Dev A | P1 |
+| WEB-007 | Notifications schema + push-dispatch Edge Function (shared) | Review | Dev A | P1 |
 | WEB-008 | Reviews/reports schema + account deletion/export + KYC-status Edge Functions | Done | Dev A | P1 |
 | WEB-009 | User management (list/search/suspend/ban) wired to Supabase | Done | Dev B | P1 |
 | WEB-010 | Listing management + moderation queue | Done | Dev B | P1 |

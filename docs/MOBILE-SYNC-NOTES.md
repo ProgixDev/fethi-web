@@ -8,6 +8,40 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-07-07 · SCR-010 · Notifications + Expo push dispatch — unblocks TASK-009
+
+- **What:** New enum `notif_kind` (`MESSAGE`/`OFFER`/`BOOKING_REQUEST`/`LISTING_SOLD`/
+  `ORDER_UPDATE`/`REVIEW`/`PAYOUT`/`SYSTEM`) — values are **byte-identical** to the
+  shipped mobile `api.ts` `NotifKind` union. New tables:
+  - **`notifications`** — own-row RLS (a user reads ONLY their own). Columns:
+    `id`, `user_id`, `kind`, `title`, `body` (nullable), `href` (nullable),
+    `read_at timestamptz` (null = unread), `unread boolean` (generated:
+    `read_at is null`), `created_at`. The generated `unread` column maps 1:1 to
+    `ApiNotification.unread`. **Added to the `supabase_realtime` publication** for
+    the live in-app feed (RLS still applies, so you only receive your own rows).
+  - **`device_push_tokens`** — `unique(user_id, token)`; columns `token`,
+    `platform` (`ios`/`android`/`web`), `last_used_at`, timestamps. A user fully
+    manages ONLY their own rows (select/insert/update/delete under RLS).
+  One Edge Function authored: **`notifications-dispatch`** (POST-only,
+  **service-role-authenticated** — server-to-server, NOT called with a user JWT).
+  It stores one in-app `notifications` row per recipient (always), then fans out
+  Expo push to each recipient's tokens (chunked at 100) and prunes tokens returned
+  as `DeviceNotRegistered`. Uses a server-only `EXPO_ACCESS_TOKEN` Edge secret;
+  returns 503 when unconfigured. `applied-scrs.json` appends **SCR-010**.
+- **Mobile must:** once the vendored `database.types.ts` + `applied-scrs.json` are
+  refreshed by the web parent (SCR-010 applied), **TASK-009** unblocks. (1) Read
+  `notifications` directly under RLS and subscribe to Realtime narrowed by
+  `user_id = auth.uid()` for the live feed; render `ApiNotification` straight from
+  the row (`unread` is a real column). (2) Mark-read = `update notifications set
+  read_at = now()` on your own rows (own-row UPDATE policy). (3) Register the Expo
+  push token by **upserting** into `device_push_tokens` on conflict `(user_id,
+  token)`; delete the row on logout. (4) Do **NOT** call `notifications-dispatch`
+  from the app — it is server-only (service-role bearer); the backend fires push on
+  domain events. (5) Push may be denied on device — that's fine, the in-app row is
+  still stored, so the feed never drops a notification.
+
+---
+
 ## 2026-07-06 · WEB-013 · Admin orders/finance/refunds (no schema change)
 
 - **What:** Wired the admin orders/disputes/finance/refunds surface to live
