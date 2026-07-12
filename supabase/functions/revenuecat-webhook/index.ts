@@ -109,6 +109,9 @@ Deno.serve(async (req: Request) => {
     const environment = (ev.environment as string | undefined) ?? null;
     const purchasedAt = msToIso(ev.purchased_at_ms);
     const expiresAt = msToIso(ev.expiration_at_ms);
+    // Logical event time — drives the app_entitlements stale-event guard (a late
+    // RENEWAL after a CANCELLATION must not clobber the newer state).
+    const eventTs = msToIso(ev.event_timestamp_ms) ?? new Date().toISOString();
     const keys = entitlementIds(ev);
 
     // 1. Record the transaction (audit + idempotency). Dedup on
@@ -170,6 +173,7 @@ Deno.serve(async (req: Request) => {
       will_renew: revoked ? false : willRenew,
       expires_at: expiresAt,
       latest_transaction_id: transactionId,
+      event_ts: eventTs,
       updated_at: new Date().toISOString(),
     }));
 

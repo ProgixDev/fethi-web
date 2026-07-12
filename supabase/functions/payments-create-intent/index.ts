@@ -1,16 +1,22 @@
 // payments-create-intent — idempotent PaymentIntent creation for an order.
 //
-// POST { orderId, amountCents?, currency? }   (mobile paymentsApi.createIntent)
+// POST { orderId }   (mobile paymentsApi.createIntent)
 // Auth: user JWT (the buyer).
 // Idempotency: REUSES existing PaymentIntent for the same order if present.
 // Returns: { clientSecret, paymentIntentId, amount, currency }
 //
 // Invariants:
 //   - buyer must own the order (order.buyer_id === user.id)
-//   - if order already has payment_intent_id, reuse it (idempotent)
-//   - otherwise, create Stripe PaymentIntent and attach to order
+//   - the charged amount is ALWAYS order.amount_cents (server-authoritative).
+//     The client CANNOT set/override the amount or currency — otherwise a buyer
+//     could pay 1 cent for a 100€ order and the webhook would still flip the
+//     order to SUCCEEDED. Pricing lives on the order, written server-side.
+//   - if order already has payment_intent_id, reuse it (idempotent). Creation is
+//     also idempotent at Stripe (idempotencyKey=orderId) and guarded by a
+//     conditional attach so a concurrent double-call can't orphan an intent.
 //
-// Edge case: order not found → 404; not owned by buyer → 403
+// Edge case: order not found → 404; not owned by buyer → 403;
+//   already paid → 409 order_already_paid
 import { corsHeaders, json } from '../_shared/cors.ts';
 import {
   HttpError,
@@ -40,10 +46,10 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const orderId: string | undefined = body.orderId;
-    const amountOverride: number | null = body.amountCents ?? null;
-    const currency = body.currency ?? 'eur';
-
     if (!orderId) throw new HttpError(400, 'orderId required');
+
+    // The marketplace currency is fixed server-side (EUR); never client-supplied.
+    const CURRENCY = 'eur';
 
     // Resolve the order
     const { data: order, error: oErr } = await svc
@@ -55,6 +61,11 @@ Deno.serve(async (req: Request) => {
     if (oErr) throw new HttpError(500, oErr.message);
     if (!order) throw new HttpError(404, 'order_not_found');
     if (order.buyer_id !== user.id) throw new HttpError(403, 'not_your_order');
+
+    // Already settled → don't mint a new intent for a paid order.
+    if (order.payment_status === 'SUCCEEDED' || order.paid_at) {
+      throw new HttpError(409, 'order_already_paid');
+    }
 
     // Idempotent: if order already has a PaymentIntent, return it
     if (order.payment_intent_id) {
@@ -68,30 +79,57 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Calculate amount (order total or override)
-    const amountCents = amountOverride ?? order.amount_cents;
-    if (amountCents <= 0) throw new HttpError(400, 'amount_must_be_positive');
+    // Amount is ALWAYS the server-recorded order total — never client-supplied.
+    const amountCents = order.amount_cents;
+    if (!amountCents || amountCents <= 0) throw new HttpError(400, 'order_amount_invalid');
 
-    // Create PaymentIntent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountCents,
-      currency: currency.toLowerCase(),
-      metadata: {
-        orderId,
-        buyerId: user.id,
+    // Create PaymentIntent. `idempotencyKey=orderId` makes a retried creation
+    // return the SAME intent instead of minting a duplicate (Stripe-side guard
+    // against the read-null/create/read-null/create race).
+    const paymentIntent = await stripe.paymentIntents.create(
+      {
+        amount: amountCents,
+        currency: CURRENCY,
+        metadata: { orderId, buyerId: user.id },
       },
-    });
+      { idempotencyKey: `pi_create:${orderId}` },
+    );
 
-    // Attach to order
-    const { error: updateErr } = await svc
+    // Conditional attach: only claim the intent if no other concurrent call
+    // already attached one. `.is('payment_intent_id', null)` + returning rows
+    // detects a lost race → we defer to the winner's intent.
+    const { data: attached, error: updateErr } = await svc
       .from('orders')
       .update({
         payment_intent_id: paymentIntent.id,
         payment_status: 'PENDING',
       })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .is('payment_intent_id', null)
+      .select('payment_intent_id')
+      .maybeSingle();
 
     if (updateErr) throw new HttpError(500, updateErr.message);
+
+    if (!attached) {
+      // Lost the race: another call attached first. Return that intent and let
+      // ours expire unused (same amount/order, so it's harmless).
+      const { data: winner } = await svc
+        .from('orders')
+        .select('payment_intent_id')
+        .eq('id', orderId)
+        .maybeSingle();
+      const winnerIntent = winner?.payment_intent_id
+        ? await stripe.paymentIntents.retrieve(winner.payment_intent_id)
+        : paymentIntent;
+      return json({
+        clientSecret: winnerIntent.client_secret,
+        paymentIntentId: winnerIntent.id,
+        amount: winnerIntent.amount,
+        currency: winnerIntent.currency,
+        status: winnerIntent.status,
+      });
+    }
 
     return json({
       clientSecret: paymentIntent.client_secret,

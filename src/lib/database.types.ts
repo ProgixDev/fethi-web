@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 74aadb0a8635
+ * schema-version: d32051d4d8cc
  */
 
 export type Json =
@@ -29,6 +29,7 @@ export type Database = {
         Row: {
           created_at: string
           entitlement_key: string
+          event_ts: string | null
           expires_at: string | null
           id: string
           is_active: boolean
@@ -45,6 +46,7 @@ export type Database = {
         Insert: {
           created_at?: string
           entitlement_key: string
+          event_ts?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean
@@ -61,6 +63,7 @@ export type Database = {
         Update: {
           created_at?: string
           entitlement_key?: string
+          event_ts?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean
@@ -1719,6 +1722,43 @@ export type Database = {
             }
             Returns: string
           }
+      confirm_order_pickup: {
+        Args: { p_actor: string; p_order_id: string }
+        Returns: {
+          amount_cents: number
+          buyer_confirmed: boolean
+          buyer_id: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          created_at: string
+          deposit_cents: number | null
+          deposit_released: boolean | null
+          fee_cents: number
+          id: string
+          listing_id: string
+          listing_thumb: string | null
+          listing_title: string | null
+          listing_type: Database["public"]["Enums"]["listing_type"]
+          offer_id: string | null
+          paid_at: string | null
+          payment_intent_id: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
+          rental_end: string | null
+          rental_start: string | null
+          seller_confirmed: boolean
+          seller_id: string
+          status: Database["public"]["Enums"]["order_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {

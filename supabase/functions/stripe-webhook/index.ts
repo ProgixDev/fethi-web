@@ -68,11 +68,43 @@ Deno.serve(async (req: Request) => {
       return json({ received: true, duplicated: true }, 200);
     }
 
-    // Record that we're processing this event (idempotent guard)
-    await svc
+    // Claim the event (idempotent guard). If a concurrent delivery already
+    // claimed it, the unique constraint (stripe_event_id) rejects us → treat as
+    // a duplicate, don't double-process.
+    const { error: claimErr } = await svc
       .from('webhook_deduplication')
       .insert({ stripe_event_id: event.id });
+    if (claimErr) {
+      if (claimErr.code === '23505') {
+        return json({ received: true, duplicated: true }, 200);
+      }
+      throw new Error(`dedup_claim_failed: ${claimErr.message}`);
+    }
 
+    // Process inside a guard: if handling throws, ROLL BACK the claim so
+    // Stripe's retry reprocesses the event. Marking it processed before a
+    // successful handle would otherwise silently DROP the event on the retry.
+    try {
+      await handleEvent(svc, event);
+    } catch (procErr) {
+      await svc
+        .from('webhook_deduplication')
+        .delete()
+        .eq('stripe_event_id', event.id);
+      throw procErr;
+    }
+
+    return json({ received: true }, 200);
+  } catch (err) {
+    console.error('Webhook error:', err);
+    return json({ error: 'webhook_error' }, 500);
+  }
+});
+
+async function handleEvent(
+  svc: ReturnType<typeof serviceClient>,
+  event: Stripe.Event,
+): Promise<void> {
     // Handle event types
     switch (event.type) {
       case 'payment_intent.succeeded': {
@@ -218,10 +250,4 @@ Deno.serve(async (req: Request) => {
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
-
-    return json({ received: true }, 200);
-  } catch (err) {
-    console.error('Webhook error:', err);
-    return json({ error: 'webhook_error' }, 500);
-  }
-});
+}

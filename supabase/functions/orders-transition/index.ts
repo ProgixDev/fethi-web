@@ -84,34 +84,25 @@ async function confirmPickup(
   uid: string,
   isBuyer: boolean,
 ) {
-  const buyerConfirmed = isBuyer ? true : Boolean(order.buyer_confirmed);
-  const sellerConfirmed = !isBuyer ? true : Boolean(order.seller_confirmed);
-  const bothConfirmed = buyerConfirmed && sellerConfirmed;
-
   const fromStatus = order.status as string;
-  // First confirmation moves AWAITING_PICKUP → HANDOFF_PENDING; second → COMPLETED.
-  const toStatus = bothConfirmed ? 'COMPLETED' : 'HANDOFF_PENDING';
 
-  const patch: Record<string, unknown> = {
-    buyer_confirmed: buyerConfirmed,
-    seller_confirmed: sellerConfirmed,
-    status: toStatus,
-  };
-  if (bothConfirmed) patch.completed_at = new Date().toISOString();
-
-  const { data: updated, error } = await svc
-    .from('orders')
-    .update(patch)
-    .eq('id', order.id as string)
-    .in('status', ['AWAITING_PICKUP', 'HANDOFF_PENDING'])
-    .select('*')
-    .maybeSingle();
+  // Atomic confirmation (SCR-012): a single UPDATE flips only the caller's flag
+  // and derives status, so two simultaneous confirmations can't lose one. The
+  // RPC is service-role-only and guards party + non-terminal state itself.
+  const { data, error } = await svc.rpc('confirm_order_pickup', {
+    p_order_id: order.id as string,
+    p_actor: uid,
+  });
   if (error) throw new HttpError(500, error.message);
+  const updated = (Array.isArray(data) ? data[0] : data) as
+    | Record<string, unknown>
+    | null;
   if (!updated) throw new HttpError(409, 'order_not_confirmable');
 
+  const toStatus = updated.status as string;
   if (fromStatus !== toStatus) {
     await svc.from('order_events').insert({
-      order_id: order.id,
+      order_id: updated.id,
       actor_id: uid,
       from_status: fromStatus,
       to_status: toStatus,
