@@ -11,6 +11,7 @@
     "payments-create-intent",
     "connect-onboarding",
     "stripe-webhook",
-    "notifications-dispatch"
+    "notifications-dispatch",
+    "revenuecat-webhook"
   ]
 }

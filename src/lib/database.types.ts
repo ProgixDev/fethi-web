@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 13219f99448f
+ * schema-version: 74aadb0a8635
  */
 
 export type Json =
@@ -23,33 +23,143 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      app_entitlements: {
+        Row: {
+          created_at: string
+          entitlement_key: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          latest_transaction_id: string | null
+          metadata: Json | null
+          period_type: string | null
+          platform: string | null
+          product_id: string | null
+          store: string | null
+          updated_at: string
+          user_id: string
+          will_renew: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          entitlement_key: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          latest_transaction_id?: string | null
+          metadata?: Json | null
+          period_type?: string | null
+          platform?: string | null
+          product_id?: string | null
+          store?: string | null
+          updated_at?: string
+          user_id: string
+          will_renew?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          entitlement_key?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          latest_transaction_id?: string | null
+          metadata?: Json | null
+          period_type?: string | null
+          platform?: string | null
+          product_id?: string | null
+          store?: string | null
+          updated_at?: string
+          user_id?: string
+          will_renew?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_entitlements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_entitlements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_store_transactions: {
+        Row: {
+          created_at: string
+          currency: string | null
+          entitlement_key: string | null
+          environment: string | null
+          event_type: string | null
+          expires_at: string | null
+          id: string
+          platform: string
+          price_cents: number | null
+          product_id: string | null
+          purchased_at: string | null
+          raw: Json | null
+          store: string | null
+          transaction_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          entitlement_key?: string | null
+          environment?: string | null
+          event_type?: string | null
+          expires_at?: string | null
+          id?: string
+          platform: string
+          price_cents?: number | null
+          product_id?: string | null
+          purchased_at?: string | null
+          raw?: Json | null
+          store?: string | null
+          transaction_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          entitlement_key?: string | null
+          environment?: string | null
+          event_type?: string | null
+          expires_at?: string | null
+          id?: string
+          platform?: string
+          price_cents?: number | null
+          product_id?: string | null
+          purchased_at?: string | null
+          raw?: Json | null
+          store?: string | null
+          transaction_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_store_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_store_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blocked_users: {
         Row: {
           blocked_id: string
@@ -2561,9 +2671,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       kyc_status: ["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"],
