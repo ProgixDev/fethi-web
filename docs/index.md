@@ -20,6 +20,9 @@ External / one-time setup to make the deployed backend work end to end
   webhook + events, seller onboarding, refunds.
 - `setup/revenuecat-iap.md` - RevenueCat IAP rail: entitlements, store products,
   webhook auth, client wiring (mobile TASK-015).
+- `setup/supabase-ops-runbook.md` - ops runbook: migrations, secrets, function
+  deploys, and type regen via the Management API + `supabase-go` (the local
+  Docker/CLI-link path is blocked).
 
 ## Feature Docs
 

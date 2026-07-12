@@ -8,6 +8,7 @@ secrets, and dashboard wiring they depend on.
 | --- | --- | --- |
 | [stripe-connect.md](./stripe-connect.md) | Physical-goods marketplace (Stripe Connect) | set `STRIPE_*` secrets, enable Connect, register the webhook + its 6 events, onboard sellers |
 | [revenuecat-iap.md](./revenuecat-iap.md) | Digital entitlements — MyStreet+ / radius / boosts (Apple IAP / Play Billing via RevenueCat) | RevenueCat account + keys, store products, `REVENUECAT_WEBHOOK_AUTH`, a native build, mobile client wiring (TASK-015) |
+| [supabase-ops-runbook.md](./supabase-ops-runbook.md) | Ops runbook | how migrations / secrets / function deploys / type regen are applied via the Management API + `supabase-go` (Docker/CLI-link blocked locally) |
 
 **Rail separation is deliberate:** physical items → Stripe; digital entitlements
 → store billing/RevenueCat (Apple 3.1.1 / 3.1.5(a)). The two never share a table,
