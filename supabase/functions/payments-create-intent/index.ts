@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
     // Resolve the order
     const { data: order, error: oErr } = await svc
       .from('orders')
-      .select('id, buyer_id, amount_cents, payment_intent_id, payment_status, paid_at')
+      .select('id, buyer_id, seller_id, amount_cents, fee_cents, payment_intent_id, payment_status, paid_at')
       .eq('id', orderId)
       .maybeSingle();
 
@@ -65,6 +65,20 @@ Deno.serve(async (req: Request) => {
     // Already settled → don't mint a new intent for a paid order.
     if (order.payment_status === 'SUCCEEDED' || order.paid_at) {
       throw new HttpError(409, 'order_already_paid');
+    }
+
+    // A2 (WEB-017) — the seller must have an ENABLED Stripe Connect account
+    // before their listing can be bought: the charge is a DESTINATION charge
+    // (funds route to the seller, minus the platform application fee), so an
+    // un-onboarded seller can't receive money. Block early with a clear code.
+    const { data: payout, error: pErr } = await svc
+      .from('payout_accounts')
+      .select('stripe_account_id, onboarding_status, payouts_enabled')
+      .eq('user_id', order.seller_id)
+      .maybeSingle();
+    if (pErr) throw new HttpError(500, pErr.message);
+    if (!payout || payout.onboarding_status !== 'ENABLED' || !payout.payouts_enabled) {
+      throw new HttpError(409, 'seller_payout_not_ready');
     }
 
     // Idempotent: if order already has a PaymentIntent, return it
@@ -83,14 +97,21 @@ Deno.serve(async (req: Request) => {
     const amountCents = order.amount_cents;
     if (!amountCents || amountCents <= 0) throw new HttpError(400, 'order_amount_invalid');
 
-    // Create PaymentIntent. `idempotencyKey=orderId` makes a retried creation
-    // return the SAME intent instead of minting a duplicate (Stripe-side guard
-    // against the read-null/create/read-null/create race).
+    // Platform fee (A2) — `fee_cents` is the platform's cut (5% + 0.95€ sale
+    // floor, computed by orders-create). The rest is transferred to the seller.
+    // Clamp defensively so it can never exceed the charge.
+    const applicationFee = Math.min(Math.max(order.fee_cents ?? 0, 0), amountCents);
+
+    // Create PaymentIntent as a DESTINATION charge. `idempotencyKey=orderId`
+    // makes a retried creation return the SAME intent instead of minting a
+    // duplicate (Stripe-side guard against the read-null/create race).
     const paymentIntent = await stripe.paymentIntents.create(
       {
         amount: amountCents,
         currency: CURRENCY,
-        metadata: { orderId, buyerId: user.id },
+        application_fee_amount: applicationFee,
+        transfer_data: { destination: payout.stripe_account_id },
+        metadata: { orderId, buyerId: user.id, sellerId: order.seller_id },
       },
       { idempotencyKey: `pi_create:${orderId}` },
     );

@@ -62,6 +62,17 @@ Deno.serve(async (req: Request) => {
       throw new HttpError(409, `order_terminal:${order.status}`);
     }
 
+    // A1 (WEB-017) — a Stripe order must be PAID before the in-person handoff can
+    // be confirmed (otherwise it could reach COMPLETED unpaid). Orders with no
+    // payment_intent_id are non-Stripe/cash and are not gated here.
+    if (
+      action === 'confirm-pickup' &&
+      order.payment_intent_id &&
+      order.payment_status !== 'SUCCEEDED'
+    ) {
+      throw new HttpError(409, 'payment_not_completed');
+    }
+
     let result;
     if (action === 'confirm-pickup') {
       result = await confirmPickup(svc, order, user.id, isBuyer);

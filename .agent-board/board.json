@@ -199,7 +199,7 @@
     {
       "id": "WEB-017",
       "title": "Payment↔order reconciliation, Connect payouts & escrow capture",
-      "status": "Backlog",
+      "status": "Review",
       "priority": "P1",
       "owner": "Dev A",
       "path": ".agent-board/tasks/WEB-017.md",
