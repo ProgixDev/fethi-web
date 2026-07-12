@@ -11,6 +11,16 @@ documentation for the MyStreet web app.
 - `architecture/supabase_migration_plan.md` - migration plan for using Supabase
   as the urgent backend/BaaS path.
 
+## Setup Guides
+
+External / one-time setup to make the deployed backend work end to end
+(secrets, dashboards, accounts). See `setup/README.md`.
+
+- `setup/stripe-connect.md` - Stripe Connect marketplace rail: secrets, Connect,
+  webhook + events, seller onboarding, refunds.
+- `setup/revenuecat-iap.md` - RevenueCat IAP rail: entitlements, store products,
+  webhook auth, client wiring (mobile TASK-015).
+
 ## Feature Docs
 
 - `features/marketing/public_marketing_site_flow.md`
