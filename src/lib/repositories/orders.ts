@@ -174,6 +174,16 @@ export class OrdersRepository extends BaseRepository {
     const body = new URLSearchParams({ payment_intent: order.paymentIntentId });
     if (amountCents != null) body.set('amount', String(amountCents));
 
+    // Orders are DESTINATION charges (WEB-017): the funds were transferred to the
+    // seller's connected account and the platform took its application fee. A
+    // plain refund would return money to the buyer while the seller keeps theirs
+    // (platform eats the loss). `reverse_transfer` claws back the seller's share
+    // (proportional to a partial refund); `refund_application_fee` returns the
+    // platform fee too, so a refund fully unwinds the transaction. (All live
+    // charges are destination charges, so this is always applicable.)
+    body.set('reverse_transfer', 'true');
+    body.set('refund_application_fee', 'true');
+
     const res = await fetch('https://api.stripe.com/v1/refunds', {
       method: 'POST',
       headers: {
