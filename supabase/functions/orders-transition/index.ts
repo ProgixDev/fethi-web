@@ -5,7 +5,9 @@
 //     both have confirmed, the order moves AWAITING_PICKUP/HANDOFF_PENDING →
 //     COMPLETED. (mobile ordersApi.confirmPickup)
 //   cancel — buyer or seller cancels an order that is not already terminal.
-//     (mobile ordersApi.cancel)
+//     A captured Stripe order (payment SUCCEEDED / PARTIALLY_REFUNDED) can't be
+//     plain-cancelled — it must go through the admin refund flow (409
+//     payment_captured_use_refund). (mobile ordersApi.cancel)
 //
 // Auth: user JWT (must be the buyer or seller). Idempotency via `Idempotency-Key`.
 //
@@ -71,6 +73,21 @@ Deno.serve(async (req: Request) => {
       order.payment_status !== 'SUCCEEDED'
     ) {
       throw new HttpError(409, 'payment_not_completed');
+    }
+
+    // A1 (WEB-017) — the flip side: a captured payment can't be unwound by a plain
+    // cancel. With immediate capture + destination charges the funds are already at
+    // the seller, so a status flip to CANCELLED would leave a captured-but-refundless
+    // order. Block it and route through the admin refund flow (which reverses the
+    // transfer + application fee). A fully REFUNDED order may still cancel — its
+    // money is already back. Cash/non-Stripe orders are unaffected.
+    if (
+      action === 'cancel' &&
+      order.payment_intent_id &&
+      (order.payment_status === 'SUCCEEDED' ||
+        order.payment_status === 'PARTIALLY_REFUNDED')
+    ) {
+      throw new HttpError(409, 'payment_captured_use_refund');
     }
 
     let result;

@@ -7,7 +7,7 @@
 // Events handled:
 //   - payment_intent.succeeded → flip order.paymentStatus=SUCCEEDED, set paid_at
 //   - payment_intent.payment_failed → flip order.paymentStatus=FAILED
-//   - payment_intent.amount_refundable.updated (refund) → REFUNDED/PARTIALLY_REFUNDED
+//   - charge.refunded / charge.refund.updated → REFUNDED/PARTIALLY_REFUNDED
 //   - charge.dispute.created → DISPUTED
 //   - charge.dispute.closed → un-flip (won→SUCCEEDED, lost→REFUNDED)
 //   - account.updated → update payout_accounts.onboarding_status
