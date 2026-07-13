@@ -47,12 +47,13 @@ needed — the Express + Account-Links flow only uses `STRIPE_SECRET_KEY`.
 Dashboard → **Developers → Webhooks → Add endpoint**:
 
 - **URL:** `https://lksjbehxpfndviesnlgm.supabase.co/functions/v1/stripe-webhook`
-- **Events** (exactly the 6 the handler processes):
+- **Events** (exactly the 7 the handler processes):
   - `payment_intent.succeeded`
   - `payment_intent.payment_failed`
   - `charge.refunded`
   - `charge.refund.updated`
   - `charge.dispute.created`
+  - `charge.dispute.closed`
   - `account.updated`
 - Copy the endpoint's **Signing secret** (`whsec_…`) → set as
   `STRIPE_WEBHOOK_SECRET` (step 1).
@@ -86,9 +87,12 @@ hosted Stripe onboarding (KYC/IBAN). The `account.updated` webhook flips
 `payout_accounts` to `ENABLED` when `payouts_enabled` is true. Only then are
 their listings purchasable.
 
-> Note: `connect-onboarding` currently sends a placeholder email
-> (`<uid>@mystreet.temp`) and hardcodes `country: 'FR'` — replace with the real
-> profile email/country before production KYC (tracked).
+> Note: `connect-onboarding` uses the seller's real `auth.users` email for the
+> Express account (falling back to `<uid>@mystreet.temp` only if none is on file).
+> Country precedence is: request-body `country` (ISO-3166 alpha-2) →
+> `STRIPE_CONNECT_DEFAULT_COUNTRY` env → `FR`. `profiles` captures no country, so
+> to onboard sellers outside France either set the env default or have the client
+> pass `country` in the `startOnboarding` body.
 
 ## 6. Verify (test mode)
 
@@ -105,8 +109,5 @@ Test cards: success `4242 4242 4242 4242` · requires-auth `4000 0025 0000 3155`
 
 ## 7. Known gaps (tracked, not blocking)
 
-- **`charge.dispute.closed` is not handled** — orders flip to `DISPUTED` on
-  `dispute.created` but never un-flip when the dispute resolves. Add a
-  `dispute.closed` case (won → back to SUCCEEDED, lost → keep/REFUNDED).
 - **Immediate capture** (no escrow) — money is captured at purchase, not on
   handoff (product decision, WEB-017 A3). Revisit if buyer protection is needed.

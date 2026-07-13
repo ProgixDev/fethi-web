@@ -26,6 +26,19 @@ const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
 // the OAuth Connect flow. So the only required secret is STRIPE_SECRET_KEY; the
 // platform must additionally have Connect enabled in the Stripe Dashboard.
 
+// The Express account's country is fixed at creation and cannot be changed later.
+// Precedence: request body `country` (if a valid ISO-3166 alpha-2) → env default → FR.
+// We don't derive it from `profiles` because no country is captured there.
+const DEFAULT_CONNECT_COUNTRY =
+  (Deno.env.get('STRIPE_CONNECT_DEFAULT_COUNTRY') ?? 'FR').toUpperCase();
+
+function resolveCountry(raw: unknown): string {
+  if (typeof raw === 'string' && /^[A-Za-z]{2}$/.test(raw)) {
+    return raw.toUpperCase();
+  }
+  return DEFAULT_CONNECT_COUNTRY;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -83,11 +96,13 @@ Deno.serve(async (req: Request) => {
         console.error('Failed to fetch Stripe account:', err);
       }
     } else {
-      // Create new Connect account (Express)
+      // Create new Connect account (Express). The seller's real auth email is
+      // used so Stripe can reach them for KYC; fall back to a stable per-user
+      // placeholder only if the account somehow has no email on file.
       const account = await stripe.accounts.create({
         type: 'express',
-        country: 'FR', // TODO: make this configurable based on user's location
-        email: `${user.id}@mystreet.temp`, // Placeholder; real email should come from profiles
+        country: resolveCountry(body.country),
+        email: user.email ?? `${user.id}@mystreet.temp`,
         capabilities: {
           transfers: { requested: true },
           card_payments: { requested: true },

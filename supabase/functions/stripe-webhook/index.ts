@@ -9,6 +9,7 @@
 //   - payment_intent.payment_failed → flip order.paymentStatus=FAILED
 //   - payment_intent.amount_refundable.updated (refund) → REFUNDED/PARTIALLY_REFUNDED
 //   - charge.dispute.created → DISPUTED
+//   - charge.dispute.closed → un-flip (won→SUCCEEDED, lost→REFUNDED)
 //   - account.updated → update payout_accounts.onboarding_status
 //
 // Edge cases:
@@ -196,8 +197,9 @@ async function handleEvent(
       }
 
       case 'charge.dispute.created': {
-        const charge = event.data.object as Stripe.Charge;
-        const paymentIntentId = charge.payment_intent as string;
+        // dispute.* events carry a Stripe.Dispute, not a Charge.
+        const dispute = event.data.object as Stripe.Dispute;
+        const paymentIntentId = dispute.payment_intent as string;
 
         await svc
           .from('orders')
@@ -210,6 +212,45 @@ async function handleEvent(
           .eq('stripe_payment_intent_id', paymentIntentId);
 
         console.log(`Dispute created for PaymentIntent ${paymentIntentId}`);
+        break;
+      }
+
+      case 'charge.dispute.closed': {
+        // Dispute resolved — un-flip the DISPUTED order. `won` → funds stay with
+        // the platform (back to SUCCEEDED); `lost` → funds were pulled by the
+        // buyer's bank (effectively REFUNDED). Any other terminal status (e.g.
+        // `warning_closed`) is left as-is and logged for manual review.
+        const dispute = event.data.object as Stripe.Dispute;
+        const paymentIntentId = dispute.payment_intent as string;
+
+        let resolvedStatus: 'SUCCEEDED' | 'REFUNDED' | null = null;
+        if (dispute.status === 'won') {
+          resolvedStatus = 'SUCCEEDED';
+        } else if (dispute.status === 'lost') {
+          resolvedStatus = 'REFUNDED';
+        }
+
+        if (!resolvedStatus) {
+          console.log(
+            `Dispute closed with status ${dispute.status} for PaymentIntent ` +
+              `${paymentIntentId}; leaving order DISPUTED for manual review`,
+          );
+          break;
+        }
+
+        await svc
+          .from('orders')
+          .update({ payment_status: resolvedStatus })
+          .eq('payment_intent_id', paymentIntentId);
+
+        await svc
+          .from('payments')
+          .update({ status: resolvedStatus })
+          .eq('stripe_payment_intent_id', paymentIntentId);
+
+        console.log(
+          `Dispute ${dispute.status} → ${resolvedStatus} for PaymentIntent ${paymentIntentId}`,
+        );
         break;
       }
 

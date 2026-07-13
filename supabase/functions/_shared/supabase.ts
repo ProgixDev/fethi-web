@@ -31,13 +31,15 @@ export function userClientFromReq(req: Request): SupabaseClient {
   });
 }
 
-export async function requireUser(req: Request): Promise<{ id: string }> {
+export async function requireUser(
+  req: Request,
+): Promise<{ id: string; email: string | null }> {
   const client = userClientFromReq(req);
   const { data, error } = await client.auth.getUser();
   if (error || !data?.user) {
     throw new HttpError(401, 'unauthorized');
   }
-  return { id: data.user.id };
+  return { id: data.user.id, email: data.user.email ?? null };
 }
 
 export class HttpError extends Error {
