@@ -3,7 +3,7 @@
 Project: MyStreet Web (admin + marketing)
 Current focus: Own the shared Supabase backend (schema, RLS, Edge Functions) and wire the admin dashboard; coordinate all DB changes with fethi-mobile via SCRs
 Current milestone: 10-day production launch — shared backend + admin surface, two parallel build lanes
-Updated: 2026-07-07
+Updated: 2026-07-22 (codebase re-audit — WEB-018…020 filed)
 
 ## ⚠️ Database coordination (READ FIRST)
 
@@ -47,10 +47,39 @@ Each dev pulls their lane: `npm run board:next:a` (Dev A) / `npm run board:next:
 | WEB-009 | User management (list/search/suspend/ban) wired to Supabase | Done | Dev B | P1 |
 | WEB-010 | Listing management + moderation queue | Done | Dev B | P1 |
 | WEB-011 | Reports / moderation review workflow | Done | Dev B | P1 |
-| WEB-012 | KYC verification dashboard (Stripe Connect status) | Review | Dev B | P1 |
-| WEB-013 | Orders, disputes, finance, refunds | Review | Dev B | P1 |
+| WEB-012 | KYC verification dashboard (Stripe Connect status) | Done | Dev B | P1 |
+| WEB-013 | Orders, disputes, finance, refunds | Done | Dev B | P1 |
 | WEB-014 | Analytics & reporting read models | Done | Dev B | P2 |
 | WEB-015 | Marketing site + waitlist/referral | Done | Either | P2 |
+| WEB-016 | Server-authoritative order pricing | Done | Dev A | P0 |
+| WEB-017 | Payment↔order reconciliation, Connect payouts & escrow capture | Review | Dev A | P1 |
+| WEB-018 | Ratify the calling decision (schema for `calls`, or record the cut) | Ready | Dev A | P2 |
+| WEB-019 | SCR: `search_listings_nearby` RPC (use the PostGIS index we built) | Ready | Dev A | P2 |
+| WEB-020 | Finish the admin surfaces still rendering static markup | Ready | Dev B | P3 |
+| WEB-021 | Connect Express dashboard login-link Edge Function (unblocks mobile payouts dashboard) | Ready | Dev A | P2 |
+
+## Re-audit 2026-07-22 — backend gaps found
+
+A pass over both codebases against these boards surfaced three items this repo owns:
+
+- **The PostGIS index is dead.** SCR-001 created `listings.location` (generated
+  `geography`) and `listings_location_gix`, per ADR-0001. `st_dwithin` appears in
+  **no** migration and no query in either repo. Mobile therefore approximates
+  radius search with a bbox and filters to the exact radius in JS *after*
+  pagination — wrong counts, broken paging, per-page-only distance ordering. → **WEB-019**
+- **Calling was never scoped.** Mobile ships a full calling surface against the
+  retired HTTP backend; there is no `calls` table and no SCR proposing one. As
+  schema owner this repo has to cut it or spec it. → **WEB-018**
+- **Admin shells.** Only 3 of 90 pages still import fixtures, but the dashboard's
+  GMV chart and activity feed are fabricated, and feature-flags / webhooks /
+  api-keys / announcements / templates are static shells whose controls discard
+  their input. → **WEB-020**
+
+Consumer-side findings (mobile TASK-016…022) are on the mobile board. Two of them
+sit behind mobile tasks already marked Done — worth noting because the same could
+be true here: **WEB-008's `account-delete` / `account-export` functions are
+deployed but the mobile app never invokes them**, so the store-compliance
+capability this repo shipped has no caller.
 
 ## Recommended Start
 
