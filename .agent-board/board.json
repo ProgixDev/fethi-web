@@ -210,7 +210,7 @@
     {
       "id": "WEB-018",
       "title": "Ratify the calling decision (schema for `calls`, or record the cut)",
-      "status": "Ready",
+      "status": "Done",
       "priority": "P2",
       "owner": "Dev A",
       "path": ".agent-board/tasks/WEB-018.md",
