@@ -8,6 +8,33 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-07-27 · WEB-021 · `connect-dashboard-link` Edge Function — unblocks TASK-019 dashboard piece
+
+- **What:** New Edge Function **`connect-dashboard-link`** (POST-only, **user-JWT**
+  authenticated, `verify_jwt` on). Looks up the caller's
+  `payout_accounts.stripe_account_id`, refreshes the account from Stripe (syncing
+  `onboarding_status` / `payouts_enabled` / `details_submitted`, same as
+  `connect-onboarding`), then calls `stripe.accounts.createLoginLink` and returns
+  `{ url }` — a single-use link into the seller's own **Stripe Express dashboard**
+  (balance + payouts + history + bank + schedule). No schema/RLS/enum change → **no
+  SCR** (Edge-only). Manifest `edge-functions.json` appends the slug. Deployed live
+  (v1, ACTIVE). Error convention matches the other Connect functions (`{ error: code }`):
+  - `503 stripe_unconfigured` — Stripe secret not set.
+  - `409 no_connect_account` — caller never onboarded (map to "start onboarding").
+  - `409 onboarding_incomplete` — account exists but `details_submitted` is false
+    (login links require a completed Express account).
+- **Why:** Stripe owns all seller money data under Connect Express; the app must not
+  replicate balance/payouts/bank. TASK-019 removed the fabricated figures and left the
+  "Gérer sur Stripe" CTA on the onboarding account-link (which can't show
+  balance/history). This function is the standard way to surface the real dashboard
+  without any regulated data touching our DB.
+- **Mobile must:** add `connectApi.dashboardLink()` →
+  `invokeEdge('connect-dashboard-link', {})` returning `{ url }`; point the payouts
+  "Gérer mes versements sur Stripe" CTA at it, falling back to
+  `connectApi.startOnboarding()` when the function returns `no_connect_account` /
+  `onboarding_incomplete` (seller hasn't finished onboarding yet). Done in **TASK-019**
+  follow-up. No coordinate/money data is stored or proxied — the app only opens `url`.
+
 ## 2026-07-26 · SCR-014 · `search_listings_nearby` proximity RPC — unblocks TASK-022
 
 - **What:** Added `public.search_listings_nearby(p_lat, p_lng, p_radius_m, …filters)`

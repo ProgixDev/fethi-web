@@ -10,6 +10,7 @@
     "payments-config",
     "payments-create-intent",
     "connect-onboarding",
+    "connect-dashboard-link",
     "stripe-webhook",
     "notifications-dispatch",
     "revenuecat-webhook"
