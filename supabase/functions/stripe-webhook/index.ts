@@ -46,10 +46,14 @@ Deno.serve(async (req: Request) => {
       httpClient: Deno,
     });
 
-    // Verify signature
+    // Verify signature.
+    // NOTE: must use the ASYNC variant in Deno/Supabase Edge — the sync
+    // `constructEvent` uses a synchronous SubtleCrypto path that throws in this
+    // runtime ("cannot be used in a synchronous context"), so signature
+    // verification failed 100% of the time and no webhook was ever processed.
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(body, signature, STRIPE_WEBHOOK_SECRET);
+      event = await stripe.webhooks.constructEventAsync(body, signature, STRIPE_WEBHOOK_SECRET);
     } catch (err) {
       console.error('Webhook signature verification failed:', err);
       return json({ error: 'invalid_signature' }, 400);
