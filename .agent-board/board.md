@@ -54,7 +54,7 @@ Each dev pulls their lane: `npm run board:next:a` (Dev A) / `npm run board:next:
 | WEB-016 | Server-authoritative order pricing | Done | Dev A | P0 |
 | WEB-017 | Payment↔order reconciliation, Connect payouts & escrow capture | Review | Dev A | P1 |
 | WEB-018 | Ratify the calling decision (schema for `calls`, or record the cut) | Done | Dev A | P2 |
-| WEB-019 | SCR: `search_listings_nearby` RPC (use the PostGIS index we built) | Ready | Dev A | P2 |
+| WEB-019 | SCR: `search_listings_nearby` RPC (use the PostGIS index we built) | Done | Dev A | P2 |
 | WEB-020 | Finish the admin surfaces still rendering static markup | Ready | Dev B | P3 |
 | WEB-021 | Connect Express dashboard login-link Edge Function (unblocks mobile payouts dashboard) | Ready | Dev A | P2 |
 

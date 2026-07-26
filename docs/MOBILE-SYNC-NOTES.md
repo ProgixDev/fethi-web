@@ -8,6 +8,20 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-07-26 · SCR-014 · `search_listings_nearby` proximity RPC — unblocks TASK-022
+
+- **What:** Added `public.search_listings_nearby(p_lat, p_lng, p_radius_m, …filters)`
+  (`security invoker`, `returns setof listings`) doing `st_dwithin` + distance ordering
+  (`<->`) + all scalar filters server-side against the GiST index `listings_location_gix`
+  (unused since SCR-001). No table/RLS/enum change. Types regenerated
+  (schema-version `ac52c126889f`) and vendored.
+- **Mobile must:** route the radius case of `queryListings` through
+  `supabase.rpc('search_listings_nearby', {…}, { count: 'exact' }).select(LISTING_SELECT).range()`
+  instead of the bbox-prefilter-then-client-cut (done in **TASK-022**). Pass filters as
+  `p_*` params; the function returns `setof listings` so `LISTING_SELECT` embeds still work,
+  and the distance order is preserved through pagination (add no client `.order()`/filters).
+  Delete the old `bboxDelta` + client-side radius filter. Exact `count` is now correct.
+
 ## 2026-07-07 · SCR-010 · Notifications + Expo push dispatch — unblocks TASK-009
 
 - **What:** New enum `notif_kind` (`MESSAGE`/`OFFER`/`BOOKING_REQUEST`/`LISTING_SOLD`/

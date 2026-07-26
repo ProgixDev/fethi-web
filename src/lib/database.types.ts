@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: d32051d4d8cc
+ * schema-version: ac52c126889f
  */
 
 export type Json =
@@ -1942,6 +1942,53 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      search_listings_nearby: {
+        Args: {
+          p_category_id?: string
+          p_condition?: Database["public"]["Enums"]["listing_condition"]
+          p_lat: number
+          p_listing_type?: Database["public"]["Enums"]["listing_type"]
+          p_lng: number
+          p_max_price_cents?: number
+          p_min_price_cents?: number
+          p_neighborhood?: string
+          p_owner_id?: string
+          p_q?: string
+          p_radius_m: number
+          p_status?: Database["public"]["Enums"]["listing_status"]
+        }
+        Returns: {
+          category_id: string | null
+          condition: Database["public"]["Enums"]["listing_condition"] | null
+          created_at: string
+          deposit_cents: number | null
+          description: string | null
+          favorites_count: number
+          flat_rate_cents: number | null
+          hourly_rate_cents: number | null
+          id: string
+          lat: number | null
+          listing_type: Database["public"]["Enums"]["listing_type"]
+          lng: number | null
+          location: unknown
+          neighborhood: string | null
+          owner_id: string
+          price_cents: number | null
+          price_per_day_cents: number | null
+          price_per_week_cents: number | null
+          service_radius_km: number | null
+          status: Database["public"]["Enums"]["listing_status"]
+          title: string
+          updated_at: string
+          view_count: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "listings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
