@@ -5,7 +5,6 @@ import {
   Mail,
   MapPin,
   MoreHorizontal,
-  Phone,
   Star,
   Send,
   CheckCircle2,
@@ -23,29 +22,30 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Field } from "@/components/ui/Field";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { User } from "@/lib/fixtures/users";
-import { neighborhoodName } from "@/lib/fixtures/neighborhoods";
+import type { AdminUserListItem } from "@/lib/api";
 import { formatDate, initials } from "@/lib/utils/format";
 
-const statusTone: Record<User["status"], React.ComponentProps<typeof Pill>["tone"]> = {
-  active: "success",
-  pending: "warning",
-  suspended: "danger",
-  banned: "danger",
+// Same status/kyc enums (and tone convention) as UserModerationActions, which
+// reads the same AdminUserListItem from usersApi.get().
+const statusTone: Record<AdminUserListItem["status"], React.ComponentProps<typeof Pill>["tone"]> = {
+  ACTIVE: "success",
+  PENDING: "warning",
+  SUSPENDED: "danger",
+  BANNED: "danger",
 };
-const statusLabel: Record<User["status"], string> = {
-  active: "Actif",
-  pending: "En attente",
-  suspended: "Suspendu",
-  banned: "Banni",
+const statusLabel: Record<AdminUserListItem["status"], string> = {
+  ACTIVE: "Actif",
+  PENDING: "En attente",
+  SUSPENDED: "Suspendu",
+  BANNED: "Banni",
 };
 
-const kycLabel: Record<User["kyc"], string> = {
-  verified: "KYC Vérifié",
-  pending: "KYC en cours",
-  review: "KYC à examiner",
-  unverified: "KYC non fait",
-  rejected: "KYC refusé",
+const kycLabel: Record<AdminUserListItem["kyc"], string> = {
+  VERIFIED: "KYC Vérifié",
+  PENDING: "KYC en cours",
+  REVIEW: "KYC à examiner",
+  UNVERIFIED: "KYC non fait",
+  REJECTED: "KYC refusé",
 };
 
 type Confirm = {
@@ -86,7 +86,7 @@ const confirms: Record<string, Confirm> = {
   },
 };
 
-export function UserHeader({ user }: { user: User }) {
+export function UserHeader({ user }: { user: AdminUserListItem }) {
   const [messageOpen, setMessageOpen] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [confirm, setConfirm] = React.useState<keyof typeof confirms | null>(null);
@@ -118,7 +118,7 @@ export function UserHeader({ user }: { user: User }) {
             <Pill tone={statusTone[user.status]} dot>
               {statusLabel[user.status]}
             </Pill>
-            <Pill tone={user.kyc === "verified" ? "accent" : "neutral"}>
+            <Pill tone={user.kyc === "VERIFIED" ? "accent" : "neutral"}>
               {kycLabel[user.kyc]}
             </Pill>
           </div>
@@ -127,17 +127,14 @@ export function UserHeader({ user }: { user: User }) {
               <Mail className="h-3.5 w-3.5" /> {user.email}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5" /> {user.phone}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" /> {neighborhoodName(user.neighborhood)}
+              <MapPin className="h-3.5 w-3.5" /> {user.neighborhood ?? "—"}
             </span>
             <span className="inline-flex items-center gap-1">
               <Star className="h-3.5 w-3.5 fill-warning text-warning" />
               {user.rating.toFixed(1).replace(".", ",")}{" "}
-              <span className="text-n-400">({user.reviews})</span>
+              <span className="text-n-400">({user.reviewsCount})</span>
             </span>
-            <span>Inscrit {formatDate(user.joinedAt)}</span>
+            <span>Inscrit {formatDate(user.createdAt)}</span>
           </div>
         </div>
 
@@ -204,14 +201,13 @@ export function UserHeader({ user }: { user: User }) {
       <NavTabs
         items={[
           { href: `/users/${user.id}`, label: "Vue d'ensemble" },
-          { href: `/users/${user.id}/listings`, label: "Annonces", count: user.listings },
-          {
-            href: `/users/${user.id}/transactions`,
-            label: "Transactions",
-            count: user.sales + user.purchases,
-          },
+          { href: `/users/${user.id}/listings`, label: "Annonces", count: user.listingsCount },
+          // Transactions/reports counts dropped rather than fabricated: no
+          // cheap real aggregate is wired in here (those pages fetch and
+          // count client-side themselves).
+          { href: `/users/${user.id}/transactions`, label: "Transactions" },
           { href: `/users/${user.id}/messages`, label: "Messages" },
-          { href: `/users/${user.id}/reports`, label: "Signalements", count: user.flagged },
+          { href: `/users/${user.id}/reports`, label: "Signalements" },
           { href: `/users/${user.id}/activity`, label: "Activité" },
         ]}
       />
