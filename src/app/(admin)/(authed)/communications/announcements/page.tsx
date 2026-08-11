@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 import { formatDate } from "@/lib/utils/format";
 
 const past = [
@@ -65,7 +66,16 @@ export default function CommunicationsAnnouncementsPage() {
         description="Bandeaux affichés à l'ensemble de l'application — à utiliser avec parcimonie."
       />
 
-      <section className="rounded-lg border border-n-100 bg-surface p-5">
+      <NotConnectedNotice>
+        <p className="font-medium">Formulaire non connecté à un backend.</p>
+        <p className="mt-0.5 text-n-600">
+          Publier une annonce n&apos;envoie encore rien — le formulaire est désactivé pour
+          éviter de laisser croire qu&apos;une bannière serait réellement diffusée. La liste
+          ci-dessous est un exemple illustratif, pas l&apos;historique réel.
+        </p>
+      </NotConnectedNotice>
+
+      <fieldset disabled className="rounded-lg border border-n-100 bg-surface p-5 opacity-60">
         <p className="text-h3 font-medium text-ink">Nouvelle annonce</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Field label="Titre" className="md:col-span-2">
@@ -96,10 +106,10 @@ export default function CommunicationsAnnouncementsPage() {
           </Field>
         </div>
         <div className="mt-5 flex items-center gap-2">
-          <Button variant="primary">Publier</Button>
-          <Button variant="outline">Aperçu</Button>
+          <Button variant="primary" disabled>Publier</Button>
+          <Button variant="outline" disabled>Aperçu</Button>
         </div>
-      </section>
+      </fieldset>
 
       <section className="rounded-lg border border-n-100 bg-surface">
         <header className="border-b border-n-100 px-5 py-4">

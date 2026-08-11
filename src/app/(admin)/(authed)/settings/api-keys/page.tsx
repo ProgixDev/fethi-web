@@ -1,7 +1,8 @@
-import { AlertTriangle, Copy, Plus } from "lucide-react";
+import { Copy, Plus } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 import { formatDate } from "@/lib/utils/format";
 
 export const metadata = { title: "Clés API" };
@@ -44,18 +45,21 @@ export default function SettingsApiKeysPage() {
         ]}
         title="Clés API"
         description="Authentification serveur-à-serveur pour les intégrations internes."
-        actions={<Button variant="primary"><Plus className="h-3.5 w-3.5" /> Générer une clé</Button>}
+        actions={
+          <Button variant="primary" disabled title="Gestion des clés pas encore connectée à un backend">
+            <Plus className="h-3.5 w-3.5" /> Générer une clé
+          </Button>
+        }
       />
 
-      <div className="rounded-lg border border-warning/30 bg-warning-soft px-5 py-4">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-          <div className="text-body-sm text-n-700">
-            <p className="font-medium">Rotation recommandée tous les 90 jours.</p>
-            <p className="mt-0.5 text-n-600">La clé Production date d&apos;octobre 2025 — pense à la régénérer prochainement.</p>
-          </div>
-        </div>
-      </div>
+      <NotConnectedNotice>
+        <p className="font-medium">Panneau non connecté à un backend de gestion de secrets.</p>
+        <p className="mt-0.5 text-n-600">
+          Les clés ci-dessous sont un exemple de mise en page — générer, copier ou révoquer
+          une clé nécessite une infrastructure de gestion de secrets qui n&apos;existe pas
+          encore. Les actions sont désactivées en attendant.
+        </p>
+      </NotConnectedNotice>
 
       <section className="rounded-lg border border-n-100 bg-surface">
         <div className="overflow-x-auto">
@@ -86,8 +90,8 @@ export default function SettingsApiKeysPage() {
                   <td className="px-5 py-3 text-n-500">{formatDate(k.createdAt)}</td>
                   <td className="px-5 py-3 text-n-500">{formatDate(k.lastUsed)}</td>
                   <td className="px-5 py-3 text-right">
-                    <Button variant="ghost" size="sm"><Copy className="h-3.5 w-3.5" /> Copier</Button>
-                    <Button variant="outline" size="sm" className="ml-2">Révoquer</Button>
+                    <Button variant="ghost" size="sm" disabled><Copy className="h-3.5 w-3.5" /> Copier</Button>
+                    <Button variant="outline" size="sm" className="ml-2" disabled>Révoquer</Button>
                   </td>
                 </tr>
               ))}
