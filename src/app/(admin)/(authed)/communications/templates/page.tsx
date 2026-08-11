@@ -2,6 +2,7 @@ import { Bell, Mail, Smartphone } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 import { formatDate } from "@/lib/utils/format";
 
 export const metadata = { title: "Modèles de messages" };
@@ -40,8 +41,20 @@ export default function CommunicationsTemplatesPage() {
         ]}
         title="Modèles de messages"
         description="Bibliothèque de modèles transactionnels et marketing."
-        actions={<Button variant="primary">Nouveau modèle</Button>}
+        actions={
+          <Button variant="primary" disabled title="Édition de modèles pas encore connectée à un backend">
+            Nouveau modèle
+          </Button>
+        }
       />
+
+      <NotConnectedNotice>
+        <p className="font-medium">Bibliothèque non connectée à un backend.</p>
+        <p className="mt-0.5 text-n-600">
+          Ces modèles sont des exemples illustratifs — créer ou modifier un modèle
+          n&apos;est pas encore possible depuis l&apos;admin.
+        </p>
+      </NotConnectedNotice>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {templates.map((t) => (
@@ -57,7 +70,7 @@ export default function CommunicationsTemplatesPage() {
             </div>
             <div className="mt-4 flex items-center justify-between">
               <p className="text-caption text-n-500">Modifié le {formatDate(t.lastEdited)}</p>
-              <Button variant="outline" size="sm">Modifier</Button>
+              <Button variant="outline" size="sm" disabled>Modifier</Button>
             </div>
           </div>
         ))}
