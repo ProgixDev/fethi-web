@@ -18,8 +18,11 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import type { Listing } from "@/lib/fixtures/listings";
+import type { Listing } from "@/lib/api";
 
+// NOTE(WEB-020): not currently rendered by any page — listings/[id]/page.tsx
+// has its own inline status actions. Kept typed against the real `Listing`
+// (was on the fixture type) so it doesn't bit-rot if it's wired up later.
 type Confirm = {
   title: string;
   body: string;
@@ -103,7 +106,7 @@ export function ListingActions({ listing }: { listing: Listing }) {
         Modifier
       </Button>
 
-      {listing.status === "pending" ? (
+      {listing.status === "DRAFT" ? (
         <Button size="sm" onClick={() => setConfirm("publish")}>
           Publier
         </Button>
@@ -122,9 +125,12 @@ export function ListingActions({ listing }: { listing: Listing }) {
               notify("Lien deep-link copié");
             }}
           />
+          {/* No `featured` column on `listings` — "vedette" ranking is
+              derived (favorites/views, see listings/featured/page.tsx), not
+              a togglable flag, so this can't reflect current state. */}
           <Item
             icon={Star}
-            label={listing.featured ? "Retirer de À la une" : "Mettre À la une"}
+            label="Mettre à la une"
             onClick={() => {
               setMenuOpen(false);
               setConfirm("feature");
@@ -189,10 +195,13 @@ export function ListingActions({ listing }: { listing: Listing }) {
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Prix (€)">
-              <Input type="number" defaultValue={listing.price} />
+              <Input
+                type="number"
+                defaultValue={listing.priceCents != null ? listing.priceCents / 100 : 0}
+              />
             </Field>
             <Field label="Catégorie">
-              <Select defaultValue={listing.category}>
+              <Select defaultValue={listing.categoryLabel ?? ""}>
                 {[
                   "vélo",
                   "mode",
@@ -213,10 +222,10 @@ export function ListingActions({ listing }: { listing: Listing }) {
             </Field>
           </div>
           <Field label="URL de la photo">
-            <Input defaultValue={listing.photo ?? ""} placeholder="https://images.unsplash.com/…" />
+            <Input defaultValue={listing.photos?.[0] ?? ""} placeholder="https://images.unsplash.com/…" />
           </Field>
           <Field label="Description">
-            <Textarea rows={6} defaultValue={listing.description} />
+            <Textarea rows={6} defaultValue={listing.description ?? ""} />
           </Field>
         </form>
       </Drawer>

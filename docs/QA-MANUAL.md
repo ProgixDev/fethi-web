@@ -64,6 +64,30 @@ Sign in as admin, go to **`/listings`**.
 - ✅ **Security:** the moderation/status endpoints are staff-gated (unauth → 401/403).
 - *Auto:* `e2e/tasks/WEB-010.spec.ts` — staff sees a live listing, soft-hide + restore round-trip, and the moderation route is staff-gated.
 
+## WEB-020 — Finish the admin surfaces still rendering static markup
+
+Sign in as admin.
+- 🖐 **`/dashboard`:** the GMV/signups trend chart reflects real `analyticsApi.marketplace()`/
+  `signupsTrend()` data (not a static fixture) — compare against a known order/signup in
+  the DB for the same date range.
+- 🖐 **`/dashboard` activity feed:** still sample data (no backend read model exists yet)
+  — must show a visible "Exemple" label so it's not mistaken for live activity. ⚠️ Not
+  wired to real events; a follow-up task is needed if a real activity stream is wanted.
+- 🖐 **`/users/[id]`:** header shows the real admin user record (status/KYC in real
+  UPPERCASE enum values), not a fabricated phone number or fabricated
+  transactions/reports counts.
+- 🖐 **`/settings/feature-flags`, `/settings/api-keys`, `/settings/webhooks`,
+  `/communications/announcements`, `/communications/templates`:** each shows a visible
+  "not connected to a backend" notice and every control (toggle/button/form) is
+  **disabled** — clicking anything provably does nothing, rather than silently
+  discarding input.
+- ✅ **Security:** dashboard analytics route handlers reject unauthenticated requests.
+- *Auto:* `e2e/tasks/WEB-020-dashboard.spec.ts`, `e2e/tasks/WEB-020-shells.spec.ts`.
+  ⚠️ One dashboard test (`GMV trend reflects the live marketplace analytics endpoint`)
+  is `manual`-only in this sandbox — service-role Supabase client construction fails
+  under this environment's Node/WebSocket setup (same pre-existing gap as
+  `e2e/tasks/WEB-014.spec.ts`); verify this one by hand until that's fixed.
+
 ---
 
 ## Not yet shippable to QA (don't test as "done")

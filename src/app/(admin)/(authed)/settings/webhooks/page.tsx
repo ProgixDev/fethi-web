@@ -2,6 +2,7 @@ import { Plus, RefreshCcw } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 import { formatDateTime } from "@/lib/utils/format";
 
 export const metadata = { title: "Webhooks" };
@@ -57,8 +58,21 @@ export default function SettingsWebhooksPage() {
         ]}
         title="Webhooks"
         description="Endpoints écoutant les évènements marketplace."
-        actions={<Button variant="primary"><Plus className="h-3.5 w-3.5" /> Ajouter un endpoint</Button>}
+        actions={
+          <Button variant="primary" disabled title="Gestion des webhooks pas encore connectée à un backend">
+            <Plus className="h-3.5 w-3.5" /> Ajouter un endpoint
+          </Button>
+        }
       />
+
+      <NotConnectedNotice>
+        <p className="font-medium">Panneau non connecté à un backend.</p>
+        <p className="mt-0.5 text-n-600">
+          Les endpoints et livraisons ci-dessous sont des exemples illustratifs, pas des
+          données en direct. Ajouter, rejouer ou modifier un endpoint n&apos;est pas encore
+          possible depuis l&apos;admin.
+        </p>
+      </NotConnectedNotice>
 
       <section className="rounded-lg border border-n-100 bg-surface">
         <header className="border-b border-n-100 px-5 py-4">
@@ -81,8 +95,8 @@ export default function SettingsWebhooksPage() {
                     <Pill tone="danger" dot>Échec</Pill>
                   )}
                   {e.retries > 0 ? <Pill tone="warning">{e.retries} retries</Pill> : null}
-                  <Button variant="ghost" size="sm"><RefreshCcw className="h-3.5 w-3.5" /> Rejouer</Button>
-                  <Button variant="outline" size="sm">Modifier</Button>
+                  <Button variant="ghost" size="sm" disabled><RefreshCcw className="h-3.5 w-3.5" /> Rejouer</Button>
+                  <Button variant="outline" size="sm" disabled>Modifier</Button>
                 </div>
               </div>
             </li>

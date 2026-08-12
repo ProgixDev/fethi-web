@@ -1,14 +1,26 @@
 "use client";
 
 import { AreaChart } from "./Chart";
-import { dailyGmv, newSignups } from "@/lib/fixtures/metrics";
 import { colors } from "@/lib/tokens";
+import type { TrendPoint } from "@/lib/api";
 
-export function DashboardGmvChart() {
-  const data = dailyGmv.map((d, i) => ({
+// GMV/signups per-day trend from the real analytics read models (WEB-014):
+// `analyticsApi.marketplace().gmvTrend` (cents, converted to euros below) and
+// `analyticsApi.signupsTrend()` (headcount). Both default to the last 30 days
+// when the caller passes no range, so they line up date-for-date; merged by
+// date rather than by index to stay correct if that ever changes.
+export function DashboardGmvChart({
+  gmvTrend,
+  signupsTrend,
+}: {
+  gmvTrend: TrendPoint[];
+  signupsTrend: TrendPoint[];
+}) {
+  const signupsByDate = new Map(signupsTrend.map((p) => [p.date, p.count]));
+  const data = gmvTrend.map((d) => ({
     date: d.date.slice(5),
-    gmv: d.value,
-    signups: newSignups[i]?.value ?? 0,
+    gmv: d.count / 100,
+    signups: signupsByDate.get(d.date) ?? 0,
   }));
   return (
     <AreaChart

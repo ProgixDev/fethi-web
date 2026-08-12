@@ -5,39 +5,12 @@ import { notFound, useParams } from "next/navigation";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { UserHeader } from "@/components/admin/UserHeader";
 import { UserModerationActions } from "@/components/admin/users/UserModerationActions";
-import { publicUsersApi, type PublicProfile } from "@/lib/api";
-import type { User } from "@/lib/fixtures/users";
-
-// Convertit le DTO backend PublicProfile vers le type User que UserHeader attend.
-// Champs non disponibles cote backend -> defauts neutres.
-function toUser(p: PublicProfile): User {
-  return {
-    id: p.id,
-    name: p.displayName ?? "Voisin·e",
-    handle: (p.displayName ?? "user").toLowerCase().replace(/\s+/g, "-"),
-    email: "",
-    phone: "",
-    avatarSeed: p.id,
-    neighborhood: (p.neighborhood?.toLowerCase().replace(/\s+/g, "-") ?? "vieux-lille") as User["neighborhood"],
-    joinedAt: p.createdAt,
-    lastActiveAt: p.createdAt,
-    status: "active",
-    kyc: "unverified",
-    rating: p.rating ?? 0,
-    reviews: p.reviewsCount ?? 0,
-    listings: p.listingsCount ?? 0,
-    sales: p.salesCount ?? 0,
-    purchases: 0,
-    gmv: 0,
-    flagged: 0,
-    bio: p.bio ?? undefined,
-  };
-}
+import { usersApi, type AdminUserListItem } from "@/lib/api";
 
 export default function UserDetailLayout({ children }: { children: React.ReactNode }) {
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const [user, setUser] = React.useState<User | null>(null);
+  const [user, setUser] = React.useState<AdminUserListItem | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -45,10 +18,14 @@ export default function UserDetailLayout({ children }: { children: React.ReactNo
     if (!id) return;
     let alive = true;
     setLoading(true);
-    publicUsersApi
+    // `?view=admin` (usersApi.get) returns the AdminUserListItem shape — the
+    // same real status/kyc read UserModerationActions already uses below.
+    // Previously this screen used publicUsersApi.get() and hardcoded
+    // status/kyc to neutral defaults for every user; this fixes that too.
+    usersApi
       .get(id)
-      .then((p: PublicProfile) => {
-        if (alive) setUser(toUser(p));
+      .then((u: AdminUserListItem) => {
+        if (alive) setUser(u);
       })
       .catch((err: { message?: string } | null) => {
         if (alive) setError(err?.message ?? "Profil introuvable");

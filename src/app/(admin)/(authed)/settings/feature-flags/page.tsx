@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Toggle } from "@/components/ui/Toggle";
 import { Pill } from "@/components/ui/Pill";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 import { timeAgo } from "@/lib/utils/format";
+
+// Toggle is a client component whose `onChange` is a required function prop —
+// passing an inline handler from a Server Component page fails at runtime
+// ("Event handlers cannot be passed to Client Component props"). Keeping this
+// page a client component (as it was before this static-shell cleanup) avoids
+// that RSC boundary error; `metadata` therefore can't be exported here (that
+// requires a Server Component), so the page title stays the default.
 
 type Flag = {
   key: string;
@@ -70,7 +77,7 @@ const initial: Flag[] = [
 ];
 
 export default function SettingsFeatureFlagsPage() {
-  const [flags, setFlags] = useState(initial);
+  const flags = initial;
 
   return (
     <div className="container-admin py-8 space-y-6">
@@ -82,7 +89,17 @@ export default function SettingsFeatureFlagsPage() {
         ]}
         title="Feature flags"
         description="Activation progressive des fonctionnalités."
+        actions={<Pill tone="neutral">Lecture seule</Pill>}
       />
+
+      <NotConnectedNotice>
+        <p className="font-medium">Panneau non connecté à un backend.</p>
+        <p className="mt-0.5 text-n-600">
+          Ces états reflètent la configuration au 4 mai 2026 mais ne peuvent pas être
+          modifiés depuis l&apos;admin pour le moment — les interrupteurs ci-dessous sont
+          désactivés pour éviter de laisser croire qu&apos;un changement est enregistré.
+        </p>
+      </NotConnectedNotice>
 
       <section className="rounded-lg border border-n-100 bg-surface">
         <div className="overflow-x-auto">
@@ -120,11 +137,8 @@ export default function SettingsFeatureFlagsPage() {
                   <td className="px-5 py-3">
                     <Toggle
                       checked={f.enabled}
-                      onChange={(next) =>
-                        setFlags((s) =>
-                          s.map((x) => (x.key === f.key ? { ...x, enabled: next } : x)),
-                        )
-                      }
+                      disabled
+                      onChange={() => {}}
                     />
                   </td>
                 </tr>
