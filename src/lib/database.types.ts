@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: ac52c126889f
+ * schema-version: 30bfd6e7d080
  */
 
 export type Json =
@@ -18,10 +18,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -416,6 +436,39 @@ export type Database = {
           },
         ]
       }
+      listing_publication_notifications: {
+        Row: {
+          created_at: string
+          listing_id: string
+          notification_id: string
+        }
+        Insert: {
+          created_at?: string
+          listing_id: string
+          notification_id: string
+        }
+        Update: {
+          created_at?: string
+          listing_id?: string
+          notification_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_publication_notifications_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_publication_notifications_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           category_id: string | null
@@ -436,6 +489,7 @@ export type Database = {
           price_cents: number | null
           price_per_day_cents: number | null
           price_per_week_cents: number | null
+          publication_request_id: string | null
           service_radius_km: number | null
           status: Database["public"]["Enums"]["listing_status"]
           title: string
@@ -461,6 +515,7 @@ export type Database = {
           price_cents?: number | null
           price_per_day_cents?: number | null
           price_per_week_cents?: number | null
+          publication_request_id?: string | null
           service_radius_km?: number | null
           status?: Database["public"]["Enums"]["listing_status"]
           title: string
@@ -486,6 +541,7 @@ export type Database = {
           price_cents?: number | null
           price_per_day_cents?: number | null
           price_per_week_cents?: number | null
+          publication_request_id?: string | null
           service_radius_km?: number | null
           status?: Database["public"]["Enums"]["listing_status"]
           title?: string
@@ -1976,6 +2032,7 @@ export type Database = {
           price_cents: number | null
           price_per_day_cents: number | null
           price_per_week_cents: number | null
+          publication_request_id: string | null
           service_radius_km: number | null
           status: Database["public"]["Enums"]["listing_status"]
           title: string
@@ -2758,6 +2815,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       kyc_status: ["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"],

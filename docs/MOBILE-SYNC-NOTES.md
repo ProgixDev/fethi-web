@@ -8,6 +8,51 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-19 · SCR-015 · Listing publication confirmation (exactly-once notification) — unblocks mobile PR #40 / issue #21
+
+- **What:** New column `listings.publication_request_id uuid` (nullable) +
+  unique index `listings_owner_publication_request_id_key` on `(owner_id,
+  publication_request_id) WHERE publication_request_id IS NOT NULL` — lets a
+  client retry a lost publish response and recover the original listing
+  instead of creating a duplicate. New unique index
+  `listing_photos_listing_storage_path_key` on `listing_photos (listing_id,
+  storage_path)` — makes a photo-sync upsert with `onConflict:
+  'listing_id,storage_path'` idempotent across a retry. New table
+  `listing_publication_notifications` (ledger, `listing_id` PK, RLS enabled
+  with **zero policies** — default-deny to every client role, including the
+  listing's own owner; it's a server-side dedup key, not an API resource).
+  New `AFTER INSERT OR UPDATE OF status ON listings` trigger
+  `notify_listing_published()` (`security definer`, `search_path=''`) that
+  inserts exactly one `notifications` row (kind `SYSTEM`) the first time a
+  listing becomes `ACTIVE` — never again on a later `ACTIVE` update, and never
+  on an unrelated column change. `applied-scrs.json` appends **SCR-015**.
+  **Status: Proposed — pending DB reviewer sign-off** (see
+  `docs/db/decisions/SCR-015.md`); do not treat this as `Accepted` until a
+  human flips it.
+- **Verified locally** (`supabase start`, all migrations through this one
+  applied, real `psql` against the local Postgres): direct `ACTIVE` insert →
+  1 ledger row + 1 notification; unrelated-column update → unchanged; no-op
+  `ACTIVE→ACTIVE` update → unchanged; `DRAFT→ACTIVE` transition → 1 new
+  ledger row + 1 new notification for that listing. RLS: `anon`, a
+  non-owner `authenticated` user, and even the listing's own owner are all
+  denied `SELECT`/`INSERT` on the ledger table (`42501` RLS policy
+  violation) — only the `SECURITY DEFINER` trigger function can write it.
+  Full evidence table in SCR-015.md.
+- **Mobile must:** the vendored `src/shared/types/database.types.ts` +
+  `applied-scrs.json` are updated (SCR-015 applied) in this same PR. Pass a
+  stable client-generated `publicationRequestId` (UUID) on
+  `listingsApi.create`/the publish request so a retry after a lost response
+  looks up the existing listing by `(owner_id, publication_request_id)`
+  instead of creating a duplicate (and a duplicate notification — the ledger
+  makes the notification side effect exactly-once server-side regardless,
+  but avoiding a duplicate *listing* is still on the client). Photo sync
+  should `upsert` (not plain `insert`) with `onConflict:
+  'listing_id,storage_path'` so a replayed photo-sync call doesn't error or
+  duplicate. The publish confirmation screen can rely on exactly one
+  `SYSTEM`-kind notification with `href: /listing/<id>` landing in the
+  owner's `notifications` feed the moment the listing goes `ACTIVE` — no
+  client-side polling or dedup needed on the notification itself.
+
 ## 2026-07-27 · WEB-021 · `connect-dashboard-link` Edge Function — unblocks TASK-019 dashboard piece
 
 - **What:** New Edge Function **`connect-dashboard-link`** (POST-only, **user-JWT**
