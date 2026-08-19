@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 30bfd6e7d080
+ * schema-version: 019a7fd600c6
  */
 
 export type Json =
@@ -484,6 +484,7 @@ export type Database = {
           listing_type: Database["public"]["Enums"]["listing_type"]
           lng: number | null
           location: unknown
+          meeting_venue: string | null
           neighborhood: string | null
           owner_id: string
           price_cents: number | null
@@ -510,6 +511,7 @@ export type Database = {
           listing_type: Database["public"]["Enums"]["listing_type"]
           lng?: number | null
           location?: unknown
+          meeting_venue?: string | null
           neighborhood?: string | null
           owner_id: string
           price_cents?: number | null
@@ -536,6 +538,7 @@ export type Database = {
           listing_type?: Database["public"]["Enums"]["listing_type"]
           lng?: number | null
           location?: unknown
+          meeting_venue?: string | null
           neighborhood?: string | null
           owner_id?: string
           price_cents?: number | null
@@ -2027,6 +2030,7 @@ export type Database = {
           listing_type: Database["public"]["Enums"]["listing_type"]
           lng: number | null
           location: unknown
+          meeting_venue: string | null
           neighborhood: string | null
           owner_id: string
           price_cents: number | null

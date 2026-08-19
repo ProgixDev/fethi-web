@@ -8,6 +8,43 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-19 · SCR-016 · `listings.meeting_venue` (persist the public handoff venue) — unblocks mobile `fix/issue-23-public-venue` / issue #23
+
+- **What:** New column `listings.meeting_venue text` (nullable, no default,
+  no index, no new RLS policy). Holds the seller-entered public meetup spot
+  (e.g. `"Café X, République"`) for a public handoff — the mobile sell flow
+  already requires and gates this on `pickupMethod === 'meeting'` client-side
+  before ever sending `meetingVenue`, so a non-null `meeting_venue` is already
+  implicitly "this was a public handoff." `pickup_method`/`availability`
+  themselves are **not** added — `CreateListingRequest` doesn't even send them
+  today, and adding them would be a materially bigger, unrequested contract
+  change; see the "Scope decision" section of SCR-016.md for the full
+  reasoning. `applied-scrs.json` appends **SCR-016** (provisional — see
+  status note below).
+  **Status: Proposed — pending DB reviewer sign-off** (see
+  `docs/db/decisions/SCR-016.md`); do not treat this as `Accepted` until a
+  human flips it.
+- **RLS:** unchanged. `listings` RLS is row-level (SCR-001's
+  `listings_select_active`/`listings_select_own`/`listings_insert_own`/
+  `listings_update_own`/`listings_delete_own`), so it automatically covers
+  the new column — owners can read/write their own row's `meeting_venue`
+  (any status), and non-owners/`anon` can read it only once the listing is
+  `ACTIVE` (intended: a buyer needs to see where to meet).
+- **Verified locally** (`supabase start` + `db reset` to force a fresh apply
+  of every migration through this one, real `psql` against the local
+  Postgres): insert with `meeting_venue` set round-trips exactly; insert
+  without it defaults to `NULL`; update can set/clear it. RLS: `anon` and a
+  non-owner `authenticated` user both get 0 rows selecting a `DRAFT` listing
+  with `meeting_venue` set; a non-owner's `UPDATE` on the owner's row affects
+  0 rows; the owner's own `UPDATE` succeeds; `anon` reading an `ACTIVE`
+  listing sees `meeting_venue` (intended — public listings' venue is meant to
+  be publicly visible). Types regenerated via the canonical `npm run
+  db:types` (schema-version `019a7fd600c6`). Full evidence table in
+  SCR-016.md.
+- **Mobile must:** once this SCR is `Accepted` and merged, `listingReqToColumns`
+  in `src/shared/lib/api.ts` maps `meetingVenue` → `meeting_venue` (already
+  wired in the mobile branch, gated behind this SCR shipping for real).
+
 ## 2026-08-19 · SCR-015 · Listing publication confirmation (exactly-once notification) — unblocks mobile PR #40 / issue #21
 
 - **What:** New column `listings.publication_request_id uuid` (nullable) +
