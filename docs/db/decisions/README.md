@@ -18,5 +18,6 @@ written. This is the coordination gate between `fethi-web` (DB owner) and
 | SCR | Title | Status | Unblocks |
 | --- | --- | --- | --- |
 | SCR-000 | Coordination protocol bootstrap (example) | Accepted | — |
+| SCR-016 | `listings.meeting_venue` (persist the public handoff venue) | Proposed — pending DB reviewer sign-off | fethi-mobile `fix/issue-23-public-venue` (issue #23) |
 
 > Keep this index current — one row per SCR.
