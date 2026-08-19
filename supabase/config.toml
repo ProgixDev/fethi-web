@@ -4,7 +4,7 @@
 #
 # project_id is the linked remote project-ref. Keep it in sync with the
 # SUPABASE_PROJECT_ID secret used by `npm run db:types` and CI.
-project_id = "lksjbehxpfndviesnlgm"
+project_id = "ucmblzvbxgwkecrijegh"
 
 [api]
 enabled = true
