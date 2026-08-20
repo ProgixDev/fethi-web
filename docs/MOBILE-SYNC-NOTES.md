@@ -8,6 +8,21 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-20 · SCR-017 · New table `waitlist` — no mobile action
+
+- **What:** New table `public.waitlist` (`id`, `email`, `referral_code`,
+  `source`, `created_at`), unique index on `lower(email)`, RLS enabled with
+  **no policies** (service-role-write-only, matches the `categories` "writes
+  service-role only" precedent). Backs `POST /api/marketing/waitlist` on the
+  web marketing site, which previously validated and threw every signup away
+  (in-process dedupe only, reset on every redeploy).
+- **Mobile must:** nothing. This is a web-only, pre-launch marketing-site
+  table — no mobile screen or flow reads or writes it, and none is planned.
+  Not vendored into `fethi-mobile/src/shared/types/database.types.ts` for
+  that reason (see `docs/db/decisions/SCR-017.md` "Affected consumers").
+  Noted here purely so a mobile dev scanning this changelog isn't surprised
+  by a new table appearing in a future `fethi-web` types diff.
+
 ## 2026-08-19 · SCR-016 · `listings.meeting_venue` (persist the public handoff venue) — unblocks mobile `fix/issue-23-public-venue` / issue #23
 
 - **What:** New column `listings.meeting_venue text` (nullable, no default,
