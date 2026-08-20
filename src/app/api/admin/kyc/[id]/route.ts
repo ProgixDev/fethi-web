@@ -52,31 +52,25 @@ export async function POST(
     }
 
     if (body.action === 'resend-onboarding') {
-      // Call the connect-onboarding Edge Function to generate a fresh onboarding link
-      const edgeFunctionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/connect-onboarding`;
-      const response = await fetch(edgeFunctionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+      // NOT IMPLEMENTABLE as a staff-initiated call: the `connect-onboarding`
+      // Edge Function authenticates via `requireUser(req)`, which resolves the
+      // caller's OWN Supabase session from the forwarded bearer token — it has
+      // no service-role / on-behalf-of path. Staff never hold the seller's JWT,
+      // so there is no token this route handler could forward that would pass
+      // that check (this previously sent `Bearer undefined` — a broken publishable
+      // key wouldn't have fixed it either, since it still isn't a user session).
+      // Fixing this for real means adding a service-role branch to the shared
+      // Edge Function (fethi-web is the DB/Edge Function owner per
+      // docs/db/COORDINATION.md) — out of scope here. No UI currently calls this
+      // action (grep confirmed), so failing clearly beats a silent 401.
+      return Response.json(
+        {
+          code: 'NOT_SUPPORTED',
+          message:
+            "Le renvoi du lien d'onboarding depuis l'admin n'est pas encore pris en charge — la fonction Stripe Connect exige la session du vendeur lui-même.",
         },
-        body: JSON.stringify({
-          userId: id,
-          returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/seller/dashboard`,
-          refreshUrl: `${process.env.NEXT_PUBLIC_APP_URL}/seller/onboarding`,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        return Response.json(
-          { code: 'ONBOARDING_FAILED', message: error.message || 'Failed to generate onboarding link' },
-          { status: response.status },
-        );
-      }
-
-      const data = await response.json();
-      return Response.json(data);
+        { status: 501 },
+      );
     }
 
     return Response.json(

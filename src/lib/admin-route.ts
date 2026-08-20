@@ -35,6 +35,7 @@ export function errorResponse(e: unknown): Response {
   if (message.startsWith('SELF_ACTION')) return err(409, 'SELF_ACTION', message);
   if (message.startsWith('NOT_FOUND')) return err(404, 'NOT_FOUND', message);
   if (message.startsWith('INVALID_STATUS')) return err(422, 'INVALID_STATUS', message);
+  if (message.startsWith('IN_USE')) return err(409, 'IN_USE', message);
   console.error('[admin-route]', message);
   return err(500, 'INTERNAL', 'Erreur interne du serveur.');
 }

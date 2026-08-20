@@ -56,24 +56,20 @@ const tiers = [
   },
 ];
 
-const testimonials = [
+// Pre-launch: no sellers on the platform yet, so this section makes promises
+// rather than fabricating quotes from customers who don't exist.
+const promises = [
   {
-    quote:
-      "J'ai vidé tout un grenier en deux mois. Les acheteurs viennent à pied, je n'ai plus jamais imprimé une étiquette d'envoi.",
-    name: "Sophie D.",
-    where: "Wazemmes",
+    title: "Fini les étiquettes d'envoi",
+    text: "Les acheteurs viennent à pied. Vous videz un grenier sans jamais aller à la poste.",
   },
   {
-    quote:
-      "En tant que céramiste, je préfère mille fois rencontrer mes acheteurs. MyStreet a remplacé Etsy pour 80 % de mes ventes locales.",
-    name: "Antoine R.",
-    where: "Vieux-Lille",
+    title: "Un prix qu'on ne discute pas au rabais",
+    text: "Une suggestion de prix par objet, pour vendre vite sans brader — et sans y passer la soirée.",
   },
   {
-    quote:
-      "Le prix suggéré par l'app est précis au point que je ne discute presque plus. Les voisins font confiance.",
-    name: "Hélène G.",
-    where: "Vauban",
+    title: "Des voisins, pas des inconnus",
+    text: "Chaque transaction se fait en face à face, dans le quartier — la confiance vient avec.",
   },
 ];
 
@@ -183,23 +179,19 @@ export default function SellersPage() {
 
       <Section className="bg-surface border-y border-divider">
         <Container>
-          <Eyebrow>Voix de vendeurs</Eyebrow>
+          <Eyebrow>Ce qu'on vous promet</Eyebrow>
           <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            {testimonials.map((t) => (
+            {promises.map((p) => (
               <figure
-                key={t.name}
+                key={p.title}
                 className="rounded-xl border border-n-100 bg-paper p-6"
               >
-                <span className="font-serif text-display italic leading-none text-primary">
-                  &ldquo;
-                </span>
-                <blockquote className="mt-2 text-body-lg leading-relaxed text-ink">
-                  {t.quote}
-                </blockquote>
-                <figcaption className="mt-6 flex items-center gap-2 text-caption text-n-500">
-                  <span className="h-px w-6 bg-n-300" />
-                  {t.name} · {t.where}
-                </figcaption>
+                <h3 className="font-serif text-h2 italic leading-tight text-primary">
+                  {p.title}
+                </h3>
+                <p className="mt-3 text-body-lg leading-relaxed text-ink">
+                  {p.text}
+                </p>
               </figure>
             ))}
           </div>

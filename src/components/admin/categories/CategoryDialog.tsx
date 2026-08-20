@@ -6,7 +6,6 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
-import { Toggle } from "@/components/ui/Toggle";
 import {
   categoriesApi,
   Category,
@@ -39,12 +38,10 @@ export function CategoryDialog({
 
   const [slug, setSlug] = React.useState("");
   const [label, setLabel] = React.useState("");
-  const [labelEn, setLabelEn] = React.useState("");
   const [subtitle, setSubtitle] = React.useState("");
   const [glyph, setGlyph] = React.useState("");
   const [type, setType] = React.useState<ListingType>("VENTE");
   const [sortOrder, setSortOrder] = React.useState<number>(0);
-  const [active, setActive] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -54,21 +51,17 @@ export function CategoryDialog({
     if (category) {
       setSlug(category.slug);
       setLabel(category.label);
-      setLabelEn("");
       setSubtitle(category.subtitle ?? "");
       setGlyph(category.glyph ?? "");
       setType(category.type);
       setSortOrder(category.sortOrder ?? 0);
-      setActive(true); // pas exposé par CategoryResponse → on suppose true
     } else {
       setSlug("");
       setLabel("");
-      setLabelEn("");
       setSubtitle("");
       setGlyph("");
       setType("VENTE");
       setSortOrder(0);
-      setActive(true);
     }
     setError(null);
     setSubmitting(false);
@@ -97,17 +90,14 @@ export function CategoryDialog({
       if (isEdit && category) {
         await categoriesApi.update(category.id, {
           label: label.trim(),
-          labelEn: labelEn.trim() || undefined,
           subtitle: subtitle.trim() || undefined,
           glyph: glyph.trim() || undefined,
           sortOrder,
-          active,
         });
       } else {
         await categoriesApi.create({
           slug: slug.trim(),
           label: label.trim(),
-          labelEn: labelEn.trim() || undefined,
           subtitle: subtitle.trim() || undefined,
           glyph: glyph.trim() || undefined,
           type,
@@ -139,27 +129,16 @@ export function CategoryDialog({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Libellé FR" required>
-            <Input
-              type="text"
-              required
-              placeholder="Vélo"
-              value={label}
-              onChange={(e) => onLabelChange(e.currentTarget.value)}
-              maxLength={100}
-            />
-          </Field>
-          <Field label="Libellé EN">
-            <Input
-              type="text"
-              placeholder="Bike"
-              value={labelEn}
-              onChange={(e) => setLabelEn(e.currentTarget.value)}
-              maxLength={100}
-            />
-          </Field>
-        </div>
+        <Field label="Libellé" required>
+          <Input
+            type="text"
+            required
+            placeholder="Vélo"
+            value={label}
+            onChange={(e) => onLabelChange(e.currentTarget.value)}
+            maxLength={100}
+          />
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field
@@ -223,12 +202,6 @@ export function CategoryDialog({
             />
           </Field>
         </div>
-
-        {isEdit ? (
-          <Field label="Active">
-            <Toggle checked={active} onChange={setActive} />
-          </Field>
-        ) : null}
 
         {error ? (
           <p className="rounded-md bg-danger/10 px-3 py-2 text-caption text-danger">

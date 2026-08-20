@@ -35,7 +35,6 @@ export default function SettingsCategoriesPage() {
   const [query, setQuery] = React.useState("");
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [type, setType] = React.useState<string>("all");
-  const [activeFilter, setActiveFilter] = React.useState<string>("active");
   const [page, setPage] = React.useState(0);
 
   // -- données ---------------------------------------------------------------
@@ -61,7 +60,7 @@ export default function SettingsCategoriesPage() {
   // Reset page sur changement de filtre
   React.useEffect(() => {
     setPage(0);
-  }, [type, activeFilter]);
+  }, [type]);
 
   // Chargement
   const loadCategories = React.useCallback(async () => {
@@ -71,13 +70,8 @@ export default function SettingsCategoriesPage() {
       const res = await categoriesApi.list({
         label: debouncedQuery || undefined,
         type: type === "all" ? undefined : (type as ListingType),
-        active:
-          activeFilter === "all"
-            ? undefined
-            : activeFilter === "active",
         page,
         size: PAGE_SIZE,
-        sort: "sortOrder,asc",
       });
       setRows(res.content);
       setTotal(res.totalElements);
@@ -88,7 +82,7 @@ export default function SettingsCategoriesPage() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedQuery, type, activeFilter, page]);
+  }, [debouncedQuery, type, page]);
 
   React.useEffect(() => {
     loadCategories();
@@ -104,17 +98,17 @@ export default function SettingsCategoriesPage() {
     setDialogOpen(true);
   }
 
-  async function handleDeactivate(cat: Category) {
+  async function handleDelete(cat: Category) {
     const ok = window.confirm(
-      `Désactiver la catégorie "${cat.label}" ? Les annonces existantes resteront mais aucune nouvelle ne pourra y être publiée.`,
+      `Supprimer la catégorie "${cat.label}" ? Impossible si elle a des sous-catégories ou des annonces actives — il faudra d'abord les réassigner.`,
     );
     if (!ok) return;
     try {
-      await categoriesApi.deactivate(cat.id);
+      await categoriesApi.remove(cat.id);
       loadCategories();
     } catch (err) {
       if (err instanceof ApiError) {
-        alert(err.message || "Désactivation impossible");
+        alert(err.message || "Suppression impossible");
       } else {
         alert("Erreur réseau");
       }
@@ -163,15 +157,6 @@ export default function SettingsCategoriesPage() {
               {typeLabels[t]}
             </option>
           ))}
-        </Select>
-        <Select
-          value={activeFilter}
-          onChange={(e) => setActiveFilter(e.currentTarget.value)}
-          className="w-44"
-        >
-          <option value="active">Actives</option>
-          <option value="inactive">Désactivées</option>
-          <option value="all">Toutes</option>
         </Select>
       </div>
 
@@ -258,7 +243,7 @@ export default function SettingsCategoriesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDeactivate(c)}
+                          onClick={() => handleDelete(c)}
                         >
                           <Trash2 className="h-3.5 w-3.5 text-danger" />
                         </Button>

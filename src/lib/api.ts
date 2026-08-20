@@ -399,7 +399,11 @@ export const analyticsApi = {
 };
 
 // ---------------------------------------------------------------------------
-// Categories admin
+// Categories admin — same-origin `/api/admin/categories*` route handlers
+// (internal seam, service-role read/write), NOT the external `request()` base.
+// The `categories` table (SCR-001) has no `active`/`label_en` columns — there
+// is no soft-deactivate; `remove()` is a real delete, blocked server-side if
+// the category has subcategories or listings still pointing at it.
 // ---------------------------------------------------------------------------
 
 export type ListingType = "VENTE" | "LOCATION" | "SERVICE";
@@ -413,24 +417,20 @@ export type Category = {
   type: ListingType;
   glyph: string | null;
   sortOrder: number;
+  /** Derived server-side: true when no other category has this as parentId. */
   isLeaf: boolean;
 };
 
 export type CategoryFilters = {
   type?: ListingType;
-  active?: boolean;
-  isLeaf?: boolean;
-  parentId?: string;
   label?: string;
   page?: number;
   size?: number;
-  sort?: string;
 };
 
 export type CreateCategoryRequest = {
   slug: string;
   label: string;
-  labelEn?: string;
   subtitle?: string;
   parentId?: string;
   type: ListingType;
@@ -440,37 +440,32 @@ export type CreateCategoryRequest = {
 
 export type UpdateCategoryRequest = {
   label?: string;
-  labelEn?: string;
   subtitle?: string;
   parentId?: string;
   glyph?: string;
   sortOrder?: number;
-  active?: boolean;
 };
 
 export const categoriesApi = {
-  list: (filters: CategoryFilters = {}) => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
-    });
-    return request<PageResponse<Category>>(`/admin/categories?${params}`);
-  },
+  list: (filters: CategoryFilters = {}) =>
+    internalRequest<PageResponse<Category>>(`/categories${toQuery(filters)}`),
 
   create: (req: CreateCategoryRequest) =>
-    request<Category>("/admin/categories", {
+    internalRequest<Category>("/categories", {
       method: "POST",
       body: JSON.stringify(req),
     }),
 
   update: (id: string, req: UpdateCategoryRequest) =>
-    request<Category>(`/admin/categories/${id}`, {
+    internalRequest<Category>(`/categories/${id}`, {
       method: "PATCH",
       body: JSON.stringify(req),
     }),
 
-  deactivate: (id: string) =>
-    request<void>(`/admin/categories/${id}`, { method: "DELETE" }),
+  /** Real delete — blocked (409 IN_USE) if the category has subcategories or
+   * listings still referencing it. */
+  remove: (id: string) =>
+    internalRequest<void>(`/categories/${id}`, { method: "DELETE" }),
 };
 
 // ---------------------------------------------------------------------------

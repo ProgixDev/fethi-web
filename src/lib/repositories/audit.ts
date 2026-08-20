@@ -12,7 +12,7 @@ import { BaseRepository } from './base';
 export type AuditEntry = {
   actorId: string;
   action: string;
-  targetType: 'user' | 'listing' | 'report';
+  targetType: 'user' | 'listing' | 'report' | 'category';
   targetId: string;
   before?: unknown;
   after?: unknown;

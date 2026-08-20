@@ -4,16 +4,15 @@ import { motion } from "motion/react";
 import { neighborhoods } from "@/lib/fixtures/neighborhoods";
 import { Container, Section, Eyebrow } from "../shell/Container";
 
-const stats = [
-  { id: "vieux-lille", count: 218, status: "live" },
-  { id: "wazemmes", count: 182, status: "live" },
-  { id: "vauban", count: 158, status: "live" },
-  { id: "moulins", count: 144, status: "live" },
-  { id: "saint-maurice", count: 122, status: "live" },
-  { id: "bois-blancs", count: 118, status: "soon" },
-  { id: "lille-sud", count: 110, status: "soon" },
-  { id: "fives", count: 104, status: "soon" },
-];
+// Pre-launch: no listings exist yet, so this doesn't fabricate per-neighborhood
+// counts. Rollout order only — the first five open at launch, the rest follow.
+const LAUNCH_NEIGHBORHOOD_IDS = new Set([
+  "vieux-lille",
+  "wazemmes",
+  "vauban",
+  "moulins",
+  "saint-maurice",
+]);
 
 export function Neighborhoods() {
   return (
@@ -42,8 +41,7 @@ export function Neighborhoods() {
           <div className="relative">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
               {neighborhoods.map((n, i) => {
-                const s = stats.find((x) => x.id === n.id);
-                const live = s?.status === "live";
+                const launchWave = LAUNCH_NEIGHBORHOOD_IDS.has(n.id);
                 return (
                   <motion.div
                     key={n.id}
@@ -56,15 +54,12 @@ export function Neighborhoods() {
                     <div className="flex items-center justify-between">
                       <span className="text-body font-medium text-ink">{n.name}</span>
                       <span
-                        className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${live ? "bg-success-soft text-success" : "bg-n-100 text-n-500"}`}
+                        className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${launchWave ? "bg-success-soft text-success" : "bg-n-100 text-n-500"}`}
                       >
-                        <span className={`h-1 w-1 rounded-full ${live ? "bg-success" : "bg-n-400"}`} />
-                        {live ? "Actif" : "Bientôt"}
+                        <span className={`h-1 w-1 rounded-full ${launchWave ? "bg-success" : "bg-n-400"}`} />
+                        {launchWave ? "Septembre 2026" : "Ensuite"}
                       </span>
                     </div>
-                    <p className="mt-2 text-caption text-n-500 tabular">
-                      {s?.count ?? 0} annonces · {Math.round((s?.count ?? 0) * 4)} habitants
-                    </p>
                   </motion.div>
                 );
               })}

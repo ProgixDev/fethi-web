@@ -1,10 +1,12 @@
 import { Container, Section, Eyebrow } from "@/components/marketing/shell/Container";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 
-const voices = [
-  { quote: "On a vidé le grenier en une semaine. Je ne savais pas que mes voisins cherchaient autant de choses.", name: "Sophie D.", where: "Wazemmes" },
-  { quote: "Le code de parrainage de Léa m'a fait gagner deux mois de MyStreet+. J'ai vendu pour 340 € en quatre semaines.", name: "Antoine R.", where: "Vieux-Lille" },
-  { quote: "Mon voisin de palier m'a vendu son sapin de Noël. On se dit bonjour depuis. C'est ça MyStreet.", name: "Camille B.", where: "Vauban" },
+// Pre-launch: no referrals have happened yet, so this doesn't fabricate quotes
+// from people who don't exist.
+const promises = [
+  { title: "Un crédit pour vous deux", text: "5 € chacun dès votre première transaction, sans condition cachée." },
+  { title: "Zéro spam", text: "Un parrainage, une invitation — on ne vous relance pas ensuite." },
+  { title: "Votre quartier d'abord", text: "L'invitation ne prend effet que quand MyStreet ouvre chez vous." },
 ];
 
 function capitalize(s: string) {
@@ -47,20 +49,16 @@ export default async function ReferralPage({
 
       <Section className="bg-surface border-y border-divider">
         <Container>
-          <Eyebrow>Ils ont accepté avant vous</Eyebrow>
+          <Eyebrow>Ce que vous y gagnez</Eyebrow>
           <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            {voices.map((v) => (
-              <figure key={v.name} className="rounded-xl border border-n-100 bg-paper p-6">
-                <span className="font-serif text-display italic leading-none text-primary">
-                  &ldquo;
-                </span>
-                <blockquote className="mt-2 text-body-lg leading-relaxed text-ink">
-                  {v.quote}
-                </blockquote>
-                <figcaption className="mt-6 flex items-center gap-2 text-caption text-n-500">
-                  <span className="h-px w-6 bg-n-300" />
-                  {v.name} · {v.where}
-                </figcaption>
+            {promises.map((p) => (
+              <figure key={p.title} className="rounded-xl border border-n-100 bg-paper p-6">
+                <h3 className="font-serif text-h2 italic leading-tight text-primary">
+                  {p.title}
+                </h3>
+                <p className="mt-3 text-body-lg leading-relaxed text-ink">
+                  {p.text}
+                </p>
               </figure>
             ))}
           </div>

@@ -27,9 +27,9 @@ const posts: Post[] = [
   {
     slug: "vieux-lille-marche-noel",
     category: "Quartier",
-    title: "Vieux-Lille : ce que les voisins vendent l'hiver",
+    title: "Vieux-Lille, premier quartier à ouvrir",
     excerpt:
-      "Étude des ventes de décembre à février : décorations, livres, vêtements de saison. Et un pic surprenant pour les machines à pâtes.",
+      "Pourquoi on commence par le Vieux-Lille en septembre 2026 — densité, commerces de proximité déjà là, et un vrai centre pour se rencontrer.",
     date: "24 avril 2026",
     readTime: "4 min",
     cover: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=1200&q=80",
@@ -46,10 +46,10 @@ const posts: Post[] = [
   },
   {
     slug: "wazemmes-portrait-vendeur",
-    category: "Portrait",
-    title: "Hélène, 67 ans, deuxième vendeuse de Wazemmes",
+    category: "Quartier",
+    title: "Wazemmes, deuxième quartier à ouvrir",
     excerpt:
-      "Hélène vend les vêtements de ses petits-enfants depuis sa cuisine. En six mois, 134 transactions, et autant de cafés partagés.",
+      "Marché, brocantes, une tradition d'échange déjà bien ancrée — pourquoi Wazemmes suit le Vieux-Lille dès le lancement.",
     date: "10 avril 2026",
     readTime: "6 min",
     cover: "https://images.unsplash.com/photo-1522771930-78848d9293e8?w=1200&q=80",

@@ -83,8 +83,6 @@ export function MarketingHero() {
                 <MapPin className="h-3.5 w-3.5 text-primary" />
                 Lille intra-muros + Hellemmes, Lomme
               </span>
-              <span className="hidden sm:inline">·</span>
-              <span>+5 184 voisins déjà sur la liste</span>
               <span>·</span>
               <Link href="/how-it-works" className="font-medium text-n-700 hover:text-primary">
                 Comment ça marche →
