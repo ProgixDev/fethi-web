@@ -1,12 +1,27 @@
 # Runbook — Supabase ops (migrations, secrets, functions, types)
 
 How schema changes, Edge secrets, function deploys, and type regeneration are
-applied to the shared project **without** the local Docker/CLI-link path (which
-is blocked here: Docker + IPv6 + the CLI's DB link don't work locally). Everything
-goes through the **Management API** (`https://api.supabase.com`) or the vendored
-Supabase Go binary. Companion to the `progix-supabase-apply-path` memory.
+applied to the shared project. Companion to the `progix-supabase-apply-path`
+memory.
 
-Project ref: `lksjbehxpfndviesnlgm`
+Project ref: `ucmblzvbxgwkecrijegh` (the recovered project — the old ref
+`lksjbehxpfndviesnlgm` this doc referenced until 2026-08-20 is dead; see
+`fethi-mobile`'s production-rollout runbook §migration history if you need
+the backstory).
+
+**2026-08-20 update:** the CLI binary-resolution bug this doc originally
+worked around (npm wrapper looking for the wrong binary name) is fixed
+(commit `51ca10f`) — `npx supabase ...` now resolves correctly, so §4's
+"invoke the platform binary directly" workaround is no longer required
+(though it still works if you ever need it). What's still true in this
+environment: **Docker is not reachable** (`docker info` hangs). Two specific
+CLI subcommands shell out to Docker and will hang indefinitely as a result —
+`supabase gen types typescript --db-url ...` (needs `docker run
+postgres-meta` for introspection) and `supabase functions deploy <slug>`
+without `--use-api` (defaults to Docker-based bundling). Both have a
+Docker-free path — see §2 and §4. `supabase db push` and `supabase migration
+list` via the session-pooler `--db-url` work fine without Docker; the hang
+is specific to those other two subcommands.
 
 ## Credentials (never commit; read from gitignored `.env.local`)
 
@@ -23,7 +38,7 @@ Key-type gotcha: `sbp_` = PAT (management), `sb_secret_` = service-role (DB only
 # Read the current PAT into a shell var (do NOT write secrets to new files).
 cd fethi-web
 PAT=$(grep -E "^SUPABASE_ACCESS_TOKEN=" .env.local | cut -d= -f2)
-REF=lksjbehxpfndviesnlgm
+REF=ucmblzvbxgwkecrijegh
 ```
 
 ## 1. Run SQL / apply a migration
@@ -44,14 +59,30 @@ curl -s -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
 ```
 
 Migrations are still written as versioned files under `supabase/migrations/`
-(the canonical record) even though they're applied via the API rather than
-`supabase db push`. Keep them forward-only.
+(the canonical record). `supabase db push --db-url "$SUPABASE_DB_URL"` (the
+session-pooler connection string in `.env.local`) now works directly and is
+the simpler path — the Management API `run_sql` approach above is a fallback
+if that's ever unavailable. Keep migrations forward-only either way.
 
 ## 2. Regenerate + vendor types
 
-The canonical path is `npm run db:types` (CLI). When the CLI can't run, use the
-Management API types endpoint and reproduce the deterministic header the script
-writes (sha256 of the body, first 12 chars):
+The canonical path is `npm run db:types` (CLI). **In this environment, run it
+with `SUPABASE_PROJECT_ID` + `SUPABASE_ACCESS_TOKEN` set (Management API
+mode), not `SUPABASE_DB_URL`** — the `--db-url` path shells out to `docker
+run postgres-meta` and hangs since Docker isn't reachable here:
+
+```bash
+cd fethi-web
+source .env.local
+unset SUPABASE_DB_URL   # force project-id/Management-API mode
+export SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_ID
+npm run db:types
+cp src/lib/database.types.ts ../fethi-mobile/src/shared/types/database.types.ts
+```
+
+If the CLI genuinely can't run at all, fall back to the raw Management API
+types endpoint and reproduce the deterministic header the script writes
+(sha256 of the body, first 12 chars):
 
 ```bash
 curl -s "https://api.supabase.com/v1/projects/$REF/types/typescript" \
@@ -89,24 +120,28 @@ functions for the pattern.
 
 ## 4. Deploy an Edge Function
 
-The npm `supabase` wrapper is **broken here** (it looks for
-`node_modules/@supabase/cli-<os>-<arch>/bin/supabase`, but the binary ships as
-`bin/supabase-go`). Invoke the platform binary directly:
-
 ```bash
-export SUPABASE_ACCESS_TOKEN=$PAT
-SB=node_modules/@supabase/cli-darwin-x64/bin/supabase-go   # adjust cli-<os>-<arch>
+cd fethi-web
+source .env.local
+export SUPABASE_ACCESS_TOKEN
 
-$SB functions deploy <slug> --project-ref $REF                 # verify_jwt=true
-$SB functions deploy <slug> --project-ref $REF --no-verify-jwt # self-verified webhooks
+npx supabase functions deploy <slug> --project-ref $SUPABASE_PROJECT_ID --use-api                 # verify_jwt=true
+npx supabase functions deploy <slug> --project-ref $SUPABASE_PROJECT_ID --use-api --no-verify-jwt  # self-verified webhooks
 ```
 
-- Deploy does **not** need Docker (only local `functions serve` does — the
-  `WARNING: Docker is not running` line is harmless).
+- **`--use-api` is required in this environment** — it bundles server-side
+  instead of via Docker. Without it, `functions deploy` shells out to Docker
+  for bundling and hangs indefinitely (Docker isn't reachable here). This
+  contradicts what this doc said before 2026-08-20 ("deploy does not need
+  Docker") — that was true of an older CLI version's default bundler; the
+  current one defaults to Docker-based bundling unless `--use-api` is passed.
 - `--no-verify-jwt` is for webhooks that self-verify a shared secret
   (`stripe-webhook`, `revenuecat-webhook`, `notifications-dispatch`); everything
   else keeps `verify_jwt=true`.
 - Shared code under `supabase/functions/_shared/` is bundled automatically.
+- If `npx supabase` ever fails to resolve again, the platform binary can be
+  invoked directly as a fallback: `node_modules/@supabase/cli-<os>-<arch>/bin/supabase-go`
+  (e.g. `cli-darwin-x64` on this machine) takes the same flags.
 
 ## 5. SCR workflow (the full cross-repo dance)
 
@@ -159,5 +194,5 @@ Seed test users with `node scripts/seed-test-users.mjs` (password
 | Run SQL / migrate | `POST /v1/projects/$REF/database/query` |
 | Regenerate types | `GET /v1/projects/$REF/types/typescript` |
 | Set secret | `POST /v1/projects/$REF/secrets` |
-| Deploy function | `supabase-go functions deploy <slug> --project-ref $REF` |
+| Deploy function | `supabase functions deploy <slug> --project-ref $REF --use-api` |
 | Test-user JWT | `POST /auth/v1/token?grant_type=password` |

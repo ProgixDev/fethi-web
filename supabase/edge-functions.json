@@ -13,6 +13,7 @@
     "connect-dashboard-link",
     "stripe-webhook",
     "notifications-dispatch",
-    "revenuecat-webhook"
+    "revenuecat-webhook",
+    "listing-category-suggest"
   ]
 }
