@@ -64,6 +64,46 @@ const articles: Record<string, Article> = {
       ],
     },
   },
+  "supprimer-mon-compte": {
+    slug: "supprimer-mon-compte",
+    title: "Supprimer mon compte",
+    category: "Compte",
+    categorySlug: "compte",
+    updatedAt: "20 août 2026",
+    body: {
+      lead: "La suppression se fait directement dans l'application, en quelques étapes. Elle est définitive : une fois confirmée, il n'y a pas de retour en arrière.",
+      sections: [
+        {
+          heading: "Où trouver l'option",
+          paragraphs: [
+            "Dans l'app mobile : Paramètres → Mon compte → Supprimer le compte, tout en bas de l'écran.",
+            "Une confirmation vous rappelle ce qui va être effacé avant de continuer, puis un dernier écran vous demande de cocher trois cases (effacement, caractère définitif, sort des annonces en cours) pour activer le bouton de suppression.",
+          ],
+        },
+        {
+          heading: "Ce qui se passe concrètement",
+          paragraphs: [
+            "Votre profil est anonymisé (nom, photo, bio, âge, profession, adresse) et votre compte est fermé — vous ne pouvez plus vous reconnecter.",
+            "Vos annonces actives ou en pause sont retirées de la vente.",
+            "La suppression est bloquée si vous avez une commande en cours (en attente de remise en main propre) ou un litige ouvert, côté acheteur comme vendeur — réglez-le d'abord, puis réessayez.",
+            "Vos anciennes commandes ne sont pas effacées : la loi nous oblige à conserver les données de transaction (comptabilité, lutte anti-blanchiment) — voir la Politique de confidentialité, section « Durée de conservation ».",
+          ],
+        },
+        {
+          heading: "Récupérer vos données avant de partir",
+          paragraphs: [
+            "Le même écran propose d'abord de vous envoyer une copie de vos données par e-mail (droit à la portabilité, RGPD) — utile si vous voulez garder une trace avant de supprimer votre compte.",
+          ],
+        },
+        {
+          heading: "Vous n'avez pas l'app sous la main",
+          paragraphs: [
+            "Écrivez à support@mystreet.fr depuis l'adresse e-mail associée à votre compte ; nous traitons les demandes de suppression manuelles sous 30 jours conformément au RGPD.",
+          ],
+        },
+      ],
+    },
+  },
 };
 
 const fallback = (slug: string): Article => ({

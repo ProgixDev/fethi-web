@@ -41,7 +41,7 @@ const sections = [
     heading: "Partage de données",
     paragraphs: [
       "Aucune revente, jamais. Pas de pub ciblée, pas de cession à des courtiers de données.",
-      "Sous-traitants strictement nécessaires : Stripe (paiement), Mangopay (cantonnement), Onfido (KYC), Vercel (hébergement), Resend (e-mail transactionnel). Tous sont liés par des accords de sous-traitance conformes au RGPD.",
+      "Sous-traitants strictement nécessaires : Stripe (paiement et vérification d'identité KYC via Stripe Connect), Supabase (hébergement de la base de données, authentification et stockage des fichiers, dans l'Union européenne), Vercel (hébergement du site web), Expo (notifications push sur l'application mobile). Tous sont liés par des accords de sous-traitance conformes au RGPD.",
     ],
   },
   {

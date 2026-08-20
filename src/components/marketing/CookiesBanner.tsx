@@ -37,8 +37,8 @@ export function CookiesBanner() {
                 Cookies essentiels uniquement.
               </p>
               <p className="text-caption text-n-500">
-                On utilise les cookies pour faire fonctionner le site et mesurer l&apos;audience
-                (Plausible, sans tracking).{" "}
+                On n&apos;utilise aucun cookie de mesure d&apos;audience ni de
+                publicité — juste ce qu&apos;il faut pour vous garder connecté.{" "}
                 <Link
                   href="/cookies"
                   className="text-primary hover:underline underline-offset-2"

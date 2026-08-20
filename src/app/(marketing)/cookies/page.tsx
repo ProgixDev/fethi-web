@@ -1,11 +1,17 @@
 import { Container, Section, Eyebrow } from "@/components/marketing/shell/Container";
 
 const cookies = [
-  { name: "ms_session", purpose: "Authentification et session utilisateur", duration: "30 jours", type: "Strictement nécessaire" },
-  { name: "ms_csrf", purpose: "Protection contre les attaques CSRF", duration: "Session", type: "Strictement nécessaire" },
-  { name: "ms_consent", purpose: "Mémorisation de vos préférences cookies", duration: "13 mois", type: "Strictement nécessaire" },
-  { name: "ms_locale", purpose: "Langue d'affichage", duration: "1 an", type: "Préférences" },
-  { name: "ms_analytics", purpose: "Statistiques d'usage anonymisées (Plausible)", duration: "Session", type: "Mesure d'audience" },
+  {
+    name: "sb-*-auth-token",
+    purpose: "Session d'authentification (Supabase). Déposé uniquement si vous vous connectez — par exemple à l'espace d'administration. Un visiteur anonyme du site vitrine n'en reçoit aucun.",
+    duration: "Jusqu'à expiration de la session",
+    type: "Strictement nécessaire",
+  },
+];
+
+const localStorageItems = [
+  { name: "mystreet:cookies", purpose: "Mémorise votre choix (accepter/refuser) sur ce bandeau." },
+  { name: "mystreet:theme", purpose: "Mémorise si vous préférez l'affichage clair ou sombre." },
 ];
 
 export default function CookiesPage() {
@@ -35,9 +41,10 @@ export default function CookiesPage() {
               préférences et mesurer l'usage du service.
             </p>
             <p>
-              Conformément aux recommandations de la CNIL, MyStreet ne
-              dépose aucun cookie non essentiel sans votre consentement
-              explicite, recueilli au premier passage.
+              À ce jour, MyStreet ne dépose aucun cookie de mesure
+              d'audience ni de publicité — le site n'utilise aucun outil
+              d'analytics ni de tracking. Le seul cookie possible est celui,
+              strictement nécessaire, de l'authentification.
             </p>
 
             <h2>Cookies que nous utilisons</h2>
@@ -67,21 +74,53 @@ export default function CookiesPage() {
           </div>
 
           <div className="prose prose-lg mt-10 max-w-none text-n-700 prose-headings:text-ink prose-headings:font-medium prose-strong:text-ink">
+            <h2>Stockage local (localStorage)</h2>
+            <p>
+              En plus du cookie ci-dessus, votre navigateur conserve
+              localement quelques préférences — techniquement pas des
+              cookies (ils ne sont jamais envoyés au serveur), mais on les
+              liste ici par souci de transparence complète.
+            </p>
+          </div>
+
+          <div className="mt-6 overflow-x-auto rounded-xl border border-n-100 bg-surface">
+            <table className="w-full text-left">
+              <thead className="border-b border-n-100 bg-n-50">
+                <tr>
+                  <th className="px-5 py-3 text-label uppercase tracking-[0.12em] text-n-500">Clé</th>
+                  <th className="px-5 py-3 text-label uppercase tracking-[0.12em] text-n-500">Finalité</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-n-100">
+                {localStorageItems.map((c) => (
+                  <tr key={c.name}>
+                    <td className="px-5 py-3 font-mono text-body-sm text-primary-ink">{c.name}</td>
+                    <td className="px-5 py-3 text-body-sm text-n-700">{c.purpose}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="prose prose-lg mt-10 max-w-none text-n-700 prose-headings:text-ink prose-headings:font-medium prose-strong:text-ink">
             <h2>Vos préférences</h2>
             <p>
-              Vous pouvez modifier vos préférences à tout moment depuis le
-              lien Cookies en pied de page ou directement dans les
-              paramètres de votre compte. Le retrait du consentement est
-              aussi simple que le don : un clic suffit.
+              Le bandeau de consentement n'apparaît qu'une fois : votre choix
+              (accepter/refuser) est mémorisé localement. Pour le revoir,
+              effacez les données de site pour mystreet.fr dans les
+              paramètres de votre navigateur — le bandeau réapparaîtra à
+              votre prochaine visite. Le cookie d'authentification, lui,
+              n'est de toute façon pas soumis à consentement : il est
+              strictement nécessaire au fonctionnement du service (vous
+              maintenir connecté) et ne sert à rien d'autre.
             </p>
 
             <h2>Cookies tiers</h2>
             <p>
-              MyStreet n'utilise aucun cookie publicitaire. Les seuls
-              services tiers concernés sont Plausible (mesure d'audience
-              anonymisée, sans empreinte) et Stripe (paiement, uniquement
-              sur les pages de paiement). Aucun de ces cookies ne nous sert
-              à vous suivre hors de notre plateforme.
+              MyStreet n'utilise aucun cookie publicitaire ni aucun outil de
+              mesure d'audience tiers (pas de Google Analytics, pas de
+              Plausible, pas d'équivalent) à ce jour. Cette page sera mise à
+              jour si cela change.
             </p>
           </div>
         </Container>
