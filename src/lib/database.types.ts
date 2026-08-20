@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 382d9db34025
+ * schema-version: b0e7321211ba
  */
 
 export type Json =
@@ -1184,6 +1184,42 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_hits: {
+        Row: {
+          hit_count: number
+          scope: string
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          hit_count?: number
+          scope: string
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          hit_count?: number
+          scope?: string
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_limit_hits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_limit_hits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           created_at: string
@@ -1546,6 +1582,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          referral_code: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          referral_code?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          referral_code?: string | null
+          source?: string
+        }
+        Relationships: []
       }
       webhook_deduplication: {
         Row: {
@@ -1958,6 +2018,10 @@ export type Database = {
       has_staff_role: {
         Args: { role: Database["public"]["Enums"]["staff_role"]; uid: string }
         Returns: boolean
+      }
+      increment_rate_limit_hit: {
+        Args: { p_scope: string; p_user_id: string; p_window_start: string }
+        Returns: number
       }
       is_staff: { Args: { uid: string }; Returns: boolean }
       is_thread_participant: {

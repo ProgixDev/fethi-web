@@ -1,29 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { createAdminClient } from "@/lib/supabase/admin";
+
 // PUBLIC marketing waitlist endpoint — POST /api/marketing/waitlist
 //
 // This is the ONLY public, unauthenticated route handler in the app. It is
 // deliberately NOT staff-gated and does NOT touch the admin backend.
 //
-// PERSISTENCE IS DEFERRED:
-// TODO(SCR): persist to a `waitlist` table (public-insert/staff-read RLS) once
-// an SCR ships — see WEB-015 Coordination. There is no `waitlist` table today
-// and WEB-015 explicitly allows the no-SCR path, so this handler must NOT write
-// to Supabase / call `.from("waitlist")`. It validates, guards against obvious
-// spam + self-referral + (best-effort, in-process) duplicates, and returns a
-// success shape the form consumes. When the SCR lands, swap the stub below for
-// a service-role insert with RLS (public insert, staff read) + IP/email rate
-// limiting and dedup-by-email.
+// Persists to `public.waitlist` (SCR-017) via the service-role client — the
+// table has no client RLS policies (see SCR-017.md), so this route is the
+// sole writer. Validates, guards against obvious spam + self-referral, then
+// inserts; a unique index on lower(email) is the real dedup, not an
+// in-process Set (which never survives a redeploy on serverless anyway).
 
 export const runtime = "nodejs";
 // Never cache a mutation endpoint.
 export const dynamic = "force-dynamic";
-
-// Best-effort in-process dedupe. NOT a substitute for the deferred `waitlist`
-// table — it only survives within a single running server process and is reset
-// on redeploy/restart. Bounded to avoid unbounded memory growth from spam.
-const seenEmails = new Set<string>();
-const SEEN_MAX = 5_000;
 
 // Pragmatic RFC-5322-lite email check. Server-side validation is mandatory
 // (clients can bypass the <input type="email"> guard).
@@ -96,24 +88,50 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // --- Duplicate guard (best-effort, in-process) -----------------------------
-  const duplicate = seenEmails.has(email);
-  if (!duplicate) {
-    if (seenEmails.size >= SEEN_MAX) seenEmails.clear();
-    seenEmails.add(email);
-  }
+  // --- Persist ----------------------------------------------------------------
+  const admin = createAdminClient();
+  const { data: inserted, error: insertErr } = await admin
+    .from("waitlist")
+    .insert({ email, referral_code: attributedReferral, source })
+    .select("referral_code")
+    .single();
 
-  // TODO(SCR): persist to a `waitlist` table (public-insert/staff-read RLS)
-  // once an SCR ships — see WEB-015 Coordination. No DB write happens here.
+  if (insertErr) {
+    // Unique violation on lower(email) => this email already signed up.
+    // Return the ORIGINAL referral attribution, not the one just submitted —
+    // a resubmission shouldn't be able to overwrite who gets credit.
+    if (insertErr.code === "23505") {
+      const { data: existing } = await admin
+        .from("waitlist")
+        .select("referral_code")
+        .eq("email", email)
+        .maybeSingle();
+      return NextResponse.json(
+        {
+          ok: true as const,
+          duplicate: true,
+          email,
+          referralCode: existing?.referral_code ?? null,
+          source,
+        },
+        { status: 200 },
+      );
+    }
+    console.error("[waitlist] insert failed", insertErr);
+    return fail(500, {
+      code: "INTERNAL",
+      message: "Erreur interne, réessayez plus tard.",
+    });
+  }
 
   return NextResponse.json(
     {
       ok: true as const,
-      duplicate,
+      duplicate: false,
       email,
-      referralCode: attributedReferral,
+      referralCode: inserted.referral_code,
       source,
     },
-    { status: duplicate ? 200 : 201 },
+    { status: 201 },
   );
 }
