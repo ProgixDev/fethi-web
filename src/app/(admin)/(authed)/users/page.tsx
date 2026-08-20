@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Download, Plus, Search, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Search, Star } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { DataTable } from "@/components/admin/tables/DataTable";
@@ -17,7 +17,6 @@ import {
   AdminUserListItem,
   UserMeta,
 } from "@/lib/api";
-import { InviteAdminDialog } from "@/components/admin/users/InviteAdminDialog";
 
 // ---------------------------------------------------------------------------
 // Maps enums backend (UPPERCASE) → UI
@@ -81,7 +80,6 @@ export default function UsersListPage() {
   const [loading, setLoading] = React.useState(true);
   const [exporting, setExporting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [inviteOpen, setInviteOpen] = React.useState(false);
 
   // -- debounce recherche ---------------------------------------------------
   React.useEffect(() => {
@@ -282,10 +280,6 @@ export default function UsersListPage() {
               <Download className="h-3.5 w-3.5" />
               {exporting ? "Export…" : "Exporter"}
             </Button>
-            <Button size="sm" onClick={() => setInviteOpen(true)}>
-              <Plus className="h-3.5 w-3.5" />
-              Inviter un admin
-            </Button>
           </>
         }
       />
@@ -388,12 +382,6 @@ export default function UsersListPage() {
           </div>
         </div>
       ) : null}
-
-      <InviteAdminDialog
-        open={inviteOpen}
-        onOpenChange={setInviteOpen}
-        onCreated={loadUsers}
-      />
     </div>
   );
 }

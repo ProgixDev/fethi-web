@@ -1,41 +1,11 @@
 /**
  * Client API minimaliste pour le back-office MyStreet.
- * Tous les appels passent par ce wrapper :
- *   - centralise le base URL
- *   - injecte le Bearer token
- *   - gère le refresh + logout
- *   - parse les erreurs JSON du backend
+ *
+ * Tous les appels passent par `internalRequest` (same-origin `/api/admin/*`
+ * route handlers, cookie session) — voir la section "Internal seam" ci-dessous.
+ * Il n'y a plus de backend externe : le seul autre `fetch` direct est
+ * `marketingApi`, qui a sa propre section documentée plus bas.
  */
-
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-
-const ACCESS_KEY = "ms_admin_access_token";
-const REFRESH_KEY = "ms_admin_refresh_token";
-const USER_KEY = "ms_admin_user_id";
-
-// ---------------------------------------------------------------------------
-// Token storage
-// ---------------------------------------------------------------------------
-
-export const tokenStore = {
-  getAccess: () =>
-    typeof window === "undefined" ? null : localStorage.getItem(ACCESS_KEY),
-  getRefresh: () =>
-    typeof window === "undefined" ? null : localStorage.getItem(REFRESH_KEY),
-  getUserId: () =>
-    typeof window === "undefined" ? null : localStorage.getItem(USER_KEY),
-  set: (access: string, refresh: string, userId: string) => {
-    localStorage.setItem(ACCESS_KEY, access);
-    localStorage.setItem(REFRESH_KEY, refresh);
-    localStorage.setItem(USER_KEY, userId);
-  },
-  clear: () => {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-    localStorage.removeItem(USER_KEY);
-  },
-};
 
 // ---------------------------------------------------------------------------
 // Erreurs
@@ -50,36 +20,6 @@ export class ApiError extends Error {
   ) {
     super(message);
   }
-}
-
-// ---------------------------------------------------------------------------
-// Fetch wrapper
-// ---------------------------------------------------------------------------
-
-async function request<T>(
-  path: string,
-  init: RequestInit = {},
-  options: { auth?: boolean; raw?: boolean } = { auth: true },
-): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (!headers.has("Content-Type") && init.body && !(init.body instanceof FormData)) {
-    headers.set("Content-Type", "application/json");
-  }
-  if (options.auth !== false) {
-    const token = tokenStore.getAccess();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
-
-  if (options.raw) {
-    if (!res.ok) await throwApiError(res);
-    return res as unknown as T;
-  }
-
-  if (!res.ok) await throwApiError(res);
-  if (res.status === 204) return undefined as T;
-  return res.json();
 }
 
 async function throwApiError(res: Response): Promise<never> {
@@ -135,59 +75,10 @@ function toQuery(filters: Record<string, unknown>): string {
 }
 
 // ---------------------------------------------------------------------------
-// Auth admin
-// ---------------------------------------------------------------------------
-
-export type AuthTokens = {
-  userId: string;
-  accessToken: string;
-  accessTokenExpiresIn: number;
-  refreshToken: string;
-  refreshTokenExpiresIn: number;
-};
-
-export const authApi = {
-  async login(email: string, password: string): Promise<AuthTokens> {
-    const tokens = await request<AuthTokens>(
-      "/admin/auth/login",
-      { method: "POST", body: JSON.stringify({ email, password }) },
-      { auth: false },
-    );
-    tokenStore.set(tokens.accessToken, tokens.refreshToken, tokens.userId);
-    return tokens;
-  },
-
-  async logout(): Promise<void> {
-    const refresh = tokenStore.getRefresh();
-    if (refresh) {
-      try {
-        await request<void>(
-          "/admin/auth/logout",
-          { method: "POST", body: JSON.stringify({ refreshToken: refresh }) },
-          { auth: false },
-        );
-      } catch {
-        // on ignore - le token serveur peut deja etre expire
-      }
-    }
-    tokenStore.clear();
-  },
-
-  async refresh(): Promise<AuthTokens> {
-    const refresh = tokenStore.getRefresh();
-    if (!refresh) throw new ApiError(401, "NO_REFRESH", "Pas de refresh token");
-    const tokens = await request<AuthTokens>(
-      "/admin/auth/refresh",
-      { method: "POST", body: JSON.stringify({ refreshToken: refresh }) },
-      { auth: false },
-    );
-    tokenStore.set(tokens.accessToken, tokens.refreshToken, tokens.userId);
-    return tokens;
-  },
-};
-
-// ---------------------------------------------------------------------------
 // Users admin
+//
+// Auth itself isn't part of this seam — login/logout go straight through
+// Supabase (`src/lib/supabase/client.ts`), not a `xApi` wrapper.
 // ---------------------------------------------------------------------------
 
 export type AdminUserListItem = {
@@ -272,17 +163,6 @@ export const usersApi = {
     a.remove();
     URL.revokeObjectURL(url);
   },
-
-  invite: (req: {
-    email: string;
-    password: string;
-    displayName?: string;
-    roles: string[];
-  }) =>
-    request<AdminUserListItem>("/admin/users-management", {
-      method: "POST",
-      body: JSON.stringify(req),
-    }),
 };
 
 // ---------------------------------------------------------------------------
@@ -791,12 +671,11 @@ export const financeApi = {
 // Marketing (PUBLIC — no auth, no /admin prefix)
 // ---------------------------------------------------------------------------
 //
-// The public marketing surface is the ONLY non-admin part of the app. Unlike
-// `request()` above (which talks to the Spring back-office at API_BASE with a
-// Bearer token), the marketing seam hits this Next app's OWN public route
-// handler at `/api/marketing/*` via a same-origin relative `fetch`. No token,
-// no cookies, no API_BASE. Screens never fetch directly — they go through
-// `marketingApi` so the data-access seam stays in one place.
+// The public marketing surface is the ONLY non-admin part of the app. It hits
+// this Next app's OWN public route handler at `/api/marketing/*` via a
+// same-origin relative `fetch` — no token, no cookies, no external base URL.
+// Screens never fetch directly — they go through `marketingApi` so the
+// data-access seam stays in one place.
 
 export type WaitlistSource = "homepage" | "footer" | "referral" | "app" | string;
 
