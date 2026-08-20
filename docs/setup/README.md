@@ -23,3 +23,4 @@ function, or payment path.
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe | set per handoff |
 | `EXPO_ACCESS_TOKEN` | push (notifications-dispatch) | set per handoff |
 | `REVENUECAT_WEBHOOK_AUTH` | RevenueCat | **not set** — arms `revenuecat-webhook` |
+| `OPENAI_API_KEY` | mobile issue #25 | set — arms `listing-category-suggest` |

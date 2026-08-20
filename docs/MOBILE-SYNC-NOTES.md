@@ -8,6 +8,36 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-20 · SCR-018 · New table `rate_limit_hits` — unblocks mobile issue #25
+
+- **What:** New generic table `public.rate_limit_hits` (`user_id`, `scope`,
+  `window_start`, `hit_count`), primary key `(user_id, scope, window_start)`,
+  plus a `SECURITY DEFINER` SQL function `increment_rate_limit_hit(p_user_id,
+  p_scope, p_window_start)` that atomically increments and returns the
+  current count. RLS enabled, no policies — service-role/function-only,
+  matching the `idempotency_keys` precedent. New Edge Function
+  `listing-category-suggest` is the first consumer (5 calls/user/day),
+  deployed in this same PR (`--use-api`, no Docker needed — see Gotchas
+  below).
+- **Mobile must:** nothing schema-side — this is purely a backend rate-limit
+  primitive, not client-readable/writable. Mobile issue #25 ("Suggest a
+  listing category from its photo with GPT-5 nano") consumes the deployed
+  `listing-category-suggest` Edge Function via `invokeEdge`, not this table
+  directly.
+- **Gotchas hit deploying this:** `supabase gen types typescript --db-url
+  <session-pooler-url>` hangs indefinitely in this environment — it shells
+  out to `docker run ... postgres-meta` for introspection, and Docker isn't
+  reachable here (`docker info` itself hangs). Use `--project-id
+  $SUPABASE_PROJECT_ID` (Management API mode, needs `SUPABASE_ACCESS_TOKEN`)
+  instead — no Docker dependency, works reliably. Separately,
+  `supabase functions deploy <slug>` (no flags) also hangs here for the same
+  Docker-bundling reason, contradicting this doc's older claim that deploy
+  "does not need Docker" — pass `--use-api` (server-side bundling, added in
+  a CLI version newer than when that claim was written) to deploy without
+  Docker. `supabase db push`/`migration list` via the session-pooler
+  `--db-url` both work fine — the hang is specific to `gen types` and
+  `functions deploy`'s default (non-`--use-api`) bundling path.
+
 ## 2026-08-20 · SCR-017 · New table `waitlist` — no mobile action
 
 - **What:** New table `public.waitlist` (`id`, `email`, `referral_code`,
