@@ -2,16 +2,18 @@ import { Plug } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 
 export const metadata = { title: "Intégrations" };
 
+// Aucun registre d'integrations cote backend — statuts non verifiables depuis
+// l'admin (les cles vivent dans les secrets d'environnement / Edge Functions).
 const integrations = [
-  { name: "Stripe", desc: "Paiements & versements (Stripe Connect)", connected: true, label: "Connecté" },
-  { name: "Sumsub", desc: "Vérification d'identité (KYC)", connected: true, label: "Connecté" },
-  { name: "SendGrid", desc: "E-mails transactionnels", connected: true, label: "Connecté" },
-  { name: "Plausible", desc: "Analytique web sans cookies", connected: true, label: "Connecté" },
-  { name: "Cloudinary", desc: "Stockage & transformation images", connected: true, label: "Connecté" },
-  { name: "Customer.io", desc: "Marketing automation", connected: false, label: "Non connecté" },
+  { name: "Stripe", desc: "Paiements & versements (Stripe Connect)" },
+  { name: "Sumsub", desc: "Vérification d'identité (KYC)" },
+  { name: "RevenueCat", desc: "Achats intégrés (MyStreet+, boosts)" },
+  { name: "SendGrid / Brevo", desc: "E-mails transactionnels" },
+  { name: "Cloudinary", desc: "Stockage & transformation images" },
 ];
 
 export default function SettingsIntegrationsPage() {
@@ -24,30 +26,34 @@ export default function SettingsIntegrationsPage() {
           { label: "Intégrations" },
         ]}
         title="Intégrations"
-        description="Services tiers connectés à MyStreet."
+        description="Aucune supervision des intégrations connectée pour l'instant."
       />
+
+      <NotConnectedNotice>
+        <p className="font-medium">Panneau non connecté à un backend.</p>
+        <p className="mt-0.5 text-n-600">
+          L&apos;admin n&apos;a pas de registre d&apos;intégrations ni de moyen de vérifier leur
+          statut de connexion — les identifiants vivent dans les secrets d&apos;environnement /
+          Edge Functions. La liste ci-dessous rappelle les services utilisés par MyStreet, sans
+          statut en direct.
+        </p>
+      </NotConnectedNotice>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {integrations.map((i) => (
-          <div key={i.name} className="rounded-lg border border-n-100 bg-surface p-5 hover:shadow-medium transition-shadow">
+          <div key={i.name} className="rounded-lg border border-n-100 bg-surface p-5">
             <div className="flex items-start justify-between">
               <span className="flex h-9 w-9 items-center justify-center rounded-md bg-paper text-n-700">
                 <Plug className="h-4 w-4" />
               </span>
-              {i.connected ? (
-                <Pill tone="success" dot>{i.label}</Pill>
-              ) : (
-                <Pill tone="neutral">{i.label}</Pill>
-              )}
+              <Pill tone="neutral">Statut inconnu</Pill>
             </div>
             <p className="mt-4 text-h3 font-medium text-ink">{i.name}</p>
             <p className="mt-0.5 text-body-sm text-n-500">{i.desc}</p>
             <div className="mt-5">
-              {i.connected ? (
-                <Button variant="outline" size="sm">Gérer</Button>
-              ) : (
-                <Button variant="primary" size="sm">Connecter</Button>
-              )}
+              <Button variant="outline" size="sm" disabled title="Pas encore connecté à un backend">
+                Gérer
+              </Button>
             </div>
           </div>
         ))}
