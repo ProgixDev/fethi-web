@@ -9,6 +9,7 @@ import {
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 
 type Policy = {
   id: string;
@@ -121,8 +122,16 @@ export default function PoliciesPage() {
           { label: "Politiques" },
         ]}
         title="Politiques de modération"
-        description="Cadre de référence appliqué par l'équipe modération de MyStreet. Mis à jour le 1er mai 2026."
+        description="Cadre de référence appliqué par l'équipe modération de MyStreet."
       />
+
+      <NotConnectedNotice>
+        <p className="font-medium">Texte de référence statique, pas de CMS de politiques.</p>
+        <p className="mt-0.5 text-n-600">
+          Ce contenu n&apos;est pas géré ni versionné depuis l&apos;admin (il n&apos;existe pas de
+          table dédiée) — pour le modifier, il faut passer par le code.
+        </p>
+      </NotConnectedNotice>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {policies.map((p) => (

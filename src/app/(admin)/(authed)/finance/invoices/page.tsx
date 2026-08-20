@@ -2,17 +2,15 @@ import { Download, FileText } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Pill } from "@/components/ui/Pill";
 import { Button } from "@/components/ui/Button";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 import { formatEuro } from "@/lib/utils/format";
 
 export const metadata = { title: "Factures" };
 
-const invoices = [
-  { id: "INV-2026-04-001", customer: "MyStreet — Frais marketplace", period: "Avril 2026", total: 1687.2, vat: 337.44, status: "paid" },
-  { id: "INV-2026-04-002", customer: "Boost subscriptions — Avril", period: "Avril 2026", total: 692.6, vat: 138.52, status: "paid" },
-  { id: "INV-2026-04-003", customer: "Pro subscriptions — Avril", period: "Avril 2026", total: 494.0, vat: 98.8, status: "paid" },
-  { id: "INV-2026-03-001", customer: "MyStreet — Frais marketplace", period: "Mars 2026", total: 1502.4, vat: 300.48, status: "paid" },
-  { id: "INV-2026-03-002", customer: "Boost subscriptions — Mars", period: "Mars 2026", total: 624.8, vat: 124.96, status: "paid" },
-  { id: "INV-2026-05-001", customer: "MyStreet — Frais marketplace (en cours)", period: "Mai 2026", total: 320.2, vat: 64.04, status: "draft" },
+// Aucune table `invoices` cote backend — exemples illustratifs uniquement.
+const exampleInvoices = [
+  { id: "INV-2026-04-001", customer: "MyStreet — Frais marketplace", period: "Avril 2026", total: 1687.2, vat: 337.44, status: "paid" as const },
+  { id: "INV-2026-05-001", customer: "MyStreet — Frais marketplace (en cours)", period: "Mai 2026", total: 320.2, vat: 64.04, status: "draft" as const },
 ];
 
 export default function InvoicesPage() {
@@ -25,14 +23,23 @@ export default function InvoicesPage() {
           { label: "Factures" },
         ]}
         title="Factures"
-        description="Émises automatiquement chaque début de mois."
+        description="Aucune génération de facture connectée pour l'instant."
         actions={
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" disabled title="Facturation pas encore connectée à un backend">
             <Download className="h-3.5 w-3.5" />
             Tout télécharger
           </Button>
         }
       />
+
+      <NotConnectedNotice>
+        <p className="font-medium">Panneau non connecté à un backend.</p>
+        <p className="mt-0.5 text-n-600">
+          Il n&apos;existe pas de table <code>invoices</code>. Les factures ci-dessous sont des
+          exemples illustratifs, pas des données réelles — le téléchargement n&apos;est pas
+          disponible.
+        </p>
+      </NotConnectedNotice>
 
       <div className="overflow-hidden rounded-lg border border-n-100 bg-surface">
         <table className="w-full text-body-sm">
@@ -49,7 +56,7 @@ export default function InvoicesPage() {
             </tr>
           </thead>
           <tbody>
-            {invoices.map((inv) => (
+            {exampleInvoices.map((inv) => (
               <tr key={inv.id} className="border-b border-n-100 last:border-0 hover:bg-n-50">
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center gap-2 font-medium text-ink">
@@ -68,7 +75,7 @@ export default function InvoicesPage() {
                   </Pill>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" disabled>
                     PDF
                   </Button>
                 </td>

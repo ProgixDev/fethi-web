@@ -1,114 +1,71 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Field } from "@/components/ui/Field";
 import { Select } from "@/components/ui/Select";
-import { Input } from "@/components/ui/Input";
 import { Pill } from "@/components/ui/Pill";
+import { auditApi, type AuditLogEntry, type AuditTargetType } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils/format";
 
-const logs = [
-  {
-    id: "ev_001",
-    at: "2026-05-04T13:42:00Z",
-    actor: "admin",
-    action: "Compte suspendu",
-    target: "Julien Picard",
-    targetHref: "/users/u_julien_p",
-    severity: "warning" as const,
-  },
-  {
-    id: "ev_002",
-    at: "2026-05-03T20:42:00Z",
-    actor: "système",
-    action: "Annonce rejetée",
-    target: "Rolex Submariner réplique",
-    targetHref: "/listings/l_montre_pas_cher",
-    severity: "danger" as const,
-  },
-  {
-    id: "ev_003",
-    at: "2026-05-03T18:14:00Z",
-    actor: "admin",
-    action: "Remboursement émis",
-    target: "MS-26-04-0772",
-    targetHref: "/orders/o_008",
-    severity: "info" as const,
-  },
-  {
-    id: "ev_004",
-    at: "2026-05-03T11:00:00Z",
-    actor: "admin",
-    action: "Catégorie modifiée",
-    target: "high-tech",
-    targetHref: "/settings/categories",
-    severity: "info" as const,
-  },
-  {
-    id: "ev_005",
-    at: "2026-05-02T16:30:00Z",
-    actor: "admin",
-    action: "Réglage modifié",
-    target: "commission : 4 % → 5 %",
-    targetHref: "/settings/system",
-    severity: "info" as const,
-  },
-  {
-    id: "ev_006",
-    at: "2026-05-02T10:14:00Z",
-    actor: "admin",
-    action: "KYC validé",
-    target: "Nora Khaled",
-    targetHref: "/users/u_nora_k",
-    severity: "success" as const,
-  },
-  {
-    id: "ev_007",
-    at: "2026-05-01T09:50:00Z",
-    actor: "admin",
-    action: "Litige attribué",
-    target: "MS-26-05-0017",
-    targetHref: "/disputes",
-    severity: "warning" as const,
-  },
-  {
-    id: "ev_008",
-    at: "2026-04-30T22:11:00Z",
-    actor: "système",
-    action: "Webhook rejoué",
-    target: "stripe.payout.paid",
-    targetHref: "/settings/webhooks",
-    severity: "info" as const,
-  },
-  {
-    id: "ev_009",
-    at: "2026-04-30T14:00:00Z",
-    actor: "admin",
-    action: "Annonce mise en avant",
-    target: "PS4 + 5 jeux",
-    targetHref: "/listings/l_ps4",
-    severity: "info" as const,
-  },
-  {
-    id: "ev_010",
-    at: "2026-04-29T09:14:00Z",
-    actor: "admin",
-    action: "Clé API créée",
-    target: "Mobile App",
-    targetHref: "/settings/api-keys",
-    severity: "warning" as const,
-  },
-];
-
-const sevTone: Record<string, "info" | "success" | "warning" | "danger"> = {
-  info: "info",
-  success: "success",
-  warning: "warning",
-  danger: "danger",
+const targetTypeLabel: Record<AuditTargetType, string> = {
+  user: "Utilisateur",
+  listing: "Annonce",
+  report: "Signalement",
+  category: "Catégorie",
 };
 
+/** Best-effort tone from the action verb — the log has no severity column, so
+ * this reads the same `action` slugs the repositories actually write
+ * (`user.suspend`, `listing.pause`, `report.dismiss`, …). */
+function toneFor(action: string): React.ComponentProps<typeof Pill>["tone"] {
+  if (/ban|delete|dismiss|reject/.test(action)) return "danger";
+  if (/suspend|pause|archive/.test(action)) return "warning";
+  if (/create|restore|reactivate|action|approve/.test(action)) return "success";
+  return "info";
+}
+
+/** Where the target links to, when the admin already has a detail screen for
+ * it (user/listing). Reports and categories have no `[id]` detail route. */
+function targetHref(entry: AuditLogEntry): string | null {
+  if (entry.targetType === "user") return `/users/${entry.targetId}`;
+  if (entry.targetType === "listing") return `/listings/${entry.targetId}`;
+  return null;
+}
+
 export default function SettingsAuditPage() {
+  const [targetType, setTargetType] = React.useState<AuditTargetType | "all">("all");
+  const [page, setPage] = React.useState(0);
+  const [logs, setLogs] = React.useState<AuditLogEntry[]>([]);
+  const [total, setTotal] = React.useState(0);
+  const [totalPages, setTotalPages] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await auditApi.list({
+        targetType: targetType === "all" ? undefined : targetType,
+        page,
+        size: 25,
+      });
+      setLogs(res.content);
+      setTotal(res.totalElements);
+      setTotalPages(res.totalPages);
+    } catch {
+      setError("Impossible de charger le journal d'audit.");
+    } finally {
+      setLoading(false);
+    }
+  }, [targetType, page]);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
   return (
     <div className="container-admin py-8 space-y-6">
       <PageHeader
@@ -118,35 +75,36 @@ export default function SettingsAuditPage() {
           { label: "Journal d'audit" },
         ]}
         title="Journal d&apos;audit"
-        description="Trace de toutes les actions admin & système."
+        description={
+          loading
+            ? "Chargement…"
+            : `${total} action${total > 1 ? "s" : ""} enregistrée${total > 1 ? "s" : ""} — trace réelle des mutations admin.`
+        }
       />
 
       <section className="rounded-lg border border-n-100 bg-surface p-5">
         <div className="grid gap-3 md:grid-cols-4">
-          <Field label="Acteur">
-            <Select defaultValue="all">
-              <option value="all">Tous</option>
-              <option>admin</option>
-              <option>système</option>
-            </Select>
-          </Field>
-          <Field label="Action">
-            <Select defaultValue="all">
+          <Field label="Cible">
+            <Select
+              value={targetType}
+              onChange={(e) => {
+                setTargetType(e.currentTarget.value as AuditTargetType | "all");
+                setPage(0);
+              }}
+            >
               <option value="all">Toutes</option>
-              <option>Suspensions</option>
-              <option>Rejets</option>
-              <option>Remboursements</option>
-              <option>Réglages</option>
+              <option value="user">Utilisateur</option>
+              <option value="listing">Annonce</option>
+              <option value="report">Signalement</option>
+              <option value="category">Catégorie</option>
             </Select>
-          </Field>
-          <Field label="Du">
-            <Input type="date" defaultValue="2026-04-01" />
-          </Field>
-          <Field label="Au">
-            <Input type="date" defaultValue="2026-05-04" />
           </Field>
         </div>
       </section>
+
+      {error ? (
+        <div className="rounded-md bg-danger/10 px-3 py-2 text-body-sm text-danger">{error}</div>
+      ) : null}
 
       <section className="rounded-lg border border-n-100 bg-surface">
         <div className="overflow-x-auto">
@@ -157,26 +115,73 @@ export default function SettingsAuditPage() {
                 <th className="px-5 py-3 text-label font-medium text-n-500">Acteur</th>
                 <th className="px-5 py-3 text-label font-medium text-n-500">Action</th>
                 <th className="px-5 py-3 text-label font-medium text-n-500">Cible</th>
-                <th className="px-5 py-3 text-label font-medium text-n-500">Sévérité</th>
+                <th className="px-5 py-3 text-label font-medium text-n-500">Motif</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-n-100">
-              {logs.map((l) => (
-                <tr key={l.id} className="hover:bg-n-50">
-                  <td className="px-5 py-3 text-n-500">{formatDateTime(l.at)}</td>
-                  <td className="px-5 py-3 text-ink">{l.actor}</td>
-                  <td className="px-5 py-3 text-n-700">{l.action}</td>
-                  <td className="px-5 py-3">
-                    <Link href={l.targetHref} className="text-primary hover:text-primary-hover">
-                      {l.target}
-                    </Link>
+              {logs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-n-500">
+                    {loading ? "Chargement…" : "Aucune action enregistrée pour ce filtre."}
                   </td>
-                  <td className="px-5 py-3"><Pill tone={sevTone[l.severity]} dot>{l.severity}</Pill></td>
                 </tr>
-              ))}
+              ) : (
+                logs.map((l) => {
+                  const href = targetHref(l);
+                  return (
+                    <tr key={l.id} className="hover:bg-n-50">
+                      <td className="px-5 py-3 text-n-500">{formatDateTime(l.at)}</td>
+                      <td className="px-5 py-3 text-ink">{l.actorLabel}</td>
+                      <td className="px-5 py-3">
+                        <Pill tone={toneFor(l.action)} dot>
+                          {l.action}
+                        </Pill>
+                      </td>
+                      <td className="px-5 py-3 text-n-700">
+                        {href ? (
+                          <Link href={href} className="text-primary hover:text-primary-hover">
+                            {targetTypeLabel[l.targetType]} · {l.targetId.slice(0, 8)}
+                          </Link>
+                        ) : (
+                          <span>
+                            {targetTypeLabel[l.targetType]} · {l.targetId.slice(0, 8)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-n-500">{l.reason ?? "—"}</td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 ? (
+          <div className="flex items-center justify-between border-t border-n-100 bg-paper px-4 py-2.5 text-caption text-n-500">
+            <span className="tabular">
+              Page {page + 1} sur {totalPages} — {total} résultats
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0 || loading}
+                className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 hover:bg-n-100 disabled:opacity-30"
+              >
+                Précédent
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1 || loading}
+                className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 hover:bg-n-100 disabled:opacity-30"
+              >
+                Suivant
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );

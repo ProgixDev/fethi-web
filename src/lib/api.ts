@@ -7,6 +7,8 @@
  *   - parse les erreurs JSON du backend
  */
 
+import type { StaffRole } from "./staff-roles";
+
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -187,6 +189,24 @@ export const authApi = {
 };
 
 // ---------------------------------------------------------------------------
+// Staff identity (admin's own account)
+// ---------------------------------------------------------------------------
+//
+// Same-origin `/api/admin/me` (cookie session), NOT the external `authApi`
+// above — reads the signed-in staff member straight from `staff_members` +
+// the Supabase auth user, per request (never `user_metadata`).
+
+export type StaffProfile = {
+  id: string;
+  email: string | null;
+  roles: StaffRole[];
+};
+
+export const staffApi = {
+  me: () => internalRequest<StaffProfile>(`/me`),
+};
+
+// ---------------------------------------------------------------------------
 // Users admin
 // ---------------------------------------------------------------------------
 
@@ -360,6 +380,14 @@ export type ReportsAnalyticsSummary = {
   trend: TrendPoint[];
 };
 
+/** One city with real signups (grouped from `profiles.city`/`neighborhood` —
+ * there is no `cities` table). */
+export type CitySummary = {
+  name: string;
+  neighborhoods: number;
+  users: number;
+};
+
 function rangeQuery(range: AnalyticsRange = {}): string {
   return toQuery({ from: range.from, to: range.to });
 }
@@ -396,6 +424,9 @@ export const analyticsApi = {
   // --- Reports
   reports: (range: AnalyticsRange = {}) =>
     internalRequest<ReportsAnalyticsSummary>(`/analytics/reports${rangeQuery(range)}`),
+
+  // --- Cities (real profiles.city/neighborhood grouping, no cities table)
+  cities: () => internalRequest<CitySummary[]>(`/analytics/cities`),
 };
 
 // ---------------------------------------------------------------------------
@@ -679,6 +710,57 @@ export const reportsApi = {
 };
 
 // ---------------------------------------------------------------------------
+// Audit log (admin) — real `staff_audit_log` trail (SCR-004), written by
+// users/listings/reports/categories mutations.
+// ---------------------------------------------------------------------------
+
+export type AuditTargetType = "user" | "listing" | "report" | "category";
+
+export type AuditLogEntry = {
+  id: string;
+  at: string;
+  actorId: string;
+  actorLabel: string;
+  action: string;
+  targetType: AuditTargetType;
+  targetId: string;
+  reason: string | null;
+};
+
+export type AuditFilters = {
+  targetType?: AuditTargetType;
+  page?: number;
+  size?: number;
+};
+
+export const auditApi = {
+  list: (filters: AuditFilters = {}) =>
+    internalRequest<PageResponse<AuditLogEntry>>(`/audit${toQuery(filters)}`),
+};
+
+// ---------------------------------------------------------------------------
+// Messages (admin) — per-user conversation list over `threads` (SCR-003).
+// ---------------------------------------------------------------------------
+
+export type AdminThread = {
+  id: string;
+  listingId: string;
+  listingTitle: string | null;
+  role: "buyer" | "seller";
+  otherPartyId: string;
+  otherPartyName: string;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  unreadCount: number;
+  createdAt: string;
+};
+
+export const messagesApi = {
+  threadsForUser: (userId: string) =>
+    internalRequest<AdminThread[]>(`/users/${userId}/threads`),
+};
+
+// ---------------------------------------------------------------------------
 // KYC (admin)
 // ---------------------------------------------------------------------------
 
@@ -785,6 +867,43 @@ export const financeApi = {
   summary: () => internalRequest<FinanceSummary>(`/finance/summary`),
   refunds: (page = 0, size = 20) =>
     ordersApi.list({ status: "REFUNDED", page, size }),
+};
+
+// ---------------------------------------------------------------------------
+// Billing (admin) — RevenueCat IAP entitlements & transactions (SCR-011 /
+// TASK-015: `app_entitlements` + `app_store_transactions`). MyStreet+ and
+// boosts are sold as digital goods via App Store/Play Billing, not Stripe.
+// The pipeline is currently inert (RevenueCat webhook unconfigured until
+// launch) so these numbers are real but will read zero until purchases flow.
+// ---------------------------------------------------------------------------
+
+export type EntitlementSummary = {
+  /** `plus` | `custom_radius` | `boost` — see docs/setup/revenuecat-iap.md */
+  key: string;
+  activeCount: number;
+};
+
+export type IapTransaction = {
+  id: string;
+  userId: string | null;
+  productId: string | null;
+  entitlementKey: string | null;
+  eventType: string | null;
+  priceCents: number | null;
+  currency: string | null;
+  platform: string;
+  purchasedAt: string | null;
+};
+
+export type BillingSummary = {
+  entitlements: EntitlementSummary[];
+  revenueCentsLast30Days: number;
+  transactionsLast30Days: number;
+  recent: IapTransaction[];
+};
+
+export const billingApi = {
+  summary: () => internalRequest<BillingSummary>(`/billing/summary`),
 };
 
 // ---------------------------------------------------------------------------

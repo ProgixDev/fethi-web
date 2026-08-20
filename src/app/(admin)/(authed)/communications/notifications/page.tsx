@@ -9,13 +9,12 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
+import { formatDateTime } from "@/lib/utils/format";
 
-const recent = [
-  { name: "Bienvenue mai 2026", channel: "Email", status: "sent", sent: 312, opened: 184, clicked: 48 },
-  { name: "Boost Pro — relance", channel: "Push + Email", status: "sent", sent: 1842, opened: 942, clicked: 217 },
-  { name: "Nouveaux quartiers", channel: "Push", status: "scheduled", sent: 0, opened: 0, clicked: 0 },
-  { name: "Été à Lille", channel: "Email", status: "draft", sent: 0, opened: 0, clicked: 0 },
-  { name: "Rappel KYC", channel: "Email", status: "sent", sent: 96, opened: 71, clicked: 22 },
+const exampleCampaigns = [
+  { name: "Bienvenue mai 2026", channel: "Email", status: "sent" as const, at: "2026-04-30T09:00:00Z" },
+  { name: "Nouveaux quartiers", channel: "Push", status: "scheduled" as const, at: "2026-05-12T07:00:00Z" },
 ];
 
 const statusTone: Record<string, "success" | "info" | "neutral"> = {
@@ -44,11 +43,20 @@ export default function CommunicationsNotificationsPage() {
           { label: "Notifications" },
         ]}
         title="Composer une notification"
-        description="Push, e-mail ou in-app — selon ton segment cible."
+        description="Aucun moteur de campagnes/segments connecté pour l'instant."
       />
 
+      <NotConnectedNotice>
+        <p className="font-medium">Composeur non connecté à un backend.</p>
+        <p className="mt-0.5 text-n-600">
+          Il n&apos;existe pas de table de campagnes/segments côté admin. Les notifications réelles
+          sont déclenchées par des évènements applicatifs (message, offre, commande…) via la
+          fonction <code>notifications-dispatch</code>, pas par une composition manuelle ici.
+        </p>
+      </NotConnectedNotice>
+
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-        <section className="rounded-lg border border-n-100 bg-surface p-5 space-y-4">
+        <fieldset disabled className="rounded-lg border border-n-100 bg-surface p-5 space-y-4">
           <p className="text-h3 font-medium text-ink">Configuration</p>
           <Field label="Segment">
             <Select defaultValue="all">
@@ -57,7 +65,6 @@ export default function CommunicationsNotificationsPage() {
               <option>Acheteurs actifs</option>
               <option>Inactifs 30 j+</option>
               <option>KYC en attente</option>
-              <option>Vieux-Lille uniquement</option>
             </Select>
           </Field>
           <Field label="Canal">
@@ -74,18 +81,11 @@ export default function CommunicationsNotificationsPage() {
           <Field label="Message">
             <Textarea rows={5} value={body} onChange={(e) => setBody(e.target.value)} />
           </Field>
-          <Field label="Programmation">
-            <Select defaultValue="now">
-              <option value="now">Envoyer maintenant</option>
-              <option>Programmer pour plus tard</option>
-              <option>Brouillon</option>
-            </Select>
-          </Field>
           <div className="flex items-center gap-2 pt-2">
-            <Button variant="primary">Envoyer</Button>
-            <Button variant="outline">Sauvegarder le brouillon</Button>
+            <Button variant="primary" disabled>Envoyer</Button>
+            <Button variant="outline" disabled>Sauvegarder le brouillon</Button>
           </div>
-        </section>
+        </fieldset>
 
         <section className="rounded-lg border border-n-100 bg-paper p-5 space-y-5">
           <p className="text-label uppercase tracking-wide text-n-500">Aperçu</p>
@@ -123,7 +123,7 @@ export default function CommunicationsNotificationsPage() {
         <header className="flex items-center justify-between border-b border-n-100 px-5 py-4">
           <div>
             <p className="text-h3 font-medium text-ink">Envois récents</p>
-            <p className="text-body-sm text-n-500">Performance des dernières campagnes</p>
+            <p className="text-body-sm text-n-500">Exemples illustratifs — pas de données réelles</p>
           </div>
           <Bell className="h-4 w-4 text-n-400" />
         </header>
@@ -134,20 +134,16 @@ export default function CommunicationsNotificationsPage() {
                 <th className="px-5 py-3 text-label font-medium text-n-500">Campagne</th>
                 <th className="px-5 py-3 text-label font-medium text-n-500">Canal</th>
                 <th className="px-5 py-3 text-label font-medium text-n-500">Statut</th>
-                <th className="px-5 py-3 text-label font-medium text-n-500">Envoyés</th>
-                <th className="px-5 py-3 text-label font-medium text-n-500">Ouverts</th>
-                <th className="px-5 py-3 text-label font-medium text-n-500">Clics</th>
+                <th className="px-5 py-3 text-label font-medium text-n-500">Quand</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-n-100">
-              {recent.map((r) => (
+              {exampleCampaigns.map((r) => (
                 <tr key={r.name} className="hover:bg-n-50">
                   <td className="px-5 py-3 text-ink">{r.name}</td>
                   <td className="px-5 py-3 text-n-700">{r.channel}</td>
                   <td className="px-5 py-3"><Pill tone={statusTone[r.status]} dot>{statusLabel[r.status]}</Pill></td>
-                  <td className="px-5 py-3 tabular text-n-700">{r.sent}</td>
-                  <td className="px-5 py-3 tabular text-n-700">{r.opened}</td>
-                  <td className="px-5 py-3 tabular text-n-700">{r.clicked}</td>
+                  <td className="px-5 py-3 text-n-500">{formatDateTime(r.at)}</td>
                 </tr>
               ))}
             </tbody>

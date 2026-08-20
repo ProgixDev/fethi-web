@@ -21,6 +21,7 @@
 import type { Database } from '@/lib/database.types';
 import type {
   AnalyticsRange,
+  CitySummary,
   DistItem,
   EngagementSummary,
   GeoSummary,
@@ -380,6 +381,39 @@ export class AnalyticsRepository extends BaseRepository {
       .map(([label, count]) => ({ label, count }))
       .sort((a, b) => b.count - a.count);
     return { usersByNeighborhood, listingsByNeighborhood };
+  }
+
+  // -------------------------------------------------------------------------
+  // CITIES
+  // -------------------------------------------------------------------------
+
+  /**
+   * Cities MyStreet actually has signups in, grouped from real
+   * `profiles.city` / `profiles.neighborhood` values — there is no `cities`
+   * table. Any city not represented in `profiles` (roadmap/expansion cities)
+   * simply doesn't appear here; the page renders those as a separate static
+   * roadmap, not live data.
+   */
+  async citiesSummary(): Promise<CitySummary[]> {
+    const { data, error } = await this.db
+      .from('profiles')
+      .select('city, neighborhood')
+      .not('city', 'is', null);
+    if (error) throw new Error(`analytics.citiesSummary failed: ${error.message}`);
+
+    const byCity = new Map<string, { users: number; neighborhoods: Set<string> }>();
+    for (const r of data ?? []) {
+      const city = r.city;
+      if (!city) continue;
+      const entry = byCity.get(city) ?? { users: 0, neighborhoods: new Set<string>() };
+      entry.users += 1;
+      if (r.neighborhood) entry.neighborhoods.add(r.neighborhood);
+      byCity.set(city, entry);
+    }
+
+    return [...byCity.entries()]
+      .map(([name, v]) => ({ name, neighborhoods: v.neighborhoods.size, users: v.users }))
+      .sort((a, b) => b.users - a.users);
   }
 
   // -------------------------------------------------------------------------

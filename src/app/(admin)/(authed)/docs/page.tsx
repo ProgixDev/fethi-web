@@ -8,15 +8,12 @@ import {
   Tag,
   Settings,
   Megaphone,
-  KeyRound,
-  Activity,
   ExternalLink,
   Mail,
-  MessageSquare,
 } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Pill } from "@/components/ui/Pill";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 
 export const metadata = { title: "Aide & docs admin" };
 
@@ -149,11 +146,14 @@ export default function AdminDocsPage() {
         description="Tout ce qu’il faut savoir pour gérer la marketplace MyStreet au quotidien — playbooks, raccourcis, contacts."
       />
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <Tile icon={Activity} label="Statut système" value="Tout vert" tone="success" hint="API · Stripe · Sumsub · SendGrid" />
-        <Tile icon={KeyRound} label="Version admin" value="v0.4.1" tone="info" hint="Dernier déploiement il y a 3 h" />
-        <Tile icon={MessageSquare} label="Slack interne" value="#mystreet-ops" tone="primary" hint="Canal d’escalade ops 24/7" />
-      </div>
+      <NotConnectedNotice>
+        <p className="font-medium">Pas de supervision système en direct dans cet admin.</p>
+        <p className="mt-0.5 text-n-600">
+          Il n&apos;existe pas de monitoring d&apos;infrastructure (statut API/Stripe/Sumsub,
+          version déployée) branché ici. Pour l&apos;état des services tiers, consultez leurs
+          tableaux de bord respectifs.
+        </p>
+      </NotConnectedNotice>
 
       <section>
         <h2 className="text-h2 font-medium tracking-tight text-ink">Playbooks essentiels</h2>
@@ -237,38 +237,6 @@ export default function AdminDocsPage() {
         </div>
       </section>
     </div>
-  );
-}
-
-function Tile({
-  icon: Icon,
-  label,
-  value,
-  tone,
-  hint,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  tone: React.ComponentProps<typeof Pill>["tone"];
-  hint: string;
-}) {
-  return (
-    <Card>
-      <CardBody>
-        <div className="flex items-center justify-between">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-paper text-n-700">
-            <Icon className="h-4 w-4" />
-          </span>
-          <Pill tone={tone} dot>
-            OK
-          </Pill>
-        </div>
-        <p className="mt-4 text-label text-n-500">{label}</p>
-        <p className="text-h3 font-medium text-ink">{value}</p>
-        <p className="mt-1 text-caption text-n-500">{hint}</p>
-      </CardBody>
-    </Card>
   );
 }
 

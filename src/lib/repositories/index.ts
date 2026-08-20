@@ -16,9 +16,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import type { DbClient } from './base';
 import { AnalyticsRepository } from './analytics';
 import { AuditRepository } from './audit';
+import { BillingRepository } from './billing';
 import { CategoriesRepository } from './categories';
 import { KycRepository } from './kyc';
 import { ListingsRepository } from './listings';
+import { MessagesRepository } from './messages';
 import { OrdersRepository } from './orders';
 import { ReportsRepository } from './reports';
 import { UsersRepository } from './users';
@@ -33,6 +35,8 @@ export function createRepositories(db: DbClient) {
     kyc: new KycRepository(db),
     orders: new OrdersRepository(db),
     categories: new CategoriesRepository(db),
+    messages: new MessagesRepository(db),
+    billing: new BillingRepository(db),
   } as const;
 }
 
@@ -49,9 +53,11 @@ export type Repositories = ReturnType<typeof createRepositories>;
 export { BaseRepository } from './base';
 export { AnalyticsRepository } from './analytics';
 export { AuditRepository } from './audit';
+export { BillingRepository } from './billing';
 export { CategoriesRepository } from './categories';
 export { KycRepository } from './kyc';
 export { ListingsRepository } from './listings';
+export { MessagesRepository } from './messages';
 export { OrdersRepository } from './orders';
 export { ReportsRepository } from './reports';
 export { UsersRepository } from './users';
