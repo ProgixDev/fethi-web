@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { Banknote } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
-import { Pill } from "@/components/ui/Pill";
 import { Card, CardBody } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ordersApi, type AdminOrder } from "@/lib/api";

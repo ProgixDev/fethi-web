@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, useRouter, notFound } from "next/navigation";
+import { useParams, notFound } from "next/navigation";
 import { Eye, Heart } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -52,7 +52,6 @@ function formatPrice(l: Listing) {
 
 export default function ListingDetailAdminPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const id = params.id;
   const [listing, setListing] = React.useState<Listing | null>(null);
   const [seller, setSeller] = React.useState<PublicProfile | null>(null);

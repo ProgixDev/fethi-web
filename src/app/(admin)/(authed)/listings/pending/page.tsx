@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
-import { Pill } from "@/components/ui/Pill";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { listingsApi, type Listing } from "@/lib/api";
 import { formatDate } from "@/lib/utils/format";

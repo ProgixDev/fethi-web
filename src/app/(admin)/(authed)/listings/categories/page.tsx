@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Tags } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Pill } from "@/components/ui/Pill";

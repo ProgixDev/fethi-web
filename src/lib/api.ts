@@ -23,7 +23,11 @@ export class ApiError extends Error {
 }
 
 async function throwApiError(res: Response): Promise<never> {
-  let body: any = {};
+  let body: {
+    code?: string;
+    message?: string;
+    fieldErrors?: { field: string; message: string }[];
+  } = {};
   try {
     body = await res.json();
   } catch {

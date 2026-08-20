@@ -99,9 +99,9 @@ export default function BuyersPage() {
                 <span className="font-serif italic text-primary">dans le quartier.</span>
               </h2>
             </div>
-            <a href="/#waitlist" className="hidden text-body font-medium text-n-700 hover:text-primary sm:inline">
+            <Link href="/#waitlist" className="hidden text-body font-medium text-n-700 hover:text-primary sm:inline">
               S&apos;inscrire pour voir tout →
-            </a>
+            </Link>
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((l) => (

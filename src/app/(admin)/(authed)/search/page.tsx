@@ -2,22 +2,23 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search as SearchIcon, Tag, Users, ShoppingBag } from "lucide-react";
+import { Search as SearchIcon, Tag, Users } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { Input } from "@/components/ui/Input";
 import { Card, CardBody } from "@/components/ui/Card";
-import { listingsApi, usersApi, ordersApi, type Listing, type AdminUserListItem, type AdminOrder } from "@/lib/api";
+import { listingsApi, usersApi, type Listing, type AdminUserListItem } from "@/lib/api";
 
 export default function GlobalSearchPage() {
   const [q, setQ] = React.useState("");
   const [listings, setListings] = React.useState<Listing[]>([]);
   const [users, setUsers] = React.useState<AdminUserListItem[]>([]);
-  const [orders, setOrders] = React.useState<AdminOrder[]>([]);
   const [loading, setLoading] = React.useState(false);
 
+  // Pas de recherche orders en V1 — seules les annonces et les utilisateurs
+  // sont indexés ici.
   React.useEffect(() => {
     if (!q.trim() || q.trim().length < 2) {
-      setListings([]); setUsers([]); setOrders([]);
+      setListings([]); setUsers([]);
       return;
     }
     let alive = true;
@@ -30,7 +31,6 @@ export default function GlobalSearchPage() {
         if (!alive) return;
         setListings(l?.content ?? []);
         setUsers(u?.content ?? []);
-        setOrders([]); // pas de recherche orders en V1
         setLoading(false);
       });
     }, 300);

@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   FileText,
   MessageSquare,
-  ShieldAlert,
   User as UserIcon,
   XCircle,
 } from "lucide-react";

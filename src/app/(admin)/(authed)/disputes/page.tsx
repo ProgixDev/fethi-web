@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { ColumnDef } from "@tanstack/react-table";
-import { Scale } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { DataTable } from "@/components/admin/tables/DataTable";
 import { Pill } from "@/components/ui/Pill";
