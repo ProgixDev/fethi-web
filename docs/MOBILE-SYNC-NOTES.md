@@ -8,6 +8,30 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-22 · SCR-020 · Didit webhook support — unblocks mobile issue #28 (webhook half)
+
+- **What:** New Edge Function `didit-webhook` (signature-verified — X-Signature-V2
+  canonical JSON HMAC, raw-bytes X-Signature fallback, X-Signature-Simple last
+  resort; constant-time comparisons throughout). Maps Didit's session status
+  onto the existing `profiles.kyc_status` 4-value enum (no enum widening — see
+  SCR-020's Why). New `profiles.kyc_session_id`/`kyc_decision` columns
+  (nullable, additive) for staff review depth. New `didit_webhook_events` log
+  table — every delivery attempt gets a row (verified or not), idempotency is
+  a read-before-write check, not a DB constraint (Didit's own retry policy
+  redelivers the same event_id up to twice). Deployed
+  (`--use-api --no-verify-jwt`); smoke-tested, returns `503
+  didit_unconfigured` correctly (the real per-destination `DIDIT_WEBHOOK_SECRET`
+  isn't set yet — pending the webhook destination being created in Didit's
+  Business Console with this function's URL).
+- **Mobile must:** nothing schema-side yet. The mobile `kyc-status` Edge
+  Function (already deployed) reads `profiles.kyc_status`, which this webhook
+  now keeps current once the real secret is configured — no mobile code
+  change needed for that to take effect. Session creation
+  (`POST /v3/session/`) and the mobile-facing verification-status screens are
+  separate, not-yet-built pieces of issue #28.
+- **Not shipped by this SCR:** the real `DIDIT_WEBHOOK_SECRET`, session
+  creation, and any mobile UI. Only the receiver half of #28.
+
 ## 2026-08-21 · SCR-019 · New table `seller_fee_receivables` — unblocks mobile issue #36
 
 - **What:** New table `public.seller_fee_receivables` (`seller_id`, `order_id`

@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 101976524fe9
+ * schema-version: c96ca614f911
  */
 
 export type Json =
@@ -329,6 +329,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      didit_webhook_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_id: string | null
+          id: string
+          processed: boolean
+          raw_body: string
+          session_id: string | null
+          signature_method: string | null
+          signature_valid: boolean
+          status: string | null
+          webhook_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          id?: string
+          processed?: boolean
+          raw_body: string
+          session_id?: string | null
+          signature_method?: string | null
+          signature_valid: boolean
+          status?: string | null
+          webhook_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          id?: string
+          processed?: boolean
+          raw_body?: string
+          session_id?: string | null
+          signature_method?: string | null
+          signature_valid?: boolean
+          status?: string | null
+          webhook_type?: string | null
+        }
+        Relationships: []
       }
       favorites: {
         Row: {
@@ -1118,6 +1160,8 @@ export type Database = {
           display_name: string | null
           gmv_cents: number
           id: string
+          kyc_decision: Json | null
+          kyc_session_id: string | null
           kyc_status: Database["public"]["Enums"]["kyc_status"]
           kyc_tier: number
           lat: number | null
@@ -1143,6 +1187,8 @@ export type Database = {
           display_name?: string | null
           gmv_cents?: number
           id: string
+          kyc_decision?: Json | null
+          kyc_session_id?: string | null
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           kyc_tier?: number
           lat?: number | null
@@ -1168,6 +1214,8 @@ export type Database = {
           display_name?: string | null
           gmv_cents?: number
           id?: string
+          kyc_decision?: Json | null
+          kyc_session_id?: string | null
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           kyc_tier?: number
           lat?: number | null
