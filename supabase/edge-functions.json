@@ -14,6 +14,7 @@
     "stripe-webhook",
     "notifications-dispatch",
     "revenuecat-webhook",
-    "listing-category-suggest"
+    "listing-category-suggest",
+    "didit-webhook"
   ]
 }
