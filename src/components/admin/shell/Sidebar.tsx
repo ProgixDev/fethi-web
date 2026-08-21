@@ -67,7 +67,7 @@ const sections: NavSection[] = [
           { href: "/listings", label: "Toutes les annonces" },
           { href: "/listings/moderation", label: "Modération" },
           { href: "/listings/grid", label: "Vue grille" },
-          { href: "/listings/pending", label: "En attente", badge: 2 },
+          { href: "/listings/pending", label: "En attente" },
           { href: "/listings/featured", label: "À la une" },
           { href: "/listings/categories", label: "Catégories" },
         ],
@@ -76,7 +76,6 @@ const sections: NavSection[] = [
         key: "moderation",
         label: "Modération",
         icon: ShieldAlert,
-        badge: 7,
         base: "/moderation",
         children: [
           { href: "/moderation", label: "Signalements" },
@@ -87,7 +86,7 @@ const sections: NavSection[] = [
         ],
       },
       { href: "/orders", label: "Commandes", icon: ShoppingBag },
-      { href: "/disputes", label: "Litiges", icon: Scale, badge: 3 },
+      { href: "/disputes", label: "Litiges", icon: Scale },
     ],
   },
   {
@@ -111,10 +110,9 @@ const sections: NavSection[] = [
         key: "kyc",
         label: "KYC",
         icon: IdCard,
-        badge: 12,
         base: "/kyc",
         children: [
-          { href: "/kyc", label: "File d’attente", badge: 12 },
+          { href: "/kyc", label: "File d’attente" },
           { href: "/kyc/verified", label: "Vérifiés" },
           { href: "/kyc/appeals", label: "Recours" },
         ],
@@ -202,11 +200,18 @@ function canSee(href: string, roles: StaffRole[]): boolean {
   return gate ? hasRole(roles, ...gate.roles) : true;
 }
 
-export function AdminSidebar({ roles }: { roles: StaffRole[] }) {
+export function AdminSidebar({
+  roles,
+  email,
+}: {
+  roles: StaffRole[];
+  email: string | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState<boolean>(false);
   const [loggingOut, setLoggingOut] = React.useState(false);
+  const staffInitials = (email ?? "??").slice(0, 2).toUpperCase();
 
   const visibleSections = React.useMemo(
     () =>
@@ -339,7 +344,7 @@ export function AdminSidebar({ roles }: { roles: StaffRole[] }) {
               title="Profil"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent text-caption font-semibold hover:opacity-90"
             >
-              FA
+              {staffInitials}
             </Link>
             <button
               type="button"
@@ -359,11 +364,11 @@ export function AdminSidebar({ roles }: { roles: StaffRole[] }) {
               className="flex flex-1 min-w-0 items-center gap-2.5"
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent text-caption font-semibold">
-                FA
+                {staffInitials}
               </span>
               <span className="flex-1 min-w-0">
                 <span className="block truncate text-body-sm font-medium text-ink">
-                  Admin MyStreet
+                  {email ?? "Espace équipe"}
                 </span>
                 <span className="block truncate text-caption text-n-500">
                   Espace équipe

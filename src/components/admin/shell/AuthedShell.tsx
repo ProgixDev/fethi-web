@@ -15,15 +15,17 @@ import type { StaffRole } from '@/lib/staff-roles';
  */
 export function AuthedShell({
   roles,
+  email,
   children,
 }: {
   roles: StaffRole[];
+  email: string | null;
   children: React.ReactNode;
 }) {
   return (
     <CommandPaletteProvider>
       <div className="flex min-h-screen">
-        <AdminSidebar roles={roles} />
+        <AdminSidebar roles={roles} email={email} />
         <div className="flex min-w-0 flex-1 flex-col">
           <AdminTopBar />
           <main className="flex-1">{children}</main>

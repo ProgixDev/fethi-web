@@ -13,5 +13,9 @@ export default async function AdminAuthedLayout({
   children: React.ReactNode;
 }) {
   const staff = await requireStaff();
-  return <AuthedShell roles={staff.roles}>{children}</AuthedShell>;
+  return (
+    <AuthedShell roles={staff.roles} email={staff.email}>
+      {children}
+    </AuthedShell>
+  );
 }
