@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: b0e7321211ba
+ * schema-version: 101976524fe9
  */
 
 export type Json =
@@ -1410,6 +1410,67 @@ export type Database = {
           },
         ]
       }
+      seller_fee_receivables: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          order_id: string
+          reason: string
+          seller_id: string
+          settled_at: string | null
+          settled_via: string | null
+          status: Database["public"]["Enums"]["fee_receivable_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          order_id: string
+          reason: string
+          seller_id: string
+          settled_at?: string | null
+          settled_via?: string | null
+          status?: Database["public"]["Enums"]["fee_receivable_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          order_id?: string
+          reason?: string
+          seller_id?: string
+          settled_at?: string | null
+          settled_via?: string | null
+          status?: Database["public"]["Enums"]["fee_receivable_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_fee_receivables_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_fee_receivables_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_fee_receivables_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null
@@ -2713,6 +2774,7 @@ export type Database = {
       }
     }
     Enums: {
+      fee_receivable_status: "OUTSTANDING" | "SETTLED" | "WAIVED"
       kyc_status: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
       listing_condition: "new" | "likenew" | "good" | "fair"
       listing_status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD" | "ARCHIVED"
@@ -2893,6 +2955,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      fee_receivable_status: ["OUTSTANDING", "SETTLED", "WAIVED"],
       kyc_status: ["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"],
       listing_condition: ["new", "likenew", "good", "fair"],
       listing_status: ["DRAFT", "ACTIVE", "PAUSED", "SOLD", "ARCHIVED"],

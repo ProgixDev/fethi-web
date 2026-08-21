@@ -8,6 +8,28 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-21 · SCR-019 · New table `seller_fee_receivables` — unblocks mobile issue #36
+
+- **What:** New table `public.seller_fee_receivables` (`seller_id`, `order_id`
+  unique, `reason` text, `amount_cents`, `status` enum
+  `OUTSTANDING`/`SETTLED`/`WAIVED`, `settled_at`, `settled_via`), RLS: a
+  seller can `select` their own rows (any status), no client
+  insert/update/delete — service-role only. `orders-create` (redeployed in
+  this same change) now writes one row per no-card handoff order (issue
+  #36), recording the #30 platform fee as owed instead of collecting it —
+  there's no Stripe capture on a handoff sale to deduct it from. See
+  `docs/adr/0003-defer-handoff-fee-to-seller-receivable.md` for the business
+  rationale and `docs/db/decisions/SCR-019.md` for the full design.
+- **Mobile must:** nothing to build for issue #36 itself — the write path is
+  entirely server-side (`orders-create`'s `paymentMethod: 'handoff'` branch).
+  No mobile UI reads this table yet; a future "pending platform fees" seller
+  view is plausible but not required by #36's acceptance criteria.
+- **Not shipped by this SCR:** settlement (deducting `OUTSTANDING` rows from
+  a seller's real Stripe Connect payout) is issue #35's work. Rows will
+  accumulate as `OUTSTANDING` with nothing consuming them until #35 ships —
+  intentional, not a bug; flagged loudly in ADR-0003 and SCR-019 so it isn't
+  mistaken for the fee actually being collected.
+
 ## 2026-08-20 · SCR-018 · New table `rate_limit_hits` — unblocks mobile issue #25
 
 - **What:** New generic table `public.rate_limit_hits` (`user_id`, `scope`,

@@ -1,6 +1,6 @@
 // orders-create — create an order from an accepted offer or a direct buy.
 //
-// POST { listingId, offerId?, rentalStart?, rentalEnd?, serviceHours? }
+// POST { listingId, offerId?, rentalStart?, rentalEnd?, serviceHours?, paymentMethod? }
 //   (mobile ordersApi.create)
 // Auth: user JWT (the buyer).
 //
@@ -21,6 +21,26 @@
 //
 // Order is created as SERVICE ROLE (orders has no client write policy). The
 // initial status is AWAITING_PICKUP and an order_events row records the creation.
+//
+// paymentMethod: 'card' (default) | 'handoff' — issue #36. A handoff order is
+// never charged (mobile skips payments-create-intent entirely: payment_intent_id/
+// payment_status stay null, which orders-transition already treats as the
+// non-Stripe/cash case — see its WEB-017 comment). It does NOT get a different
+// initial status: HANDOFF_PENDING is confirm_order_pickup's own mid-confirm
+// state (one party confirmed, waiting on the other), not a payment-method flag,
+// so both paths start at AWAITING_PICKUP.
+// Since no money moves through the platform for a handoff, order.amount_cents
+// is the raw listing price and order.fee_cents is 0 (nothing is collected at
+// order time) — this intentionally does not touch the existing (unreconciled,
+// see fees.ts) card-path fee math. The #30 fee itself is NOT waived: it's
+// recorded as a seller_fee_receivables row (SCR-019 / ADR-0003) to be
+// deducted from that seller's first real Stripe Connect payout once #35
+// ships — see recordHandoffFeeReceivable below. Restricted to VENTE listings,
+// matching #30's shipped scope.
+// A handoff order also opens (or reuses) the buyer/seller thread for this
+// listing and posts one automatic SYSTEM message, verbatim text from #36. This
+// runs inside the same idempotent call as the order insert, so a retried
+// request replays the cached response and never double-posts the message.
 import { corsHeaders, json } from '../_shared/cors.ts';
 import {
   HttpError,
@@ -34,6 +54,11 @@ import {
 // charge a different amount than the user saw.
 const FEE_RATE = 0.05;
 const SALE_MIN_FEE_CENTS = 95;
+
+// Matches mobile `SELLER_PROTECTION_FEE_RATE` (src/shared/lib/fees.ts) — the
+// #30 seller-side fee, deferred to a receivable for handoff orders (SCR-019 /
+// ADR-0003) since no Stripe capture exists to deduct it from at order time.
+const HANDOFF_RECEIVABLE_FEE_RATE = 0.05;
 
 type ListingPricing = {
   listing_type: string;
@@ -110,6 +135,7 @@ Deno.serve(async (req: Request) => {
     const rentalEnd: string | null = body.rentalEnd ?? null;
     const serviceHours: number | null =
       typeof body.serviceHours === 'number' ? body.serviceHours : null;
+    const paymentMethod: 'card' | 'handoff' = body.paymentMethod === 'handoff' ? 'handoff' : 'card';
     if (!listingId) throw new HttpError(400, 'listingId required');
 
     const idem = await idempotentReplay(svc, 'orders.create', idemKey);
@@ -127,6 +153,9 @@ Deno.serve(async (req: Request) => {
     if (lErr) throw new HttpError(500, lErr.message);
     if (!listing) throw new HttpError(404, 'listing_not_found');
     if (listing.owner_id === user.id) throw new HttpError(409, 'cannot_buy_own_listing');
+    if (paymentMethod === 'handoff' && listing.listing_type !== 'VENTE') {
+      throw new HttpError(400, 'handoff_unsupported_for_listing_type');
+    }
 
     let pricing: Pricing;
     let resolvedOfferId: string | null = null;
@@ -152,6 +181,16 @@ Deno.serve(async (req: Request) => {
         rentalEnd: null,
       };
       resolvedOfferId = offer.id;
+    } else if (paymentMethod === 'handoff') {
+      // No-card handoff (#36): no payment moves through the platform, so no
+      // service/protection fee applies — just the raw listing price.
+      pricing = {
+        amountCents: listing.price_cents ?? 0,
+        feeCents: 0,
+        depositCents: 0,
+        rentalStart: null,
+        rentalEnd: null,
+      };
     } else {
       // Direct buy: recompute from listing pricing + params (never from client).
       pricing = computePricing(listing as ListingPricing, {
@@ -198,14 +237,34 @@ Deno.serve(async (req: Request) => {
       actor_id: user.id,
       from_status: null,
       to_status: 'AWAITING_PICKUP',
-      note: resolvedOfferId ? 'created_from_offer' : 'created_direct',
+      note: resolvedOfferId
+        ? 'created_from_offer'
+        : paymentMethod === 'handoff'
+          ? 'created_handoff_direct'
+          : 'created_direct',
     });
 
     if (resolvedOfferId) {
       await svc.from('offers').update({ order_id: order.id }).eq('id', resolvedOfferId);
     }
 
-    const response = toOrder(order);
+    let threadId: string | null = null;
+    if (paymentMethod === 'handoff') {
+      threadId = await ensureHandoffThread(svc, {
+        listingId,
+        buyerId: user.id,
+        sellerId: listing.owner_id as string,
+      });
+      await recordHandoffFeeReceivable(svc, {
+        orderId: order.id as string,
+        sellerId: listing.owner_id as string,
+        // The actual sale amount — listing price for a direct handoff, the
+        // agreed offer amount if this handoff settles an accepted offer.
+        itemCents: pricing.amountCents,
+      });
+    }
+
+    const response = { ...toOrder(order), threadId };
     await idem.commit(response);
     return json(response, 201);
   } catch (err) {
@@ -213,6 +272,81 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'internal_error' }, 500);
   }
 });
+
+// Verbatim French copy required by issue #36 — must match exactly.
+const HANDOFF_SYSTEM_MESSAGE =
+  'La vente a été conclue entre vous. Vous pouvez convenir ici de l’heure ' +
+  'et du lieu exacts de la rencontre.';
+
+// Opens (or reuses) the buyer/seller thread for this listing and posts the
+// automatic handoff system message. Mirrors mobile `threadsApi.open`'s
+// find-or-create, run here under service role so it lands atomically with the
+// order + inside the same idempotent call (a retried request replays the
+// cached response and never re-runs this). No dedicated "system" profile
+// exists yet, so `sender_id` is set to the buyer (the actor confirming the
+// handoff) — mobile renders SYSTEM-kind messages the same regardless of sender.
+async function ensureHandoffThread(
+  svc: ReturnType<typeof serviceClient>,
+  { listingId, buyerId, sellerId }: { listingId: string; buyerId: string; sellerId: string },
+): Promise<string> {
+  const { data: existing } = await svc
+    .from('threads')
+    .select('id')
+    .eq('listing_id', listingId)
+    .eq('buyer_id', buyerId)
+    .maybeSingle<{ id: string }>();
+
+  let threadId = existing?.id ?? null;
+  if (!threadId) {
+    const { data: inserted, error } = await svc
+      .from('threads')
+      .insert({ listing_id: listingId, buyer_id: buyerId, seller_id: sellerId })
+      .select('id')
+      .single<{ id: string }>();
+    if (error) {
+      // Unique (listing_id, buyer_id) race: another concurrent call created it first.
+      const { data: raced } = await svc
+        .from('threads')
+        .select('id')
+        .eq('listing_id', listingId)
+        .eq('buyer_id', buyerId)
+        .maybeSingle<{ id: string }>();
+      if (!raced) throw new HttpError(500, error.message);
+      threadId = raced.id;
+    } else {
+      threadId = inserted.id;
+    }
+  }
+
+  await svc.from('messages').insert({
+    thread_id: threadId,
+    sender_id: buyerId,
+    kind: 'SYSTEM',
+    text: HANDOFF_SYSTEM_MESSAGE,
+  });
+
+  return threadId;
+}
+
+// SCR-019 / ADR-0003 — records the #30 platform fee as owed by the seller
+// instead of collecting it now (no Stripe capture exists for a handoff sale
+// to deduct it from). `seller_fee_receivables_one_per_order` (unique on
+// order_id) plus this whole call being inside `idempotentReplay` means a
+// retry never double-books the debt. Settlement (deducting this at the
+// seller's next real Connect payout) is issue #35's work, not this function's.
+async function recordHandoffFeeReceivable(
+  svc: ReturnType<typeof serviceClient>,
+  { orderId, sellerId, itemCents }: { orderId: string; sellerId: string; itemCents: number },
+): Promise<void> {
+  const feeCents = Math.round(itemCents * HANDOFF_RECEIVABLE_FEE_RATE);
+  if (feeCents <= 0) return;
+  await svc.from('seller_fee_receivables').insert({
+    seller_id: sellerId,
+    order_id: orderId,
+    reason: 'handoff_no_card',
+    amount_cents: feeCents,
+  });
+}
 
 function toOrder(o: Record<string, unknown>) {
   return {
