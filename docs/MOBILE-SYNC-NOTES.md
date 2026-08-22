@@ -8,6 +8,31 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-22 · SCR-021 · New Edge Function `didit-session-create` — issue #28 (session-creation half)
+
+- **What:** New Edge Function `didit-session-create` (`POST { callback?,
+  callbackMethod?, language? }`, user JWT, returns `{ url, sessionId,
+  status }`). Calls Didit's `POST /v3/session/` server-side with
+  `vendor_data: <profiles.id>` — the mobile app never sees `DIDIT_API_KEY`.
+  Deployed and verified live (real session created against the "Free KYC"
+  workflow, `fethi-mobile/e2e/task-028-didit-session-create.contract.mjs`,
+  7/7). Best-effort second writer of `profiles.kyc_session_id` (SCR-020) —
+  records the session id immediately on creation; `didit-webhook` remains
+  the sole writer of `kyc_status` itself.
+- **Workflow chosen:** "Free KYC" (`169e2ec5-5e4f-4f96-b5ac-fe97e5e305fc`)
+  — real ID document + liveness + face match, 500 free verifications/month
+  then $0.15. Picked over the AML-screening workflows (regulated-finance
+  concern this app doesn't have — that's Stripe Connect's own domain for
+  money movement) and over "Biometric Authentication" (no document step,
+  re-auth only). See SCR-021 for the full comparison.
+- **Mobile must:** nothing yet. **Deliberately not wired into any UI** —
+  `kyc/index.tsx`/`kyc/intro.tsx` still call Stripe Connect's
+  `connectApi.startOnboarding()`. Swapping those screens to Didit is held
+  until #28's own still-open acceptance criterion ("consent, privacy,
+  retention... approved before production activation") is settled — those
+  screens are reachable from live signup today.
+- **Not shipped:** any mobile UI change. This SCR is backend-only, by design.
+
 ## 2026-08-22 · SCR-020 · Didit webhook support — unblocks mobile issue #28 (webhook half)
 
 - **What:** New Edge Function `didit-webhook` (signature-verified — X-Signature-V2
