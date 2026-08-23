@@ -40,7 +40,7 @@
 //
 // profiles.kyc_status mapping (keeps the existing 4-value enum — see
 // SCR-020): Approved→VERIFIED, Declined→REJECTED, In Review/In
-// Progress/Resubmitted→PENDING, Not Started/Abandoned/Expired/KYC
+// Progress/Resubmitted/Awaiting User→PENDING, Not Started/Abandoned/Expired/Kyc
 // Expired→UNVERIFIED. On Approved, also persists kyc_session_id +
 // kyc_decision for staff review depth.
 //
@@ -65,29 +65,34 @@
 //     node state storage yet.
 //   - Abandoned: kyc_status → UNVERIFIED happens; the spec's "optionally
 //     trigger reminder" is not wired to any notification.
-import { corsHeaders, json } from '../_shared/cors.ts';
-import { serviceClient } from '../_shared/supabase.ts';
+import { corsHeaders, json } from "../_shared/cors.ts";
+import { serviceClient } from "../_shared/supabase.ts";
 
-const DIDIT_WEBHOOK_SECRET = Deno.env.get('DIDIT_WEBHOOK_SECRET');
+const DIDIT_WEBHOOK_SECRET = Deno.env.get("DIDIT_WEBHOOK_SECRET");
 const TIMESTAMP_TOLERANCE_SECONDS = 300;
 
-const KYC_MAP: Record<string, 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | 'REJECTED'> = {
-  Approved: 'VERIFIED',
-  Declined: 'REJECTED',
-  'In Review': 'PENDING',
-  'In Progress': 'PENDING',
-  Resubmitted: 'PENDING',
-  'Not Started': 'UNVERIFIED',
-  Abandoned: 'UNVERIFIED',
-  Expired: 'UNVERIFIED',
-  'KYC Expired': 'UNVERIFIED',
+const KYC_MAP: Record<
+  string,
+  "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
+> = {
+  Approved: "VERIFIED",
+  Declined: "REJECTED",
+  "In Review": "PENDING",
+  "In Progress": "PENDING",
+  Resubmitted: "PENDING",
+  "Awaiting User": "PENDING",
+  "Not Started": "UNVERIFIED",
+  Abandoned: "UNVERIFIED",
+  Expired: "UNVERIFIED",
+  "Kyc Expired": "UNVERIFIED",
+  "KYC Expired": "UNVERIFIED",
 };
 
 const IDENTITY_WEBHOOK_TYPES = new Set([
-  'status.updated',
-  'data.updated',
-  'user.status.updated',
-  'user.data.updated',
+  "status.updated",
+  "data.updated",
+  "user.status.updated",
+  "user.data.updated",
 ]);
 
 // --- signature verification -------------------------------------------------
@@ -95,16 +100,16 @@ const IDENTITY_WEBHOOK_TYPES = new Set([
 async function hmacSha256Hex(secret: string, message: string): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     enc.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
+    { name: "HMAC", hash: "SHA-256" },
     false,
-    ['sign'],
+    ["sign"],
   );
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
   return Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 // Constant-time hex-string comparison (Deno has no built-in timingSafeEqual).
@@ -119,7 +124,7 @@ function timingSafeEqualHex(a: string, b: string): boolean {
 // Didit's own Node.js reference implementation exactly).
 function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeysDeep);
-  if (value !== null && typeof value === 'object') {
+  if (value !== null && typeof value === "object") {
     const sorted: Record<string, unknown> = {};
     for (const key of Object.keys(value as Record<string, unknown>).sort()) {
       sorted[key] = sortKeysDeep((value as Record<string, unknown>)[key]);
@@ -129,7 +134,11 @@ function sortKeysDeep(value: unknown): unknown {
   return value;
 }
 
-async function verifyV2(rawBody: string, secret: string, header: string): Promise<boolean> {
+async function verifyV2(
+  rawBody: string,
+  secret: string,
+  header: string,
+): Promise<boolean> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawBody);
@@ -143,7 +152,11 @@ async function verifyV2(rawBody: string, secret: string, header: string): Promis
   return timingSafeEqualHex(expected, header.toLowerCase());
 }
 
-async function verifyRaw(rawBody: string, secret: string, header: string): Promise<boolean> {
+async function verifyRaw(
+  rawBody: string,
+  secret: string,
+  header: string,
+): Promise<boolean> {
   const expected = await hmacSha256Hex(secret, rawBody);
   return timingSafeEqualHex(expected, header.toLowerCase());
 }
@@ -161,7 +174,7 @@ async function verifySimple(
   return timingSafeEqualHex(expected, header.toLowerCase());
 }
 
-type VerifyResult = { valid: boolean; method: 'v2' | 'raw' | 'simple' | null };
+type VerifyResult = { valid: boolean; method: "v2" | "raw" | "simple" | null };
 
 async function verifySignature(
   req: Request,
@@ -169,23 +182,32 @@ async function verifySignature(
   secret: string,
   envelope: { session_id?: string; status?: string; webhook_type?: string },
 ): Promise<VerifyResult> {
-  const v2 = req.headers.get('X-Signature-V2');
-  if (v2 && (await verifyV2(rawBody, secret, v2))) return { valid: true, method: 'v2' };
+  const v2 = req.headers.get("X-Signature-V2");
+  if (v2 && (await verifyV2(rawBody, secret, v2)))
+    return { valid: true, method: "v2" };
 
-  const raw = req.headers.get('X-Signature');
-  if (raw && (await verifyRaw(rawBody, secret, raw))) return { valid: true, method: 'raw' };
+  const raw = req.headers.get("X-Signature");
+  if (raw && (await verifyRaw(rawBody, secret, raw)))
+    return { valid: true, method: "raw" };
 
-  const simple = req.headers.get('X-Signature-Simple');
-  const timestamp = req.headers.get('X-Timestamp');
+  const simple = req.headers.get("X-Signature-Simple");
+  const timestamp = req.headers.get("X-Timestamp");
   if (
     simple &&
     timestamp &&
     envelope.session_id &&
     envelope.status &&
     envelope.webhook_type &&
-    (await verifySimple(timestamp, envelope.session_id, envelope.status, envelope.webhook_type, secret, simple))
+    (await verifySimple(
+      timestamp,
+      envelope.session_id,
+      envelope.status,
+      envelope.webhook_type,
+      secret,
+      simple,
+    ))
   ) {
-    return { valid: true, method: 'simple' };
+    return { valid: true, method: "simple" };
   }
 
   return { valid: false, method: null };
@@ -207,22 +229,24 @@ async function logAttempt(
     error: string | null;
   },
 ): Promise<void> {
-  const { error } = await svc.from('didit_webhook_events').insert(row);
-  if (error) console.error('didit_webhook_events insert failed:', error.message);
+  const { error } = await svc.from("didit_webhook_events").insert(row);
+  if (error)
+    console.error("didit_webhook_events insert failed:", error.message);
 }
 
 // --- handler --------------------------------------------------------------
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   // Unconfigured → 503, kept OUT of the try below so it can't be masked as a
   // generic 500 (same pattern as stripe-webhook/revenuecat-webhook). The
   // destination secret doesn't exist until this function is deployed and its
   // URL is registered in the Didit console — expected to be 503 initially.
   if (!DIDIT_WEBHOOK_SECRET) {
-    return json({ error: 'didit_unconfigured' }, 503);
+    return json({ error: "didit_unconfigured" }, 503);
   }
 
   const svc = serviceClient();
@@ -232,7 +256,7 @@ Deno.serve(async (req: Request) => {
   const rawBody = await req.text();
 
   try {
-    const timestampHeader = req.headers.get('X-Timestamp');
+    const timestampHeader = req.headers.get("X-Timestamp");
     if (!timestampHeader) {
       await logAttempt(svc, {
         event_id: null,
@@ -243,13 +267,16 @@ Deno.serve(async (req: Request) => {
         signature_valid: false,
         raw_body: rawBody,
         processed: false,
-        error: 'missing_timestamp',
+        error: "missing_timestamp",
       });
-      return json({ error: 'missing_timestamp' }, 400);
+      return json({ error: "missing_timestamp" }, 400);
     }
     const timestamp = Number(timestampHeader);
     const now = Math.floor(Date.now() / 1000);
-    if (!Number.isFinite(timestamp) || Math.abs(now - timestamp) > TIMESTAMP_TOLERANCE_SECONDS) {
+    if (
+      !Number.isFinite(timestamp) ||
+      Math.abs(now - timestamp) > TIMESTAMP_TOLERANCE_SECONDS
+    ) {
       await logAttempt(svc, {
         event_id: null,
         session_id: null,
@@ -259,9 +286,9 @@ Deno.serve(async (req: Request) => {
         signature_valid: false,
         raw_body: rawBody,
         processed: false,
-        error: 'stale_timestamp',
+        error: "stale_timestamp",
       });
-      return json({ error: 'stale_timestamp' }, 400);
+      return json({ error: "stale_timestamp" }, 400);
     }
 
     // Best-effort envelope parse for the Simple-signature fallback's message
@@ -273,16 +300,24 @@ Deno.serve(async (req: Request) => {
     } catch {
       // handled below — verifyV2 will also fail to parse and report invalid.
     }
-    const eventId = typeof envelope.event_id === 'string' ? envelope.event_id : null;
-    const sessionId = typeof envelope.session_id === 'string' ? envelope.session_id : null;
-    const status = typeof envelope.status === 'string' ? envelope.status : null;
-    const webhookType = typeof envelope.webhook_type === 'string' ? envelope.webhook_type : null;
+    const eventId =
+      typeof envelope.event_id === "string" ? envelope.event_id : null;
+    const sessionId =
+      typeof envelope.session_id === "string" ? envelope.session_id : null;
+    const status = typeof envelope.status === "string" ? envelope.status : null;
+    const webhookType =
+      typeof envelope.webhook_type === "string" ? envelope.webhook_type : null;
 
-    const { valid, method } = await verifySignature(req, rawBody, DIDIT_WEBHOOK_SECRET, {
-      session_id: sessionId ?? undefined,
-      status: status ?? undefined,
-      webhook_type: webhookType ?? undefined,
-    });
+    const { valid, method } = await verifySignature(
+      req,
+      rawBody,
+      DIDIT_WEBHOOK_SECRET,
+      {
+        session_id: sessionId ?? undefined,
+        status: status ?? undefined,
+        webhook_type: webhookType ?? undefined,
+      },
+    );
 
     if (!valid) {
       await logAttempt(svc, {
@@ -294,20 +329,20 @@ Deno.serve(async (req: Request) => {
         signature_valid: false,
         raw_body: rawBody,
         processed: false,
-        error: 'invalid_signature',
+        error: "invalid_signature",
       });
-      return json({ error: 'invalid_signature' }, 401);
+      return json({ error: "invalid_signature" }, 401);
     }
 
     // Idempotency: skip reprocessing (but still log this attempt) if a prior
     // verified+processed row already exists for this event_id.
     if (eventId) {
       const { data: already } = await svc
-        .from('didit_webhook_events')
-        .select('id')
-        .eq('event_id', eventId)
-        .eq('signature_valid', true)
-        .eq('processed', true)
+        .from("didit_webhook_events")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("signature_valid", true)
+        .eq("processed", true)
         .limit(1)
         .maybeSingle();
       if (already) {
@@ -320,7 +355,7 @@ Deno.serve(async (req: Request) => {
           signature_valid: true,
           raw_body: rawBody,
           processed: false,
-          error: 'duplicate_skipped',
+          error: "duplicate_skipped",
         });
         return json({ received: true, duplicated: true }, 200);
       }
@@ -331,7 +366,7 @@ Deno.serve(async (req: Request) => {
       await processEvent(svc, envelope, { webhookType, status });
     } catch (err) {
       processError = err instanceof Error ? err.message : String(err);
-      console.error('didit-webhook processing error:', processError);
+      console.error("didit-webhook processing error:", processError);
     }
 
     await logAttempt(svc, {
@@ -354,15 +389,18 @@ Deno.serve(async (req: Request) => {
     // return non-2xx (those are never going to succeed on retry anyway).
     return json({ received: true }, 200);
   } catch (err) {
-    console.error('didit-webhook error:', err);
-    return json({ error: 'webhook_error' }, 500);
+    console.error("didit-webhook error:", err);
+    return json({ error: "webhook_error" }, 500);
   }
 });
 
 async function processEvent(
   svc: ReturnType<typeof serviceClient>,
   envelope: Record<string, unknown>,
-  { webhookType, status }: { webhookType: string | null; status: string | null },
+  {
+    webhookType,
+    status,
+  }: { webhookType: string | null; status: string | null },
 ): Promise<void> {
   if (!webhookType || !IDENTITY_WEBHOOK_TYPES.has(webhookType)) {
     // KYB/business/activity/transaction event families — this app has no
@@ -372,9 +410,11 @@ async function processEvent(
   if (!status) return;
 
   const vendorData = envelope.vendor_data;
-  const profileId = typeof vendorData === 'string' ? vendorData : null;
+  const profileId = typeof vendorData === "string" ? vendorData : null;
   if (!profileId) {
-    console.warn('didit-webhook: no resolvable vendor_data (profile id) on event, skipping');
+    console.warn(
+      "didit-webhook: no resolvable vendor_data (profile id) on event, skipping",
+    );
     return;
   }
 
@@ -386,7 +426,7 @@ async function processEvent(
 
   const patch: Record<string, unknown> = { kyc_status: kycStatus };
   const sessionId = envelope.session_id;
-  if (typeof sessionId === 'string') patch.kyc_session_id = sessionId;
+  if (typeof sessionId === "string") patch.kyc_session_id = sessionId;
   // decision is present on Approved/Declined/In Review/Abandoned per Didit's
   // spec — persist whenever present, not just on Approved, so a Declined
   // decision's warnings are available for staff review too.
@@ -394,6 +434,9 @@ async function processEvent(
     patch.kyc_decision = envelope.decision;
   }
 
-  const { error } = await svc.from('profiles').update(patch).eq('id', profileId);
+  const { error } = await svc
+    .from("profiles")
+    .update(patch)
+    .eq("id", profileId);
   if (error) throw new Error(`profiles update failed: ${error.message}`);
 }

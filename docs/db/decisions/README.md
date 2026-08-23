@@ -22,5 +22,6 @@ written. This is the coordination gate between `fethi-web` (DB owner) and
 | SCR-019 | `seller_fee_receivables` (deferred handoff-sale platform fee) | Accepted | fethi-mobile issue #36 |
 | SCR-020 | Didit webhook support (`didit_webhook_events` + `profiles.kyc_session_id`/`kyc_decision`) | Accepted | fethi-mobile issue #28 |
 | SCR-021 | `didit-session-create` Edge Function contract | Accepted | fethi-mobile issue #28 |
+| SCR-022 | Separate Didit identity status from Stripe payout readiness | Accepted | fethi-mobile issue #28 |
 
 > Keep this index current — one row per SCR.

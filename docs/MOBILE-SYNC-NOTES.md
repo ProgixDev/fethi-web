@@ -8,11 +8,30 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-23 · SCR-022 · Didit mobile activation and detailed status — issue #28
+
+- **Contracts:** `didit-session-create` now requires explicit consent and
+  records `didit-kyc-v1` plus a server timestamp in Didit metadata.
+  `kyc-status` now returns Didit identity state separately from Stripe's
+  `payoutsEnabled` flag and preserves expired/resubmission states from the
+  latest verified webhook event.
+- **Mobile reaction:** use `diditApi.startVerification`, open the hosted flow
+  with the `mystreet://kyc/status` callback, ignore callback status parameters,
+  and refresh the signed backend status. Keep `payouts/connect.tsx` on Stripe.
+- **Compliance:** explicit unchecked consent, MyStreet + Didit legal links,
+  eight-month retention copy, and the Apple Sensitive Info disclosure were
+  added. Production activation still requires selecting **8 months** in Didit
+  Business Console → App Settings → Data and obtaining/accepting the Didit DPA.
+- **Live verification:** deployed `kyc-status` v7, `didit-session-create` v2,
+  and `didit-webhook` v4. Session/consent contract passes 8/8 and signed webhook
+  + detailed status contract passes 11/11. Authenticated workflow inspection confirms 237 country
+  configurations and ID/passport support for both France and Algeria.
+
 ## 2026-08-22 · SCR-021 · New Edge Function `didit-session-create` — issue #28 (session-creation half)
 
 - **What:** New Edge Function `didit-session-create` (`POST { callback?,
-  callbackMethod?, language? }`, user JWT, returns `{ url, sessionId,
-  status }`). Calls Didit's `POST /v3/session/` server-side with
+callbackMethod?, language? }`, user JWT, returns `{ url, sessionId,
+status }`). Calls Didit's `POST /v3/session/` server-side with
   `vendor_data: <profiles.id>` — the mobile app never sees `DIDIT_API_KEY`.
   Deployed and verified live (real session created against the "Free KYC"
   workflow, `fethi-mobile/e2e/task-028-didit-session-create.contract.mjs`,
@@ -45,7 +64,7 @@ Each entry: date · SCR · what changed · what mobile must do.
   a read-before-write check, not a DB constraint (Didit's own retry policy
   redelivers the same event_id up to twice). Deployed
   (`--use-api --no-verify-jwt`); smoke-tested, returns `503
-  didit_unconfigured` correctly (the real per-destination `DIDIT_WEBHOOK_SECRET`
+didit_unconfigured` correctly (the real per-destination `DIDIT_WEBHOOK_SECRET`
   isn't set yet — pending the webhook destination being created in Didit's
   Business Console with this function's URL).
 - **Mobile must:** nothing schema-side yet. The mobile `kyc-status` Edge
@@ -84,7 +103,7 @@ Each entry: date · SCR · what changed · what mobile must do.
 - **What:** New generic table `public.rate_limit_hits` (`user_id`, `scope`,
   `window_start`, `hit_count`), primary key `(user_id, scope, window_start)`,
   plus a `SECURITY DEFINER` SQL function `increment_rate_limit_hit(p_user_id,
-  p_scope, p_window_start)` that atomically increments and returns the
+p_scope, p_window_start)` that atomically increments and returns the
   current count. RLS enabled, no policies — service-role/function-only,
   matching the `idempotency_keys` precedent. New Edge Function
   `listing-category-suggest` is the first consumer (5 calls/user/day),
@@ -96,10 +115,10 @@ Each entry: date · SCR · what changed · what mobile must do.
   `listing-category-suggest` Edge Function via `invokeEdge`, not this table
   directly.
 - **Gotchas hit deploying this:** `supabase gen types typescript --db-url
-  <session-pooler-url>` hangs indefinitely in this environment — it shells
+<session-pooler-url>` hangs indefinitely in this environment — it shells
   out to `docker run ... postgres-meta` for introspection, and Docker isn't
   reachable here (`docker info` itself hangs). Use `--project-id
-  $SUPABASE_PROJECT_ID` (Management API mode, needs `SUPABASE_ACCESS_TOKEN`)
+$SUPABASE_PROJECT_ID` (Management API mode, needs `SUPABASE_ACCESS_TOKEN`)
   instead — no Docker dependency, works reliably. Separately,
   `supabase functions deploy <slug>` (no flags) also hangs here for the same
   Docker-bundling reason, contradicting this doc's older claim that deploy
@@ -155,7 +174,7 @@ Each entry: date · SCR · what changed · what mobile must do.
   0 rows; the owner's own `UPDATE` succeeds; `anon` reading an `ACTIVE`
   listing sees `meeting_venue` (intended — public listings' venue is meant to
   be publicly visible). Types regenerated via the canonical `npm run
-  db:types` (schema-version `019a7fd600c6`). Full evidence table in
+db:types` (schema-version `019a7fd600c6`). Full evidence table in
   SCR-016.md.
 - **Mobile must:** once this SCR is `Accepted` and merged, `listingReqToColumns`
   in `src/shared/lib/api.ts` maps `meetingVenue` → `meeting_venue` (already
@@ -165,12 +184,12 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 - **What:** New column `listings.publication_request_id uuid` (nullable) +
   unique index `listings_owner_publication_request_id_key` on `(owner_id,
-  publication_request_id) WHERE publication_request_id IS NOT NULL` — lets a
+publication_request_id) WHERE publication_request_id IS NOT NULL` — lets a
   client retry a lost publish response and recover the original listing
   instead of creating a duplicate. New unique index
   `listing_photos_listing_storage_path_key` on `listing_photos (listing_id,
-  storage_path)` — makes a photo-sync upsert with `onConflict:
-  'listing_id,storage_path'` idempotent across a retry. New table
+storage_path)` — makes a photo-sync upsert with `onConflict:
+'listing_id,storage_path'` idempotent across a retry. New table
   `listing_publication_notifications` (ledger, `listing_id` PK, RLS enabled
   with **zero policies** — default-deny to every client role, including the
   listing's own owner; it's a server-side dedup key, not an API resource).
@@ -198,9 +217,9 @@ Each entry: date · SCR · what changed · what mobile must do.
   looks up the existing listing by `(owner_id, publication_request_id)`
   instead of creating a duplicate (and a duplicate notification — the ledger
   makes the notification side effect exactly-once server-side regardless,
-  but avoiding a duplicate *listing* is still on the client). Photo sync
+  but avoiding a duplicate _listing_ is still on the client). Photo sync
   should `upsert` (not plain `insert`) with `onConflict:
-  'listing_id,storage_path'` so a replayed photo-sync call doesn't error or
+'listing_id,storage_path'` so a replayed photo-sync call doesn't error or
   duplicate. The publish confirmation screen can rely on exactly one
   `SYSTEM`-kind notification with `href: /listing/<id>` landing in the
   owner's `notifications` feed the moment the listing goes `ACTIVE` — no
@@ -261,20 +280,20 @@ Each entry: date · SCR · what changed · what mobile must do.
   - **`device_push_tokens`** — `unique(user_id, token)`; columns `token`,
     `platform` (`ios`/`android`/`web`), `last_used_at`, timestamps. A user fully
     manages ONLY their own rows (select/insert/update/delete under RLS).
-  One Edge Function authored: **`notifications-dispatch`** (POST-only,
-  **service-role-authenticated** — server-to-server, NOT called with a user JWT).
-  It stores one in-app `notifications` row per recipient (always), then fans out
-  Expo push to each recipient's tokens (chunked at 100) and prunes tokens returned
-  as `DeviceNotRegistered`. Uses a server-only `EXPO_ACCESS_TOKEN` Edge secret;
-  returns 503 when unconfigured. `applied-scrs.json` appends **SCR-010**.
+    One Edge Function authored: **`notifications-dispatch`** (POST-only,
+    **service-role-authenticated** — server-to-server, NOT called with a user JWT).
+    It stores one in-app `notifications` row per recipient (always), then fans out
+    Expo push to each recipient's tokens (chunked at 100) and prunes tokens returned
+    as `DeviceNotRegistered`. Uses a server-only `EXPO_ACCESS_TOKEN` Edge secret;
+    returns 503 when unconfigured. `applied-scrs.json` appends **SCR-010**.
 - **Mobile must:** once the vendored `database.types.ts` + `applied-scrs.json` are
   refreshed by the web parent (SCR-010 applied), **TASK-009** unblocks. (1) Read
   `notifications` directly under RLS and subscribe to Realtime narrowed by
   `user_id = auth.uid()` for the live feed; render `ApiNotification` straight from
   the row (`unread` is a real column). (2) Mark-read = `update notifications set
-  read_at = now()` on your own rows (own-row UPDATE policy). (3) Register the Expo
+read_at = now()` on your own rows (own-row UPDATE policy). (3) Register the Expo
   push token by **upserting** into `device_push_tokens` on conflict `(user_id,
-  token)`; delete the row on logout. (4) Do **NOT** call `notifications-dispatch`
+token)`; delete the row on logout. (4) Do **NOT** call `notifications-dispatch`
   from the app — it is server-only (service-role bearer); the backend fires push on
   domain events. (5) Push may be denied on device — that's fine, the in-app row is
   still stored, so the feed never drops a notification.
@@ -382,7 +401,7 @@ Each entry: date · SCR · what changed · what mobile must do.
   RLS, subscribe to Realtime narrowed by `thread_id`, `sendPhoto` → `message_attachments`)
   and **TASK-010** (offers/orders). Key contract notes: (1) **never mutate `offers`/`orders`
   status directly** — call the Edge Functions (`offersApi.*`, `ordersApi.create/confirmPickup/
-  cancel`); raw clients have no write policy on order/offer status. (2) Open-or-retrieve a
+cancel`); raw clients have no write policy on order/offer status. (2) Open-or-retrieve a
   thread is `unique(listing_id, buyer_id)`. (3) Send an `Idempotency-Key` header on
   create/transition so retries don't duplicate. (4) Offers default to a 48h `expires_at`;
   an accept on an expired offer is rejected. (5) `confirm-pickup` is two-sided (both parties

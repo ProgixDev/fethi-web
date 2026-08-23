@@ -1,7 +1,7 @@
 // didit-session-create — start (or resume) a Didit identity-verification
 // session for the authenticated user (issue #28).
 //
-// POST { callback?, callbackMethod?, language? }   (mobile diditApi.startVerification)
+// POST { consent:true, callback?, callbackMethod?, language? }
 // Auth: user JWT (the person being verified)
 // Returns: { url, sessionId, status }
 //
@@ -24,12 +24,12 @@
 // non-fatal on failure) so a session exists in our records even if the user
 // abandons before any webhook fires — didit-webhook remains the AUTHORITATIVE
 // writer of kyc_status; this function never touches that column.
-import { corsHeaders, json } from '../_shared/cors.ts';
-import { HttpError, requireUser, serviceClient } from '../_shared/supabase.ts';
+import { corsHeaders, json } from "../_shared/cors.ts";
+import { HttpError, requireUser, serviceClient } from "../_shared/supabase.ts";
 
-const DIDIT_API_KEY = Deno.env.get('DIDIT_API_KEY');
-const DIDIT_WORKFLOW_ID = Deno.env.get('DIDIT_WORKFLOW_ID');
-const DIDIT_API_BASE = 'https://verification.didit.me';
+const DIDIT_API_KEY = Deno.env.get("DIDIT_API_KEY");
+const DIDIT_WORKFLOW_ID = Deno.env.get("DIDIT_WORKFLOW_ID");
+const DIDIT_API_BASE = "https://verification.didit.me";
 
 type DiditSessionResponse = {
   session_id: string;
@@ -43,42 +43,57 @@ type DiditSessionResponse = {
 };
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   if (!DIDIT_API_KEY || !DIDIT_WORKFLOW_ID) {
-    return json({ error: 'didit_unconfigured' }, 503);
+    return json({ error: "didit_unconfigured" }, 503);
   }
 
   try {
     const user = await requireUser(req);
     const svc = serviceClient();
     const body = await req.json().catch(() => ({}));
+    if (body.consent !== true) {
+      return json({ error: "didit_consent_required" }, 422);
+    }
+
+    const consentedAt = new Date().toISOString();
 
     const requestBody: Record<string, unknown> = {
       workflow_id: DIDIT_WORKFLOW_ID,
       vendor_data: user.id,
+      metadata: {
+        consent_version: "didit-kyc-v1",
+        consented_at: consentedAt,
+        consent_source: "mystreet-mobile",
+      },
     };
-    if (typeof body.callback === 'string') requestBody.callback = body.callback;
-    if (typeof body.callbackMethod === 'string') requestBody.callback_method = body.callbackMethod;
-    if (typeof body.language === 'string') requestBody.language = body.language;
+    if (typeof body.callback === "string") requestBody.callback = body.callback;
+    if (typeof body.callbackMethod === "string")
+      requestBody.callback_method = body.callbackMethod;
+    if (typeof body.language === "string") requestBody.language = body.language;
     if (user.email) {
-      requestBody.contact_details = { email: user.email, send_notification_emails: false };
+      requestBody.contact_details = {
+        email: user.email,
+        send_notification_emails: false,
+      };
     }
 
     const res = await fetch(`${DIDIT_API_BASE}/v3/session/`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'x-api-key': DIDIT_API_KEY,
-        'Content-Type': 'application/json',
+        "x-api-key": DIDIT_API_KEY,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
     });
 
     if (!res.ok) {
-      const errBody = await res.text().catch(() => '');
+      const errBody = await res.text().catch(() => "");
       console.error(`Didit session create failed (${res.status}): ${errBody}`);
-      throw new HttpError(502, 'didit_session_create_failed');
+      throw new HttpError(502, "didit_session_create_failed");
     }
 
     const session = (await res.json()) as DiditSessionResponse;
@@ -87,10 +102,14 @@ Deno.serve(async (req: Request) => {
     // fatal — didit-webhook is the source of truth for status, this is just
     // staff-visibility for an abandoned/never-started session.
     const { error: updateErr } = await svc
-      .from('profiles')
+      .from("profiles")
       .update({ kyc_session_id: session.session_id })
-      .eq('id', user.id);
-    if (updateErr) console.error('profiles.kyc_session_id update failed:', updateErr.message);
+      .eq("id", user.id);
+    if (updateErr)
+      console.error(
+        "profiles.kyc_session_id update failed:",
+        updateErr.message,
+      );
 
     return json(
       {
@@ -101,8 +120,9 @@ Deno.serve(async (req: Request) => {
       201,
     );
   } catch (err) {
-    if (err instanceof HttpError) return json({ error: err.message }, err.status);
-    console.error('didit-session-create error:', err);
-    return json({ error: 'internal_error' }, 500);
+    if (err instanceof HttpError)
+      return json({ error: err.message }, err.status);
+    console.error("didit-session-create error:", err);
+    return json({ error: "internal_error" }, 500);
   }
 });
