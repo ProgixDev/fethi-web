@@ -17,54 +17,53 @@
 //
 // Edge case: order not found → 404; not owned by buyer → 403;
 //   already paid → 409 order_already_paid
-import { corsHeaders, json } from '../_shared/cors.ts';
-import {
-  HttpError,
-  requireUser,
-  serviceClient,
-} from '../_shared/supabase.ts';
-import Stripe from 'npm:stripe@^22.3.0';
+import { corsHeaders, json } from "../_shared/cors.ts";
+import { HttpError, requireUser, serviceClient } from "../_shared/supabase.ts";
+import Stripe from "npm:stripe@^22.3.0";
 
-const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
     // Stripe unconfigured → 503
     if (!STRIPE_SECRET_KEY) {
-      throw new HttpError(503, 'stripe_unconfigured');
+      throw new HttpError(503, "stripe_unconfigured");
     }
 
     const user = await requireUser(req);
     const svc = serviceClient();
     const stripe = new Stripe(STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16',
+      apiVersion: "2023-10-16",
       httpClient: Deno,
     });
 
     const body = await req.json().catch(() => ({}));
     const orderId: string | undefined = body.orderId;
-    if (!orderId) throw new HttpError(400, 'orderId required');
+    if (!orderId) throw new HttpError(400, "orderId required");
 
     // The marketplace currency is fixed server-side (EUR); never client-supplied.
-    const CURRENCY = 'eur';
+    const CURRENCY = "eur";
 
     // Resolve the order
     const { data: order, error: oErr } = await svc
-      .from('orders')
-      .select('id, buyer_id, seller_id, amount_cents, fee_cents, payment_intent_id, payment_status, paid_at')
-      .eq('id', orderId)
+      .from("orders")
+      .select(
+        "id, buyer_id, seller_id, amount_cents, fee_cents, payment_intent_id, payment_status, paid_at",
+      )
+      .eq("id", orderId)
       .maybeSingle();
 
     if (oErr) throw new HttpError(500, oErr.message);
-    if (!order) throw new HttpError(404, 'order_not_found');
-    if (order.buyer_id !== user.id) throw new HttpError(403, 'not_your_order');
+    if (!order) throw new HttpError(404, "order_not_found");
+    if (order.buyer_id !== user.id) throw new HttpError(403, "not_your_order");
 
     // Already settled → don't mint a new intent for a paid order.
-    if (order.payment_status === 'SUCCEEDED' || order.paid_at) {
-      throw new HttpError(409, 'order_already_paid');
+    if (order.payment_status === "SUCCEEDED" || order.paid_at) {
+      throw new HttpError(409, "order_already_paid");
     }
 
     // A2 (WEB-017) — the seller must have an ENABLED Stripe Connect account
@@ -72,18 +71,24 @@ Deno.serve(async (req: Request) => {
     // (funds route to the seller, minus the platform application fee), so an
     // un-onboarded seller can't receive money. Block early with a clear code.
     const { data: payout, error: pErr } = await svc
-      .from('payout_accounts')
-      .select('stripe_account_id, onboarding_status, payouts_enabled')
-      .eq('user_id', order.seller_id)
+      .from("payout_accounts")
+      .select("stripe_account_id, onboarding_status, payouts_enabled")
+      .eq("user_id", order.seller_id)
       .maybeSingle();
     if (pErr) throw new HttpError(500, pErr.message);
-    if (!payout || payout.onboarding_status !== 'ENABLED' || !payout.payouts_enabled) {
-      throw new HttpError(409, 'seller_payout_not_ready');
+    if (
+      !payout ||
+      payout.onboarding_status !== "ENABLED" ||
+      !payout.payouts_enabled
+    ) {
+      throw new HttpError(409, "seller_payout_not_ready");
     }
 
     // Idempotent: if order already has a PaymentIntent, return it
     if (order.payment_intent_id) {
-      const existingIntent = await stripe.paymentIntents.retrieve(order.payment_intent_id);
+      const existingIntent = await stripe.paymentIntents.retrieve(
+        order.payment_intent_id,
+      );
       return json({
         clientSecret: existingIntent.client_secret,
         paymentIntentId: existingIntent.id,
@@ -95,12 +100,17 @@ Deno.serve(async (req: Request) => {
 
     // Amount is ALWAYS the server-recorded order total — never client-supplied.
     const amountCents = order.amount_cents;
-    if (!amountCents || amountCents <= 0) throw new HttpError(400, 'order_amount_invalid');
+    if (!amountCents || amountCents <= 0)
+      throw new HttpError(400, "order_amount_invalid");
 
-    // Platform fee (A2) — `fee_cents` is the platform's cut (5% + 0.95€ sale
-    // floor, computed by orders-create). The rest is transferred to the seller.
+    // Issue #30 / SCR-024: the buyer is charged exactly amount_cents (the
+    // advertised/agreed item price). fee_cents is the 5% seller commission,
+    // withheld as Stripe's application fee; the remainder is seller proceeds.
     // Clamp defensively so it can never exceed the charge.
-    const applicationFee = Math.min(Math.max(order.fee_cents ?? 0, 0), amountCents);
+    const applicationFee = Math.min(
+      Math.max(order.fee_cents ?? 0, 0),
+      amountCents,
+    );
 
     // Create PaymentIntent as a DESTINATION charge. `idempotencyKey=orderId`
     // makes a retried creation return the SAME intent instead of minting a
@@ -120,14 +130,14 @@ Deno.serve(async (req: Request) => {
     // already attached one. `.is('payment_intent_id', null)` + returning rows
     // detects a lost race → we defer to the winner's intent.
     const { data: attached, error: updateErr } = await svc
-      .from('orders')
+      .from("orders")
       .update({
         payment_intent_id: paymentIntent.id,
-        payment_status: 'PENDING',
+        payment_status: "PENDING",
       })
-      .eq('id', orderId)
-      .is('payment_intent_id', null)
-      .select('payment_intent_id')
+      .eq("id", orderId)
+      .is("payment_intent_id", null)
+      .select("payment_intent_id")
       .maybeSingle();
 
     if (updateErr) throw new HttpError(500, updateErr.message);
@@ -136,9 +146,9 @@ Deno.serve(async (req: Request) => {
       // Lost the race: another call attached first. Return that intent and let
       // ours expire unused (same amount/order, so it's harmless).
       const { data: winner } = await svc
-        .from('orders')
-        .select('payment_intent_id')
-        .eq('id', orderId)
+        .from("orders")
+        .select("payment_intent_id")
+        .eq("id", orderId)
         .maybeSingle();
       const winnerIntent = winner?.payment_intent_id
         ? await stripe.paymentIntents.retrieve(winner.payment_intent_id)
@@ -160,7 +170,8 @@ Deno.serve(async (req: Request) => {
       status: paymentIntent.status,
     });
   } catch (err) {
-    if (err instanceof HttpError) return json({ error: err.message }, err.status);
-    return json({ error: 'internal_error' }, 500);
+    if (err instanceof HttpError)
+      return json({ error: err.message }, err.status);
+    return json({ error: "internal_error" }, 500);
   }
 });

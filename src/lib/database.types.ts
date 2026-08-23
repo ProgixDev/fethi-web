@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: c96ca614f911
+ * schema-version: 331d6fbec64c
  */
 
 export type Json =
@@ -919,6 +919,7 @@ export type Database = {
         Row: {
           amount_cents: number
           buyer_confirmed: boolean
+          buyer_fee_cents: number
           buyer_id: string
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -929,6 +930,7 @@ export type Database = {
           deposit_released: boolean | null
           fee_cents: number
           id: string
+          item_cents: number
           listing_id: string
           listing_thumb: string | null
           listing_title: string | null
@@ -936,17 +938,22 @@ export type Database = {
           offer_id: string | null
           paid_at: string | null
           payment_intent_id: string | null
+          payment_method: string
           payment_status: Database["public"]["Enums"]["payment_status"] | null
+          pricing_version: string
           rental_end: string | null
           rental_start: string | null
           seller_confirmed: boolean
+          seller_fee_cents: number
           seller_id: string
           status: Database["public"]["Enums"]["order_status"]
+          tax_cents: number
           updated_at: string
         }
         Insert: {
           amount_cents: number
           buyer_confirmed?: boolean
+          buyer_fee_cents?: number
           buyer_id: string
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -957,6 +964,7 @@ export type Database = {
           deposit_released?: boolean | null
           fee_cents?: number
           id?: string
+          item_cents?: number
           listing_id: string
           listing_thumb?: string | null
           listing_title?: string | null
@@ -964,17 +972,22 @@ export type Database = {
           offer_id?: string | null
           paid_at?: string | null
           payment_intent_id?: string | null
+          payment_method?: string
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          pricing_version?: string
           rental_end?: string | null
           rental_start?: string | null
           seller_confirmed?: boolean
+          seller_fee_cents?: number
           seller_id: string
           status?: Database["public"]["Enums"]["order_status"]
+          tax_cents?: number
           updated_at?: string
         }
         Update: {
           amount_cents?: number
           buyer_confirmed?: boolean
+          buyer_fee_cents?: number
           buyer_id?: string
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -985,6 +998,7 @@ export type Database = {
           deposit_released?: boolean | null
           fee_cents?: number
           id?: string
+          item_cents?: number
           listing_id?: string
           listing_thumb?: string | null
           listing_title?: string | null
@@ -992,12 +1006,16 @@ export type Database = {
           offer_id?: string | null
           paid_at?: string | null
           payment_intent_id?: string | null
+          payment_method?: string
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          pricing_version?: string
           rental_end?: string | null
           rental_start?: string | null
           seller_confirmed?: boolean
+          seller_fee_cents?: number
           seller_id?: string
           status?: Database["public"]["Enums"]["order_status"]
+          tax_cents?: number
           updated_at?: string
         }
         Relationships: [
@@ -1960,6 +1978,7 @@ export type Database = {
         Returns: {
           amount_cents: number
           buyer_confirmed: boolean
+          buyer_fee_cents: number
           buyer_id: string
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -1970,6 +1989,7 @@ export type Database = {
           deposit_released: boolean | null
           fee_cents: number
           id: string
+          item_cents: number
           listing_id: string
           listing_thumb: string | null
           listing_title: string | null
@@ -1977,12 +1997,16 @@ export type Database = {
           offer_id: string | null
           paid_at: string | null
           payment_intent_id: string | null
+          payment_method: string
           payment_status: Database["public"]["Enums"]["payment_status"] | null
+          pricing_version: string
           rental_end: string | null
           rental_start: string | null
           seller_confirmed: boolean
+          seller_fee_cents: number
           seller_id: string
           status: Database["public"]["Enums"]["order_status"]
+          tax_cents: number
           updated_at: string
         }
         SetofOptions: {

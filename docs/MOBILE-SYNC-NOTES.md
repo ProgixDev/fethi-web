@@ -8,6 +8,20 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-23 · SCR-024 · Authoritative seller-commission pricing — issue #30
+
+- **Contract:** new authenticated `orders-price-quote` returns the exact shared
+  calculation later persisted by `orders-create`.
+- **Approved model:** buyers pay the advertised/agreed price with no added fee
+  or tax; MyStreet deducts 5% from seller proceeds using nearest-cent rounding.
+  Full pre-validation refunds reverse both seller transfer and commission.
+- **Mobile reaction:** render quote fields instead of local percentage math.
+  Card orders store the seller commission in `fee_cents`; handoff orders book
+  the same amount in `seller_fee_receivables` because no card is charged.
+- **Receipt snapshot:** `orders` now persists `pricing_version`, `item_cents`,
+  `buyer_fee_cents`, `tax_cents`, `seller_fee_cents`, and `payment_method`.
+  Generated contract version: `331d6fbec64c`.
+
 ## 2026-08-23 · SCR-023 · Didit erasure during account deletion — issue #28
 
 - **Contract:** `account-delete` keeps the same authenticated request and
