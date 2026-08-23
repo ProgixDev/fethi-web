@@ -1,6 +1,6 @@
 /**
  * GET  /api/admin/orders/[id]        — staff-gated single order.
- * POST /api/admin/orders/[id]        — staff-gated refund action ({ action: 'refund', amountCents? }).
+ * POST /api/admin/orders/[id]        — staff-gated refund or timeout-release action.
  *
  * The refund kicks off an idempotent Stripe refund; the Stripe webhook remains
  * the source of truth that flips the order to REFUNDED.
@@ -51,6 +51,19 @@ export async function POST(
         typeof body.amountCents === 'number' ? body.amountCents : undefined;
       const order = await repos.orders.refund(id, amountCents);
       return Response.json(order);
+    }
+    if (body.action === 'release_held_proceeds') {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const secret = process.env.HELD_PROCEEDS_RESOLUTION_SECRET;
+      if (!url || !secret) throw new Error('HELD_PROCEEDS_RESOLUTION_UNCONFIGURED');
+      const result = await fetch(`${url}/functions/v1/held-proceeds-resolution`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Resolution-Secret': secret },
+        body: JSON.stringify({ orderId: id }),
+      });
+      if (!result.ok) throw new Error(`HELD_PROCEEDS_RESOLUTION_FAILED: ${await result.text()}`);
+      const repos = createAdminRepositories();
+      return Response.json(await repos.orders.get(id));
     }
 
     return Response.json(

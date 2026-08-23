@@ -9,7 +9,7 @@ const before = [
 ];
 
 const during = [
-  { icon: ShieldAlert, title: "Paiement protégé MyStreet", body: "Restez dans l'app pour le règlement. C'est lui qui déclenche la libération sécurisée des fonds." },
+  { icon: ShieldAlert, title: "Paiement sécurisé MyStreet", body: "Restez dans l'app pour le règlement. Après votre confirmation de réception, le versement est immédiat sous 500 € et différé d'environ 48 h à partir de 500 €." },
   { icon: Users, title: "Témoin pour les gros montants", body: "Au-dessus de 300 €, on recommande de venir accompagné, ou de fixer le rendez-vous dans un lieu public bien fréquenté." },
 ];
 

@@ -17,6 +17,9 @@
     "revenuecat-webhook",
     "listing-category-suggest",
     "didit-webhook",
-    "didit-session-create"
+    "didit-session-create",
+    "held-proceeds-reconcile",
+    "held-proceeds-status",
+    "held-proceeds-resolution"
   ]
 }

@@ -26,9 +26,12 @@ import {
   requireUser,
   serviceClient,
 } from '../_shared/supabase.ts';
+import { scheduleBuyerRelease, releaseDueHold } from '../_shared/held-proceeds.ts';
+import Stripe from 'npm:stripe@^22.3.0';
 
 type Action = 'confirm-pickup' | 'cancel';
-const TERMINAL = new Set(['COMPLETED', 'CANCELLED', 'REFUNDED']);
+const TERMINAL = new Set(['COMPLETED', 'CANCELLED', 'REFUNDED', 'DISPUTED']);
+const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -136,6 +139,29 @@ async function confirmPickup(
       to_status: toStatus,
       note: isBuyer ? 'buyer_confirmed_pickup' : 'seller_confirmed_pickup',
     });
+  }
+
+  // Only the authenticated buyer can authorise seller-release scheduling. A
+  // seller confirmation still completes the fulfilment record, but never moves
+  // money. Immediate (<€500) releases are attempted here; failed attempts stay
+  // safely pending for the reconciler rather than undoing the buyer's receipt.
+  if (isBuyer && order.payment_intent_id) {
+    await scheduleBuyerRelease(svc, updated.id as string);
+    if (STRIPE_SECRET_KEY) {
+      const { data: hold } = await svc
+        .from('held_seller_proceeds')
+        .select('id, order_id, seller_id, stripe_charge_id, seller_net_cents, status, release_after')
+        .eq('order_id', updated.id as string)
+        .maybeSingle();
+      if (hold) {
+        try {
+          const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Deno });
+          await releaseDueHold(svc, stripe, hold);
+        } catch (releaseError) {
+          console.error('held proceeds release deferred', releaseError);
+        }
+      }
+    }
   }
   return updated;
 }

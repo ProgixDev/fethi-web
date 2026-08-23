@@ -24,18 +24,18 @@ const benefits = [
   {
     icon: ShieldCheck,
     title: "Voisins vérifiés",
-    body: "Chaque vendeur a une note voisin et un historique. Le paiement n'est libéré qu'après la rencontre.",
+    body: "Chaque vendeur a une note voisin et un historique. Votre paiement reste protégé jusqu'à votre confirmation de réception.",
   },
 ];
 
 const faqs = [
   {
     q: "Comment je paie ?",
-    a: "Carte bancaire ou Apple/Google Pay. Le paiement est bloqué et libéré automatiquement quand vous confirmez la rencontre.",
+    a: "Carte bancaire ou Apple/Google Pay. Après votre confirmation de réception, le vendeur est payé immédiatement sous 500 € et après environ 48 h à partir de 500 €."
   },
   {
     q: "Que faire si l'objet ne correspond pas ?",
-    a: "Vous refusez le produit sur place et le paiement vous est immédiatement remboursé. Aucun litige, aucun retour postal.",
+    a: "Ne confirmez pas la réception et ouvrez un litige dans l'app. Les fonds restent en attente pendant l'examen ; aucun paiement n'est versé automatiquement.",
   },
   {
     q: "Puis-je négocier le prix ?",

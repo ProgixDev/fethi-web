@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
     const { data: order, error: oErr } = await svc
       .from("orders")
       .select(
-        "id, buyer_id, seller_id, amount_cents, fee_cents, payment_intent_id, payment_status, paid_at",
+        "id, buyer_id, seller_id, amount_cents, seller_fee_cents, payment_method, pricing_version, payment_intent_id, payment_status, paid_at",
       )
       .eq("id", orderId)
       .maybeSingle();
@@ -60,6 +60,7 @@ Deno.serve(async (req: Request) => {
     if (oErr) throw new HttpError(500, oErr.message);
     if (!order) throw new HttpError(404, "order_not_found");
     if (order.buyer_id !== user.id) throw new HttpError(403, "not_your_order");
+    if (order.payment_method !== "card") throw new HttpError(409, "payment_method_not_card");
 
     // Already settled → don't mint a new intent for a paid order.
     if (order.payment_status === "SUCCEEDED" || order.paid_at) {
@@ -70,16 +71,20 @@ Deno.serve(async (req: Request) => {
     // before their listing can be bought: the charge is a DESTINATION charge
     // (funds route to the seller, minus the platform application fee), so an
     // un-onboarded seller can't receive money. Block early with a clear code.
-    const { data: payout, error: pErr } = await svc
+    const [{ data: payout, error: pErr }, { data: seller, error: sellerErr }] = await Promise.all([
+      svc
       .from("payout_accounts")
       .select("stripe_account_id, onboarding_status, payouts_enabled")
       .eq("user_id", order.seller_id)
-      .maybeSingle();
-    if (pErr) throw new HttpError(500, pErr.message);
+      .maybeSingle(),
+      svc.from("profiles").select("kyc_status").eq("id", order.seller_id).maybeSingle(),
+    ]);
+    if (pErr || sellerErr) throw new HttpError(500, pErr?.message ?? sellerErr?.message);
     if (
       !payout ||
       payout.onboarding_status !== "ENABLED" ||
-      !payout.payouts_enabled
+      !payout.payouts_enabled ||
+      seller?.kyc_status !== "VERIFIED"
     ) {
       throw new HttpError(409, "seller_payout_not_ready");
     }
@@ -103,25 +108,23 @@ Deno.serve(async (req: Request) => {
     if (!amountCents || amountCents <= 0)
       throw new HttpError(400, "order_amount_invalid");
 
-    // Issue #30 / SCR-024: the buyer is charged exactly amount_cents (the
-    // advertised/agreed item price). fee_cents is the 5% seller commission,
-    // withheld as Stripe's application fee; the remainder is seller proceeds.
-    // Clamp defensively so it can never exceed the charge.
-    const applicationFee = Math.min(
-      Math.max(order.fee_cents ?? 0, 0),
-      amountCents,
-    );
-
-    // Create PaymentIntent as a DESTINATION charge. `idempotencyKey=orderId`
-    // makes a retried creation return the SAME intent instead of minting a
-    // duplicate (Stripe-side guard against the read-null/create race).
+    // #35: capture on MyStreet's platform and create a separate Connect
+    // Transfer only after buyer-confirmed handoff. This intentionally has no
+    // transfer_data or application_fee_amount; #30's seller fee is retained in
+    // the Order snapshot and deducted from the later transfer, never supplied
+    // by the client.
     const paymentIntent = await stripe.paymentIntents.create(
       {
         amount: amountCents,
         currency: CURRENCY,
-        application_fee_amount: applicationFee,
-        transfer_data: { destination: payout.stripe_account_id },
-        metadata: { orderId, buyerId: user.id, sellerId: order.seller_id },
+        metadata: {
+          orderId,
+          buyerId: user.id,
+          sellerId: order.seller_id,
+          pricingVersion: order.pricing_version,
+          sellerFeeCents: String(order.seller_fee_cents),
+          fundsFlow: "held-proceeds-v1",
+        },
       },
       { idempotencyKey: `pi_create:${orderId}` },
     );

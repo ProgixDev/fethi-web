@@ -174,15 +174,37 @@ export class OrdersRepository extends BaseRepository {
     const body = new URLSearchParams({ payment_intent: order.paymentIntentId });
     if (amountCents != null) body.set('amount', String(amountCents));
 
-    // Orders are DESTINATION charges (WEB-017): the funds were transferred to the
-    // seller's connected account and the platform took its application fee. A
-    // plain refund would return money to the buyer while the seller keeps theirs
-    // (platform eats the loss). `reverse_transfer` claws back the seller's share
-    // (proportional to a partial refund); `refund_application_fee` returns the
-    // platform fee too, so a refund fully unwinds the transaction. (All live
-    // charges are destination charges, so this is always applicable.)
-    body.set('reverse_transfer', 'true');
-    body.set('refund_application_fee', 'true');
+    const { data: hold } = await this.db
+      .from('held_seller_proceeds')
+      .select('status, stripe_transfer_id')
+      .eq('order_id', id)
+      .maybeSingle();
+
+    if (hold?.status === 'RELEASED' && hold.stripe_transfer_id) {
+      // Separate charges do not automatically undo a later transfer. Reverse
+      // it before the buyer refund so MyStreet does not absorb seller proceeds.
+      const reversal = await fetch(
+        `https://api.stripe.com/v1/transfers/${hold.stripe_transfer_id}/reversals`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${secret}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Idempotency-Key': `held_proceeds_reversal_${id}`,
+          },
+          body: new URLSearchParams(),
+        },
+      );
+      if (!reversal.ok) {
+        const payload = await reversal.json().catch(() => ({}));
+        throw new Error(`REFUND_FAILED: seller transfer reversal failed: ${payload?.error?.message ?? reversal.status}`);
+      }
+    } else if (!hold) {
+      // Legacy destination charges predate SCR-025 and still require Stripe's
+      // coupled reversal flags.
+      body.set('reverse_transfer', 'true');
+      body.set('refund_application_fee', 'true');
+    }
 
     const res = await fetch('https://api.stripe.com/v1/refunds', {
       method: 'POST',
@@ -204,4 +226,5 @@ export class OrdersRepository extends BaseRepository {
     // UI can show "refund initiated" without pretending the flip already happened.
     return order;
   }
+
 }

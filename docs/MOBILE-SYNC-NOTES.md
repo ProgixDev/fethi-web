@@ -470,3 +470,20 @@ cancel`); raw clients have no write policy on order/offer status. (2) Open-or-re
   here. No code action yet — types land with WEB-001.
 
 <!-- New entries above this line, newest first. -->
+## 2026-08-23 · SCR-025 · Held seller proceeds — issue #35
+
+- **What:** Card PaymentIntents are now platform charges. A successful webhook
+  records one `held_seller_proceeds` row linked to the Stripe Charge; no seller
+  transfer happens until authenticated buyer confirmation.
+- **Release rule:** under €500, release is eligible immediately after buyer
+  confirmation; at or above €500 it is eligible after 48 hours. Seven days
+  without that confirmation becomes `REVIEW_REQUIRED` — no automatic payout or
+  refund. `held-proceeds-status` exposes this lifecycle to both parties.
+- **Safety:** release requires Didit `VERIFIED` plus enabled Stripe Connect,
+  consumes outstanding handoff-fee receivables, and is idempotent. Refunds and
+  disputes freeze/reverse transfers; failed reversals persist for the scheduled
+  `held-proceeds-reconcile` worker to retry. Finance-only timeout release uses
+  `held-proceeds-resolution`.
+- **Mobile:** invoke `held-proceeds-status` with `{ orderId }`; do not infer
+  payout state locally. Deploy the reconciler with its service secret and run it
+  at least every five minutes before enabling this flow.

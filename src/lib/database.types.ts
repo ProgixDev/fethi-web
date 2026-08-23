@@ -451,6 +451,88 @@ export type Database = {
           },
         ]
       }
+      held_seller_proceeds: {
+        Row: {
+          buyer_confirmed_at: string | null
+          created_at: string
+          gross_cents: number
+          id: string
+          order_id: string
+          platform_fee_cents: number
+          release_after: string | null
+          released_at: string | null
+          review_after: string
+          seller_id: string
+          seller_net_cents: number
+          settled_receivable_cents: number
+          status: Database["public"]["Enums"]["proceeds_hold_status"]
+          stripe_charge_id: string
+          stripe_transfer_id: string | null
+          terminal_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_confirmed_at?: string | null
+          created_at?: string
+          gross_cents: number
+          id?: string
+          order_id: string
+          platform_fee_cents: number
+          release_after?: string | null
+          released_at?: string | null
+          review_after?: string
+          seller_id: string
+          seller_net_cents: number
+          settled_receivable_cents?: number
+          status?: Database["public"]["Enums"]["proceeds_hold_status"]
+          stripe_charge_id: string
+          stripe_transfer_id?: string | null
+          terminal_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_confirmed_at?: string | null
+          created_at?: string
+          gross_cents?: number
+          id?: string
+          order_id?: string
+          platform_fee_cents?: number
+          release_after?: string | null
+          released_at?: string | null
+          review_after?: string
+          seller_id?: string
+          seller_net_cents?: number
+          settled_receivable_cents?: number
+          status?: Database["public"]["Enums"]["proceeds_hold_status"]
+          stripe_charge_id?: string
+          stripe_transfer_id?: string | null
+          terminal_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "held_seller_proceeds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "held_seller_proceeds_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "held_seller_proceeds_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_photos: {
         Row: {
           created_at: string
@@ -2847,6 +2929,7 @@ export type Database = {
     }
     Enums: {
       fee_receivable_status: "OUTSTANDING" | "SETTLED" | "WAIVED"
+      proceeds_hold_status: "HELD" | "RELEASE_PENDING" | "RELEASING" | "RELEASED" | "REFUNDED" | "DISPUTED" | "CANCELLED" | "REVIEW_REQUIRED"
       kyc_status: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
       listing_condition: "new" | "likenew" | "good" | "fair"
       listing_status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD" | "ARCHIVED"
@@ -3028,6 +3111,7 @@ export const Constants = {
   public: {
     Enums: {
       fee_receivable_status: ["OUTSTANDING", "SETTLED", "WAIVED"],
+      proceeds_hold_status: ["HELD", "RELEASE_PENDING", "RELEASING", "RELEASED", "REFUNDED", "DISPUTED", "CANCELLED", "REVIEW_REQUIRED"],
       kyc_status: ["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"],
       listing_condition: ["new", "likenew", "good", "fair"],
       listing_status: ["DRAFT", "ACTIVE", "PAUSED", "SOLD", "ARCHIVED"],

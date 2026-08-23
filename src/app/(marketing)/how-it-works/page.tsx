@@ -39,7 +39,7 @@ const steps = [
     lead:
       "Pas d'envoi, pas de point relais. Vous fixez un rendez-vous dans un café ou sur le trottoir, et vous échangez.",
     points: [
-      "Paiement sécurisé déclenché à la rencontre — pas avant.",
+      "Le paiement sécurisé reste en attente jusqu'à votre confirmation de réception dans l'app.",
       "Le lieu est suggéré à mi-chemin entre les deux adresses.",
       "Une fois la transaction validée, chacun note l'autre.",
     ],
@@ -59,7 +59,7 @@ const faqs = [
   },
   {
     q: "Que se passe-t-il si l'objet ne correspond pas ?",
-    a: "Le paiement n'est libéré que lorsque vous confirmez la rencontre. En cas de litige, notre équipe intervient sous 48 h, week-ends compris.",
+    a: "Le paiement reste en attente jusqu'à la confirmation de réception par l'acheteur. Après confirmation, la part du vendeur est disponible immédiatement sous 500 € et après environ 48 h à partir de 500 €. Un litige ou l'absence de confirmation après sept jours bloque tout versement automatique et déclenche un examen.",
   },
   {
     q: "Pourquoi Lille seulement ?",

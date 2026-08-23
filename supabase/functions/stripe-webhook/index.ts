@@ -18,6 +18,7 @@
 //   - Order not found → log 404, continue (order may have been deleted)
 import { corsHeaders, json } from '../_shared/cors.ts';
 import { serviceClient } from '../_shared/supabase.ts';
+import { reverseTerminalTransfer } from '../_shared/held-proceeds.ts';
 import Stripe from 'npm:stripe@^22.3.0';
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
@@ -125,17 +126,19 @@ async function handleEvent(
         // fields reconcile with the server-owned Order snapshot.
         const { data: order, error: orderError } = await svc
           .from('orders')
-          .select('id, amount_cents, fee_cents, payment_intent_id')
+          .select('id, seller_id, amount_cents, fee_cents, seller_fee_cents, payment_intent_id, payment_method')
           .eq('id', orderId)
           .maybeSingle();
         if (orderError) throw new Error(`order_lookup_failed:${orderError.message}`);
         if (!order) throw new Error(`payment_order_not_found:${orderId}`);
         const applicationFeeCents = pi.application_fee_amount ?? 0;
+        const usesHeldProceeds = pi.metadata.fundsFlow === 'held-proceeds-v1';
+        const expectedApplicationFee = usesHeldProceeds ? 0 : order.fee_cents;
         if (
           order.payment_intent_id !== pi.id ||
           pi.currency !== 'eur' ||
           pi.amount !== order.amount_cents ||
-          applicationFeeCents !== order.fee_cents
+          applicationFeeCents !== expectedApplicationFee
         ) {
           throw new Error(
             `payment_amount_mismatch:${orderId}:` +
@@ -157,7 +160,7 @@ async function handleEvent(
         // Create payment record
         const { error: paymentError } = await svc
           .from('payments')
-          .insert({
+          .upsert({
             order_id: orderId,
             stripe_payment_intent_id: pi.id,
             amount_cents: pi.amount,
@@ -165,6 +168,28 @@ async function handleEvent(
             metadata: pi as unknown as Record<string, unknown>,
           });
         if (paymentError) throw new Error(`payment_insert_failed:${paymentError.message}`);
+
+        // New #35 platform charges always include their source Charge. That
+        // links a later Transfer to this specific payment and keeps proceeds
+        // unavailable until buyer confirmation.
+        if (usesHeldProceeds) {
+          const chargeId = typeof pi.latest_charge === 'string'
+            ? pi.latest_charge
+            : pi.latest_charge?.id;
+          if (!chargeId) throw new Error(`payment_charge_missing:${pi.id}`);
+          const { error: holdError } = await svc
+            .from('held_seller_proceeds')
+            .upsert({
+              order_id: orderId,
+              seller_id: order.seller_id,
+              stripe_charge_id: chargeId,
+              gross_cents: order.amount_cents,
+              seller_net_cents: order.amount_cents - order.seller_fee_cents,
+              platform_fee_cents: order.seller_fee_cents,
+              status: 'HELD',
+            }, { onConflict: 'order_id', ignoreDuplicates: true });
+          if (holdError) throw new Error(`hold_insert_failed:${holdError.message}`);
+        }
 
         console.log(`PaymentIntent ${pi.id} succeeded for order ${orderId}`);
         break;
@@ -210,6 +235,7 @@ async function handleEvent(
           .from('orders')
           .update({
             payment_status: isPartialRefund ? 'PARTIALLY_REFUNDED' : 'REFUNDED',
+            ...(isPartialRefund ? {} : { status: 'REFUNDED' }),
           })
           .eq('payment_intent_id', paymentIntentId);
 
@@ -220,6 +246,21 @@ async function handleEvent(
             status: isPartialRefund ? 'PARTIALLY_REFUNDED' : 'REFUNDED',
           })
           .eq('stripe_payment_intent_id', paymentIntentId);
+
+        const refundOrderId = await orderIdForIntent(svc, paymentIntentId);
+        if (refundOrderId) {
+          await svc.from('held_seller_proceeds')
+            .update({
+              status: isPartialRefund ? 'REVIEW_REQUIRED' : 'REFUNDED',
+              terminal_reason: isPartialRefund ? 'stripe_partial_refund' : 'stripe_refund',
+            })
+            .eq('order_id', refundOrderId)
+            .in('status', ['HELD', 'RELEASE_PENDING', 'RELEASING', 'RELEASED']);
+          if (!isPartialRefund) {
+            const stripe = new Stripe(STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16', httpClient: Deno });
+            await reverseTerminalTransfer(svc, stripe, refundOrderId, 'refund');
+          }
+        }
 
         console.log(`Charge ${charge.id} refunded for PaymentIntent ${paymentIntentId}`);
         break;
@@ -232,13 +273,22 @@ async function handleEvent(
 
         await svc
           .from('orders')
-          .update({ payment_status: 'DISPUTED' })
+          .update({ payment_status: 'DISPUTED', status: 'DISPUTED' })
           .eq('payment_intent_id', paymentIntentId);
 
         await svc
           .from('payments')
           .update({ status: 'DISPUTED' })
           .eq('stripe_payment_intent_id', paymentIntentId);
+        await svc.from('held_seller_proceeds')
+          .update({ status: 'DISPUTED', terminal_reason: 'stripe_dispute' })
+          .in('status', ['HELD', 'RELEASE_PENDING', 'RELEASING', 'RELEASED'])
+          .eq('order_id', (await orderIdForIntent(svc, paymentIntentId)) ?? '');
+        const disputeOrderId = await orderIdForIntent(svc, paymentIntentId);
+        if (disputeOrderId) {
+          const stripe = new Stripe(STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16', httpClient: Deno });
+          await reverseTerminalTransfer(svc, stripe, disputeOrderId, 'dispute');
+        }
 
         console.log(`Dispute created for PaymentIntent ${paymentIntentId}`);
         break;
@@ -269,13 +319,28 @@ async function handleEvent(
 
         await svc
           .from('orders')
-          .update({ payment_status: resolvedStatus })
+          .update({ payment_status: resolvedStatus, ...(resolvedStatus === 'REFUNDED' ? { status: 'REFUNDED' } : {}) })
           .eq('payment_intent_id', paymentIntentId);
 
         await svc
           .from('payments')
           .update({ status: resolvedStatus })
           .eq('stripe_payment_intent_id', paymentIntentId);
+
+        const orderId = await orderIdForIntent(svc, paymentIntentId);
+        if (orderId) {
+          if (resolvedStatus === 'REFUNDED') {
+            await svc.from('held_seller_proceeds').update({ status: 'REFUNDED', terminal_reason: 'stripe_dispute_lost' }).eq('order_id', orderId);
+            const stripe = new Stripe(STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16', httpClient: Deno });
+            await reverseTerminalTransfer(svc, stripe, orderId, 'dispute');
+          } else {
+            const { data: hold } = await svc.from('held_seller_proceeds').select('buyer_confirmed_at').eq('order_id', orderId).maybeSingle();
+            await svc.from('held_seller_proceeds')
+              .update({ status: hold?.buyer_confirmed_at ? 'RELEASE_PENDING' : 'HELD', terminal_reason: null })
+              .eq('order_id', orderId)
+              .eq('status', 'DISPUTED');
+          }
+        }
 
         console.log(
           `Dispute ${dispute.status} → ${resolvedStatus} for PaymentIntent ${paymentIntentId}`,
@@ -320,4 +385,13 @@ async function handleEvent(
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
+}
+
+async function orderIdForIntent(
+  svc: ReturnType<typeof serviceClient>,
+  paymentIntentId: string,
+): Promise<string | null> {
+  const { data, error } = await svc.from('orders').select('id').eq('payment_intent_id', paymentIntentId).maybeSingle();
+  if (error) throw new Error(`order_lookup_by_intent_failed:${error.message}`);
+  return data?.id ?? null;
 }
