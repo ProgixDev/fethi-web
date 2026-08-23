@@ -38,7 +38,7 @@ const sections = [
     paragraphs: [
       "Données de compte : pendant la durée d'inscription, puis trois ans en archive en cas de réactivation.",
       "Données de transaction : dix ans (obligation comptable et anti-blanchiment).",
-      "Données de session KYC traitées par Didit : huit mois après la vérification. MyStreet conserve l'identifiant de session et le résultat détaillé pendant la durée du compte, puis les supprime avec le compte sauf obligation légale ou litige en cours.",
+      "Données de session KYC traitées par Didit : la configuration actuelle ne prévoit pas d'effacement automatique après une durée déterminée (conservation illimitée). Vous pouvez demander leur effacement à tout moment ; elles sont également supprimées lors de la suppression de votre compte, sauf obligation légale ou litige en cours. MyStreet conserve l'identifiant de session et le résultat détaillé pendant la durée du compte selon les mêmes exceptions.",
       "Données de connexion : un an (LCEN).",
       "Cookies : treize mois maximum.",
     ],

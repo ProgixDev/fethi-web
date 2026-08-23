@@ -8,6 +8,17 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-23 · SCR-023 · Didit erasure during account deletion — issue #28
+
+- **Contract:** `account-delete` keeps the same authenticated request and
+  response shapes, but now deletes the caller's Didit session before local
+  anonymization and clears the local KYC session/decision fields.
+- **Why:** Didit retention is configured as Unlimited. There is no automatic
+  expiry, so successful account deletion must explicitly remove processor-held
+  identity data. Missing credentials/provider errors fail closed; a Didit 404
+  is treated as already deleted.
+- **Mobile reaction:** none; keep using the existing account-deletion API.
+
 ## 2026-08-23 · SCR-022 · Didit mobile activation and detailed status — issue #28
 
 - **Contracts:** `didit-session-create` now requires explicit consent and
@@ -19,13 +30,13 @@ Each entry: date · SCR · what changed · what mobile must do.
   with the `mystreet://kyc/status` callback, ignore callback status parameters,
   and refresh the signed backend status. Keep `payouts/connect.tsx` on Stripe.
 - **Compliance:** explicit unchecked consent, MyStreet + Didit legal links,
-  eight-month retention copy, and the Apple Sensitive Info disclosure were
-  added. Production activation still requires selecting **8 months** in Didit
-  Business Console → App Settings → Data and obtaining/accepting the Didit DPA.
+  Unlimited-retention disclosure, and the Apple Sensitive Info disclosure were
+  added. The product owner confirmed the matching Didit Console setting and
+  accepted the DPA. Account deletion also removes the associated Didit session.
 - **Live verification:** deployed `kyc-status` v7, `didit-session-create` v2,
-  and `didit-webhook` v4. Session/consent contract passes 8/8 and signed webhook
-  + detailed status contract passes 11/11. Authenticated workflow inspection confirms 237 country
-  configurations and ID/passport support for both France and Algeria.
+  `didit-webhook` v4, and `account-delete` v7. Both Didit contracts pass 11/11,
+  including provider-side deletion. Authenticated workflow inspection confirms
+  237 country configurations and ID/passport support for France and Algeria.
 
 ## 2026-08-22 · SCR-021 · New Edge Function `didit-session-create` — issue #28 (session-creation half)
 

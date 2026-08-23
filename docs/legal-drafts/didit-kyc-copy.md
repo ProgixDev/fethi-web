@@ -2,10 +2,11 @@
 
 **Status: superseded by SCR-022 on 2026-08-23. Do not copy from this file.**
 The implemented text now lives in `src/app/(marketing)/privacy/page.tsx` and
-the mobile `src/app/kyc/*` screens. The selected Didit retention period is
-eight months. Production activation still requires the matching Console
-setting and an accepted DPA. The remainder is retained only as drafting
-history.
+the mobile `src/app/kyc/*` screens. The product owner subsequently selected
+Unlimited retention in Didit, confirmed the matching Console setting, and
+accepted the DPA. The live copy discloses that choice and account deletion
+removes the associated Didit session. The remainder is retained only as
+drafting history.
 
 ---
 
