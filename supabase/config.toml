@@ -63,5 +63,17 @@ enable_confirmations = false
 enabled = true
 policy = "oneshot"
 
+# Internal jobs use their own high-entropy header secrets. They cannot pass a
+# user JWT, so the gateway must allow each function through to its handler.
+[functions.held-proceeds-reconcile]
+verify_jwt = false
+
+[functions.held-proceeds-resolution]
+verify_jwt = false
+
+# Stripe authenticates this webhook with its signed payload, not a Supabase JWT.
+[functions.stripe-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = false
