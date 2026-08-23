@@ -73,6 +73,7 @@ Deno.serve(async (req: Request) => {
       serviceHours:
         typeof body.serviceHours === "number" ? body.serviceHours : null,
       agreedItemCents,
+      agreementKey: offerId,
     });
     return json(quote, 200);
   } catch (error) {

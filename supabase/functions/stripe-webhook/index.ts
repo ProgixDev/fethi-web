@@ -121,17 +121,41 @@ async function handleEvent(
           break;
         }
 
+        // Issue #30: do not mark anything paid until Stripe's immutable money
+        // fields reconcile with the server-owned Order snapshot.
+        const { data: order, error: orderError } = await svc
+          .from('orders')
+          .select('id, amount_cents, fee_cents, payment_intent_id')
+          .eq('id', orderId)
+          .maybeSingle();
+        if (orderError) throw new Error(`order_lookup_failed:${orderError.message}`);
+        if (!order) throw new Error(`payment_order_not_found:${orderId}`);
+        const applicationFeeCents = pi.application_fee_amount ?? 0;
+        if (
+          order.payment_intent_id !== pi.id ||
+          pi.currency !== 'eur' ||
+          pi.amount !== order.amount_cents ||
+          applicationFeeCents !== order.fee_cents
+        ) {
+          throw new Error(
+            `payment_amount_mismatch:${orderId}:` +
+              `order=${order.amount_cents}/${order.fee_cents}:` +
+              `stripe=${pi.amount}/${applicationFeeCents}/${pi.currency}`,
+          );
+        }
+
         // Update order payment status
-        await svc
+        const { error: paidError } = await svc
           .from('orders')
           .update({
             payment_status: 'SUCCEEDED',
             paid_at: new Date().toISOString(),
           })
           .eq('payment_intent_id', pi.id);
+        if (paidError) throw new Error(`order_paid_update_failed:${paidError.message}`);
 
         // Create payment record
-        await svc
+        const { error: paymentError } = await svc
           .from('payments')
           .insert({
             order_id: orderId,
@@ -140,6 +164,7 @@ async function handleEvent(
             status: 'SUCCEEDED',
             metadata: pi as unknown as Record<string, unknown>,
           });
+        if (paymentError) throw new Error(`payment_insert_failed:${paymentError.message}`);
 
         console.log(`PaymentIntent ${pi.id} succeeded for order ${orderId}`);
         break;

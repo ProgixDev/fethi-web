@@ -18,6 +18,9 @@ Each entry: date · SCR · what changed · what mobile must do.
 - **Mobile reaction:** render quote fields instead of local percentage math.
   Card orders store the seller commission in `fee_cents`; handoff orders book
   the same amount in `seller_fee_receivables` because no card is charged.
+- **Receipt snapshot:** `orders` now persists `pricing_version`, `item_cents`,
+  `buyer_fee_cents`, `tax_cents`, `seller_fee_cents`, and `payment_method`.
+  Generated contract version: `331d6fbec64c`.
 
 ## 2026-08-23 · SCR-023 · Didit erasure during account deletion — issue #28
 

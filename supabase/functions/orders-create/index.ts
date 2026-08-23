@@ -73,6 +73,8 @@ Deno.serve(async (req: Request) => {
       typeof body.serviceHours === "number" ? body.serviceHours : null;
     const paymentMethod: "card" | "handoff" =
       body.paymentMethod === "handoff" ? "handoff" : "card";
+    const quoteFingerprint: string | null =
+      typeof body.quoteFingerprint === "string" ? body.quoteFingerprint : null;
     if (!listingId) throw new HttpError(400, "listingId required");
 
     const idem = await idempotentReplay(svc, "orders.create", idemKey);
@@ -121,6 +123,7 @@ Deno.serve(async (req: Request) => {
         rentalEnd: null,
         serviceHours: null,
         agreedItemCents: offer.amount_cents,
+        agreementKey: offer.id,
       });
       resolvedOfferId = offer.id;
     } else {
@@ -130,7 +133,15 @@ Deno.serve(async (req: Request) => {
         rentalStart,
         rentalEnd,
         serviceHours,
+        agreementKey: null,
       });
+    }
+
+    // The fingerprint is never trusted as pricing input: all values above were
+    // recomputed from current server data. It only prevents confirmation of a
+    // quote that became stale after the Member saw it.
+    if (quoteFingerprint && quoteFingerprint !== pricing.pricingFingerprint) {
+      throw new HttpError(409, "pricing_changed");
     }
 
     // First photo (thumb), best-effort.
@@ -153,6 +164,12 @@ Deno.serve(async (req: Request) => {
         listing_type: listing.listing_type,
         amount_cents: pricing.buyerTotalCents,
         fee_cents: pricing.persistedOrderFeeCents,
+        pricing_version: pricing.pricingVersion,
+        item_cents: pricing.itemCents,
+        buyer_fee_cents: pricing.buyerFeeCents,
+        tax_cents: pricing.taxCents,
+        seller_fee_cents: pricing.sellerFeeCents,
+        payment_method: paymentMethod,
         deposit_cents: pricing.depositCents,
         rental_start: pricing.rentalStart,
         rental_end: pricing.rentalEnd,
@@ -306,6 +323,12 @@ function toOrder(o: Record<string, unknown>) {
     listingType: o.listing_type,
     amountCents: o.amount_cents,
     feeCents: o.fee_cents,
+    pricingVersion: o.pricing_version,
+    itemCents: o.item_cents,
+    buyerFeeCents: o.buyer_fee_cents,
+    taxCents: o.tax_cents,
+    sellerFeeCents: o.seller_fee_cents,
+    paymentMethod: o.payment_method,
     depositCents: o.deposit_cents,
     rentalStart: o.rental_start,
     rentalEnd: o.rental_end,

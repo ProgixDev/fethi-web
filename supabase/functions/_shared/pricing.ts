@@ -12,7 +12,8 @@ export const CURRENCY = "eur" as const;
 export const SELLER_FEE_BASIS_POINTS = 500;
 
 export type ListingPricing = {
-  listing_type: string;
+  id: string;
+  listing_type: "VENTE" | "LOCATION" | "SERVICE";
   price_cents: number | null;
   price_per_day_cents: number | null;
   deposit_cents: number | null;
@@ -26,10 +27,12 @@ export type PricingOptions = {
   rentalEnd: string | null;
   serviceHours: number | null;
   agreedItemCents?: number | null;
+  agreementKey?: string | null;
 };
 
 export type PricingBreakdown = {
   pricingVersion: typeof PRICING_VERSION;
+  pricingFingerprint: string;
   currency: typeof CURRENCY;
   itemCents: number;
   buyerFeeCents: 0;
@@ -91,8 +94,10 @@ export function calculatePricing(
     itemCents = listing.flat_rate_cents
       ? listing.flat_rate_cents
       : (listing.hourly_rate_cents ?? 0) * hours;
-  } else {
+  } else if (listing.listing_type === "VENTE") {
     itemCents = listing.price_cents ?? 0;
+  } else {
+    throw new PricingError("listing_type_invalid");
   }
 
   if (!Number.isSafeInteger(itemCents) || itemCents <= 0) {
@@ -100,9 +105,7 @@ export function calculatePricing(
   }
 
   const sellerFeeCents = calculateSellerFee(itemCents);
-  return {
-    pricingVersion: PRICING_VERSION,
-    currency: CURRENCY,
+  const breakdown = {
     itemCents,
     buyerFeeCents: 0,
     taxCents: 0,
@@ -116,5 +119,26 @@ export function calculatePricing(
     depositCents,
     rentalStart,
     rentalEnd,
+  };
+  return {
+    pricingVersion: PRICING_VERSION,
+    pricingFingerprint: [
+      PRICING_VERSION,
+      CURRENCY,
+      listing.id,
+      options.agreementKey ?? "direct",
+      breakdown.itemCents,
+      breakdown.buyerFeeCents,
+      breakdown.taxCents,
+      breakdown.buyerTotalCents,
+      breakdown.sellerFeeCents,
+      breakdown.sellerNetCents,
+      breakdown.persistedOrderFeeCents,
+      breakdown.depositCents,
+      breakdown.rentalStart ?? "",
+      breakdown.rentalEnd ?? "",
+    ].join(":"),
+    currency: CURRENCY,
+    ...breakdown,
   };
 }
