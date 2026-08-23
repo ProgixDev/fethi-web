@@ -3,6 +3,7 @@
   "deployed": [
     "offers-respond",
     "orders-create",
+    "orders-price-quote",
     "orders-transition",
     "account-delete",
     "account-export",
