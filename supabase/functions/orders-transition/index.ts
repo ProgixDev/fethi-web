@@ -172,6 +172,15 @@ async function cancel(
   uid: string,
   reason: string | null,
 ) {
+  if (order.payment_intent_id && order.payment_status !== 'FAILED') {
+    if (!STRIPE_SECRET_KEY) throw new HttpError(503, 'stripe_unconfigured');
+    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Deno });
+    try {
+      await stripe.paymentIntents.cancel(order.payment_intent_id as string);
+    } catch {
+      throw new HttpError(409, 'payment_cancellation_required');
+    }
+  }
   const fromStatus = order.status as string;
   const { data: updated, error } = await svc
     .from('orders')
@@ -209,6 +218,8 @@ async function cancel(
       .update({ status: 'ACTIVE' })
       .eq('id', order.listing_id as string)
       .eq('status', 'SOLD');
+  } else if (order.listing_type === 'VENTE') {
+    await svc.from('listings').update({ status: 'ACTIVE' }).eq('id', order.listing_id as string).eq('status', 'SOLD');
   }
   return updated;
 }

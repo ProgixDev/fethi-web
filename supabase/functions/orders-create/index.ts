@@ -117,6 +117,9 @@ Deno.serve(async (req: Request) => {
         throw new HttpError(409, "offer_listing_mismatch");
       if (offer.status !== "ACCEPTED")
         throw new HttpError(409, `offer_not_accepted:${offer.status}`);
+      await svc.rpc('expire_offer_reservation', { p_listing_id: listingId });
+      const { data: currentOffer } = await svc.from('offers').select('status, order_id').eq('id', offerId).single();
+      if (currentOffer?.status !== 'ACCEPTED') throw new HttpError(409, 'offer_checkout_expired');
       if (offer.order_id) throw new HttpError(409, "offer_already_ordered");
       // Offer path: the agreed amount replaces the listing price, while the
       // same seller-side commission still applies.
@@ -181,7 +184,14 @@ Deno.serve(async (req: Request) => {
       })
       .select("*")
       .single();
-    if (insErr) throw new HttpError(500, insErr.message);
+    if (insErr) {
+      if (insErr.code === '23505') throw new HttpError(409, resolvedOfferId ? 'offer_already_ordered' : 'listing_not_available');
+      throw new HttpError(500, insErr.message);
+    }
+
+    if (!resolvedOfferId && listing.listing_type === 'VENTE') {
+      await svc.from('listings').update({ status: 'SOLD' }).eq('id', listingId).eq('status', 'ACTIVE');
+    }
 
     await svc.from("order_events").insert({
       order_id: order.id,
