@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 331d6fbec64c
+ * schema-version: 48c5ef16fea1
  */
 
 export type Json =
@@ -412,45 +412,6 @@ export type Database = {
           },
         ]
       }
-      idempotency_keys: {
-        Row: {
-          created_at: string
-          key: string
-          response: Json | null
-          scope: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          key: string
-          response?: Json | null
-          scope: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          key?: string
-          response?: Json | null
-          scope?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "idempotency_keys_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "idempotency_keys_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       held_seller_proceeds: {
         Row: {
           buyer_confirmed_at: string | null
@@ -527,6 +488,45 @@ export type Database = {
           {
             foreignKeyName: "held_seller_proceeds_seller_id_fkey"
             columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idempotency_keys: {
+        Row: {
+          created_at: string
+          key: string
+          response: Json | null
+          scope: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          response?: Json | null
+          scope: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          response?: Json | null
+          scope?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idempotency_keys_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "idempotency_keys_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
@@ -2017,6 +2017,30 @@ export type Database = {
         Returns: unknown
       }
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      accept_offer: {
+        Args: { p_message?: string; p_offer_id: string; p_seller_id: string }
+        Returns: {
+          amount_cents: number
+          buyer_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          listing_id: string
+          message: string | null
+          order_id: string | null
+          responded_at: string | null
+          response_message: string | null
+          seller_id: string
+          status: Database["public"]["Enums"]["offer_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "offers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       addauth: { Args: { "": string }; Returns: boolean }
       addgeometrycolumn:
         | {
@@ -2929,7 +2953,6 @@ export type Database = {
     }
     Enums: {
       fee_receivable_status: "OUTSTANDING" | "SETTLED" | "WAIVED"
-      proceeds_hold_status: "HELD" | "RELEASE_PENDING" | "RELEASING" | "RELEASED" | "REFUNDED" | "DISPUTED" | "CANCELLED" | "REVIEW_REQUIRED"
       kyc_status: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
       listing_condition: "new" | "likenew" | "good" | "fair"
       listing_status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD" | "ARCHIVED"
@@ -2970,6 +2993,15 @@ export type Database = {
         | "REFUNDED"
         | "DISPUTED"
         | "PARTIALLY_REFUNDED"
+      proceeds_hold_status:
+        | "HELD"
+        | "RELEASE_PENDING"
+        | "RELEASING"
+        | "RELEASED"
+        | "REFUNDED"
+        | "DISPUTED"
+        | "CANCELLED"
+        | "REVIEW_REQUIRED"
       staff_role: "admin" | "moderator" | "finance" | "support"
       user_status: "ACTIVE" | "PENDING" | "SUSPENDED" | "BANNED"
     }
@@ -3111,7 +3143,6 @@ export const Constants = {
   public: {
     Enums: {
       fee_receivable_status: ["OUTSTANDING", "SETTLED", "WAIVED"],
-      proceeds_hold_status: ["HELD", "RELEASE_PENDING", "RELEASING", "RELEASED", "REFUNDED", "DISPUTED", "CANCELLED", "REVIEW_REQUIRED"],
       kyc_status: ["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"],
       listing_condition: ["new", "likenew", "good", "fair"],
       listing_status: ["DRAFT", "ACTIVE", "PAUSED", "SOLD", "ARCHIVED"],
@@ -3143,6 +3174,16 @@ export const Constants = {
         "REFUNDED",
         "DISPUTED",
         "PARTIALLY_REFUNDED",
+      ],
+      proceeds_hold_status: [
+        "HELD",
+        "RELEASE_PENDING",
+        "RELEASING",
+        "RELEASED",
+        "REFUNDED",
+        "DISPUTED",
+        "CANCELLED",
+        "REVIEW_REQUIRED",
       ],
       staff_role: ["admin", "moderator", "finance", "support"],
       user_status: ["ACTIVE", "PENDING", "SUSPENDED", "BANNED"],
