@@ -195,6 +195,21 @@ async function cancel(
     to_status: 'CANCELLED',
     note: reason ?? 'cancelled',
   });
+  // A cancelled, unpaid offer checkout releases its reservation. The offer is
+  // terminally withdrawn, allowing the seller to accept another pending offer.
+  if (order.offer_id) {
+    await svc
+      .from('offers')
+      .update({ status: 'WITHDRAWN', response_message: 'Paiement non finalisé.', responded_at: new Date().toISOString() })
+      .eq('id', order.offer_id as string)
+      .eq('order_id', order.id as string)
+      .eq('status', 'ACCEPTED');
+    await svc
+      .from('listings')
+      .update({ status: 'ACTIVE' })
+      .eq('id', order.listing_id as string)
+      .eq('status', 'SOLD');
+  }
   return updated;
 }
 

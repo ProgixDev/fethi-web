@@ -84,7 +84,7 @@ Deno.serve(async (req: Request) => {
     const { data: listing, error: lErr } = await svc
       .from("listings")
       .select(
-        "id, owner_id, listing_type, title, price_cents, price_per_day_cents, " +
+        "id, owner_id, status, listing_type, title, price_cents, price_per_day_cents, " +
           "deposit_cents, hourly_rate_cents, flat_rate_cents",
       )
       .eq("id", listingId)
@@ -95,6 +95,9 @@ Deno.serve(async (req: Request) => {
       throw new HttpError(409, "cannot_buy_own_listing");
     if (paymentMethod === "handoff" && listing.listing_type !== "VENTE") {
       throw new HttpError(400, "handoff_unsupported_for_listing_type");
+    }
+    if (!offerId && listing.status !== "ACTIVE") {
+      throw new HttpError(409, "listing_not_available");
     }
 
     let pricing: PricingBreakdown;
