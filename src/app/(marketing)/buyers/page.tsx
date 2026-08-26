@@ -31,7 +31,7 @@ const benefits = [
 const faqs = [
   {
     q: "Comment je paie ?",
-    a: "Carte bancaire ou Apple/Google Pay. Après votre confirmation de réception, le vendeur est payé immédiatement sous 500 € et après environ 48 h à partir de 500 €."
+    a: "Au choix. Dans l'app par carte bancaire ou Apple/Google Pay — le vendeur est payé après votre confirmation de réception — ou directement en main propre au moment de l'échange."
   },
   {
     q: "Que faire si l'objet ne correspond pas ?",
