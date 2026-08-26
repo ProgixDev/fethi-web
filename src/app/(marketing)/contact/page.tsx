@@ -1,4 +1,4 @@
-import { LifeBuoy, Newspaper, Handshake, MapPin } from "lucide-react";
+import { LifeBuoy, MapPin } from "lucide-react";
 import { Container, Section, Eyebrow } from "@/components/marketing/shell/Container";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
@@ -9,20 +9,8 @@ const cards = [
   {
     icon: LifeBuoy,
     title: "Support",
-    body: "Question sur votre compte, un paiement, une annonce ou un litige.",
+    body: "Question sur votre compte, un paiement, une annonce ou un litige — presse et partenariats inclus.",
     email: "support@mystreet.fr",
-  },
-  {
-    icon: Newspaper,
-    title: "Presse",
-    body: "Demandes d'interview, ressources visuelles, communiqués.",
-    email: "presse@mystreet.fr",
-  },
-  {
-    icon: Handshake,
-    title: "Partenariats",
-    body: "Commerces, mairies, associations, intégrations.",
-    email: "partenariats@mystreet.fr",
   },
 ];
 
@@ -37,8 +25,8 @@ export default function ContactPage() {
             <span className="font-serif italic text-primary">vraiment.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-body-lg text-n-600">
-            Trois adresses claires selon votre demande. Ou un formulaire si
-            vous préférez écrire ici.
+            Une adresse, pour tout. Ou un formulaire si vous préférez écrire
+            ici.
           </p>
         </Container>
       </Section>
@@ -70,7 +58,7 @@ export default function ContactPage() {
                 <p className="mt-2 text-body-sm text-n-600">
                   MyStreet (équipe basée à Lille)<br />
                   Vieux-Lille — 59000<br />
-                  Studio Projix · Montréal
+                  Studio Progix · Montréal
                 </p>
               </div>
             </div>

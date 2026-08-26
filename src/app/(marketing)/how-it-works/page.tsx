@@ -51,11 +51,11 @@ const steps = [
 const faqs = [
   {
     q: "Faut-il une carte d'identité pour s'inscrire ?",
-    a: "Oui. Une vérification d'identité légère (KYC) est demandée à partir de la deuxième transaction. Avant cela, vous pouvez naviguer et discuter librement.",
+    a: "Non, l'inscription est libre. Une vérification d'identité légère (KYC) est seulement demandée au vendeur avant de recevoir le paiement d'une vente, pour sécuriser les transferts.",
   },
   {
     q: "Quels sont les frais ?",
-    a: "Publier est gratuit. Quand une vente se finalise dans l'app, MyStreet retient 5 % sur la part du vendeur — pour couvrir le paiement protégé, le service de litige et la modération. L'acheteur paie le prix affiché. MyStreet+ (1,99 €/mois) et les boosts à l'unité sont optionnels.",
+    a: "Publier est gratuit. Quand une vente se finalise dans l'app, MyStreet retient 5 % sur la part du vendeur — pour couvrir le paiement protégé, le service de litige et la modération. L'acheteur paie le prix affiché.",
   },
   {
     q: "Que se passe-t-il si l'objet ne correspond pas ?",

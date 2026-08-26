@@ -43,7 +43,7 @@ const faqs = [
   },
   {
     q: "Et si je veux qu'on me livre ?",
-    a: "Ce n'est pas notre métier. MyStreet est une marketplace de quartier — si vous voulez un envoi, il existe d'autres apps.",
+    a: "On ne propose pas (encore) ce service. MyStreet est pensé pour la rencontre à pied, dans le quartier — pas pour l'envoi.",
   },
 ];
 

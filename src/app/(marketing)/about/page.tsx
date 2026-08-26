@@ -5,7 +5,7 @@ const values = [
   { title: "Proximité", body: "Les distances se comptent en mètres, pas en kilomètres. La rencontre prime sur la transaction." },
   { title: "Confiance", body: "Identités vérifiées, paiements protégés, modération humaine. La méfiance ne fait pas vivre un quartier." },
   { title: "Sobriété", body: "Pas de notifications inutiles, pas de gamification. L'app sert. Elle ne capture pas l'attention." },
-  { title: "Indépendance", body: "Pas de pub ciblée, pas de revente de données. La commission de 5 % et MyStreet+ financent tout le reste." },
+  { title: "Indépendance", body: "Pas de pub ciblée, pas de revente de données. La commission de 5 % finance tout le reste." },
   { title: "Durabilité", body: "Réutiliser, emprunter, partager. Une vente sur MyStreet, c'est un objet de moins fabriqué." },
 ];
 
@@ -49,9 +49,9 @@ export default function AboutPage() {
             </p>
             <p>
               Nous pensons aussi qu'une marketplace ne doit rien à la
-              publicité ciblée. Notre seule source de revenus, ce sont les
-              abonnements optionnels. Cela nous oblige à être bons sur le
-              produit, pas sur l'extraction d'attention.
+              publicité ciblée. Notre seule source de revenus, c'est la
+              commission sur les ventes finalisées. Cela nous oblige à être
+              bons sur le produit, pas sur l'extraction d'attention.
             </p>
             <p>
               Lille en premier, parce qu'on y vit, et qu'une ville à taille
@@ -94,7 +94,7 @@ export default function AboutPage() {
                 </p>
                 <p>
                   MyStreet est conçue avec le studio{" "}
-                  <span className="font-medium text-ink">Projix</span> à
+                  <span className="font-medium text-ink">Progix</span> à
                   Montréal. Lancement à Lille en septembre 2026.
                 </p>
               </div>
@@ -135,7 +135,6 @@ export default function AboutPage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button href="/#waitlist" size="lg">Rejoindre la liste</Button>
-            <Button href="/careers" variant="outline" size="lg">Nous rejoindre</Button>
           </div>
         </Container>
       </Section>

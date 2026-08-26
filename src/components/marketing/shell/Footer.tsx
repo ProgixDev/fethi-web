@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Lock } from "lucide-react";
 import { Logo } from "@/components/shared/Wordmark";
 import { AppleStoreBadge, PlayStoreBadge } from "@/components/shared/StoreBadges";
 
@@ -29,7 +28,6 @@ const cols = [
     links: [
       { href: "/about", label: "Notre histoire" },
       { href: "/press", label: "Presse" },
-      { href: "/careers", label: "Carrières" },
       { href: "/blog", label: "Blog" },
     ],
   },
@@ -92,14 +90,6 @@ export function MarketingFooter() {
             <Link href="/terms" className="hover:text-n-700">CGU</Link>
             <Link href="/privacy" className="hover:text-n-700">Confidentialité</Link>
             <Link href="/cookies" className="hover:text-n-700">Cookies</Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-1 rounded-md border border-divider px-2 py-1 text-caption text-n-500 hover:border-n-300 hover:text-n-700"
-              aria-label="Espace admin"
-            >
-              <Lock className="h-3 w-3" />
-              Espace admin
-            </Link>
           </div>
         </div>
       </div>

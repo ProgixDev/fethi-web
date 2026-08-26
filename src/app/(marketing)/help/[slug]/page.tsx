@@ -55,12 +55,6 @@ const articles: Record<string, Article> = {
             "Les cartes prépayées et les comptes Revolut Junior ne sont pas acceptés au-delà de 100 €.",
           ],
         },
-        {
-          heading: "Pour les abonnés MyStreet+",
-          paragraphs: [
-            "Le prélèvement SEPA arrive courant 2027 pour les abonnements et factures. En attendant, MyStreet+ se règle par carte bancaire, Apple Pay ou Google Pay.",
-          ],
-        },
       ],
     },
   },
