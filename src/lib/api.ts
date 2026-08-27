@@ -701,16 +701,6 @@ export const kycApi = {
     internalRequest<KycDetail>(`/kyc/${userId}`),
 
   /**
-   * Refresh KYC status from Stripe.
-   * Calls the Edge Function to fetch fresh data.
-   */
-  refresh: (userId: string) =>
-    internalRequest<KycDetail>(`/kyc/${userId}`, {
-      method: "POST",
-      body: JSON.stringify({ action: "refresh" }),
-    }),
-
-  /**
    * Resend onboarding link for incomplete Connect accounts.
    * Calls the connect-onboarding Edge Function.
    */

@@ -10,7 +10,6 @@ import {
   Copy,
   ExternalLink,
   FileCheck,
-  RefreshCw,
   Shield,
   User,
   XCircle,
@@ -73,7 +72,6 @@ export default function KycDetailPage() {
   const id = params.id;
   const [detail, setDetail] = React.useState<KycDetail | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [refreshing, setRefreshing] = React.useState(false);
   const [resending, setResending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [onboardingUrl, setOnboardingUrl] = React.useState<string | null>(null);
@@ -88,8 +86,6 @@ export default function KycDetailPage() {
     } catch (err) {
       setError((err as Error).message);
       setDetail(null);
-    } finally {
-      setRefreshing(false);
     }
   }, [id]);
 
@@ -103,19 +99,6 @@ export default function KycDetailPage() {
       alive = false;
     };
   }, [loadDetail]);
-
-  const handleRefresh = async () => {
-    if (!id) return;
-    setRefreshing(true);
-    try {
-      const data = await kycApi.refresh(id);
-      setDetail(data);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setRefreshing(false);
-    }
-  };
 
   const handleResendOnboarding = async () => {
     if (!id) return;
@@ -185,15 +168,6 @@ export default function KycDetailPage() {
         description={`Quartier : ${detail.neighborhood ?? "—"}`}
         actions={
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              Actualiser
-            </Button>
             {(detail.kyc === "UNVERIFIED" || detail.kyc === "PENDING") && (
               <Button
                 size="sm"
@@ -469,15 +443,10 @@ export default function KycDetailPage() {
               <h4 className="text-label text-body-sm font-medium text-n-700">
                 Actions rapides
               </h4>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={handleRefresh}
-                disabled={refreshing}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Actualiser depuis Stripe
-              </Button>
+              <p className="text-caption text-n-500">
+                Le statut KYC se met à jour automatiquement via le webhook Didit — pas
+                d&apos;actualisation manuelle nécessaire.
+              </p>
               {(detail.kyc === "UNVERIFIED" || detail.kyc === "PENDING") && (
                 <Button
                   variant="outline"

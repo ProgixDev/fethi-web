@@ -47,8 +47,6 @@ const navItems = [
   { href: "/communications/notifications", label: "Composer une notification", icon: Megaphone, group: "Communications" },
   { href: "/communications/templates", label: "Modèles de message", icon: Megaphone, group: "Communications" },
   { href: "/settings/system", label: "Paramètres système", icon: Settings, group: "Paramètres" },
-  { href: "/settings/feature-flags", label: "Feature flags", icon: Settings, group: "Paramètres" },
-  { href: "/settings/api-keys", label: "Clés API", icon: Settings, group: "Paramètres" },
 ];
 
 export function CommandPaletteProvider({ children }: { children: React.ReactNode }) {
