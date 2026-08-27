@@ -31,7 +31,7 @@ const benefits = [
 const faqs = [
   {
     q: "Comment je paie ?",
-    a: "Carte bancaire ou Apple/Google Pay. Après votre confirmation de réception, le vendeur est payé immédiatement sous 500 € et après environ 48 h à partir de 500 €."
+    a: "Au choix. Dans l'app par carte bancaire ou Apple/Google Pay — le vendeur est payé après votre confirmation de réception — ou directement en main propre au moment de l'échange."
   },
   {
     q: "Que faire si l'objet ne correspond pas ?",
@@ -43,7 +43,7 @@ const faqs = [
   },
   {
     q: "Et si je veux qu'on me livre ?",
-    a: "Ce n'est pas notre métier. MyStreet est une marketplace de quartier — si vous voulez un envoi, il existe d'autres apps.",
+    a: "On ne propose pas (encore) ce service. MyStreet est pensé pour la rencontre à pied, dans le quartier — pas pour l'envoi.",
   },
 ];
 

@@ -1,7 +1,6 @@
 import { Clock, PackageOpen, Star, Check } from "lucide-react";
 import { Container, Section, Eyebrow } from "@/components/marketing/shell/Container";
 import { Button } from "@/components/ui/Button";
-import { Pill } from "@/components/ui/Pill";
 
 const benefits = [
   {
@@ -21,40 +20,21 @@ const benefits = [
   },
 ];
 
-const tiers = [
-  {
-    name: "Gratuit",
-    price: "0 €",
-    period: "à vie",
-    pitch: "Pour acheter, vendre, louer entre voisins.",
-    features: [
-      "Annonces illimitées",
-      "Messagerie sécurisée",
-      "Paiement protégé inclus",
-      "Note voisin réciproque",
-      "Commission 5 % côté vendeur sur les ventes finalisées",
-    ],
-    cta: "Commencer",
-    href: "/#waitlist",
-    highlight: false,
-  },
-  {
-    name: "MyStreet+",
-    price: "1,99 €",
-    period: "par mois",
-    pitch: "Le coup de pouce des vendeurs réguliers.",
-    features: [
-      "Rayon de recherche personnalisé",
-      "Recherches sauvegardées avec alertes",
-      "Boosts à l’unité à −50 % (à partir de 0,49 €)",
-      "Support prioritaire 24 h",
-      "Sans engagement, résiliable à tout moment",
-    ],
-    cta: "Activer MyStreet+",
-    href: "/#waitlist",
-    highlight: true,
-  },
-];
+const tier = {
+  name: "Gratuit",
+  price: "0 €",
+  period: "à vie",
+  pitch: "Pour acheter, vendre, louer entre voisins.",
+  features: [
+    "Annonces illimitées",
+    "Messagerie sécurisée",
+    "Paiement protégé inclus",
+    "Note voisin réciproque",
+    "Commission 5 % côté vendeur sur les ventes finalisées",
+  ],
+  cta: "Commencer",
+  href: "/#waitlist",
+};
 
 // Pre-launch: no sellers on the platform yet, so this section makes promises
 // rather than fabricating quotes from customers who don't exist.
@@ -129,50 +109,32 @@ export default function SellersPage() {
               </span>
             </h2>
           </div>
-          <div className="mt-12 grid gap-6 lg:grid-cols-3">
-            {tiers.map((t) => (
-              <div
-                key={t.name}
-                className={`flex flex-col rounded-xl border bg-surface p-7 ${
-                  t.highlight
-                    ? "border-primary shadow-medium ring-1 ring-primary/20"
-                    : "border-n-100"
-                }`}
-              >
-                {t.highlight ? (
-                  <Pill tone="primary" className="self-start">
-                    Le plus populaire
-                  </Pill>
-                ) : null}
-                <h3 className="mt-3 text-h2 text-ink">{t.name}</h3>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="font-serif text-display italic text-primary">
-                    {t.price}
-                  </span>
-                  <span className="text-body-sm text-n-500">{t.period}</span>
-                </div>
-                <p className="mt-3 text-body text-n-600">{t.pitch}</p>
-                <ul className="mt-6 space-y-2.5">
-                  {t.features.map((f) => (
-                    <li
-                      key={f}
-                      className="flex items-start gap-2 text-body-sm text-n-700"
-                    >
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-8 flex-1" />
-                <Button
-                  href={t.href}
-                  variant={t.highlight ? "primary" : "outline"}
-                  className="w-full"
-                >
-                  {t.cta}
-                </Button>
+          <div className="mx-auto mt-12 max-w-md">
+            <div className="flex flex-col rounded-xl border border-n-100 bg-surface p-7">
+              <h3 className="mt-3 text-h2 text-ink">{tier.name}</h3>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="font-serif text-display italic text-primary">
+                  {tier.price}
+                </span>
+                <span className="text-body-sm text-n-500">{tier.period}</span>
               </div>
-            ))}
+              <p className="mt-3 text-body text-n-600">{tier.pitch}</p>
+              <ul className="mt-6 space-y-2.5">
+                {tier.features.map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-2 text-body-sm text-n-700"
+                  >
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8 flex-1" />
+              <Button href={tier.href} variant="primary" className="w-full">
+                {tier.cta}
+              </Button>
+            </div>
           </div>
         </Container>
       </Section>

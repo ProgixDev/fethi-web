@@ -42,7 +42,7 @@ const sections = [
   {
     heading: "6. Frais",
     paragraphs: [
-      "L'usage de la Plateforme est gratuit en publication comme en achat. Une commission de 5 % est prélevée sur la part du vendeur lors d'une vente finalisée dans l'app. L'abonnement MyStreet+ (1,99 €/mois) et les boosts à l'unité (de 0,99 € à 14,99 €) sont optionnels.",
+      "L'usage de la Plateforme est gratuit en publication comme en achat. Une commission de 5 % est prélevée sur la part du vendeur lors d'une vente finalisée dans l'app. Les boosts à l'unité (de 0,99 € à 14,99 €) sont optionnels.",
       "Les tarifs en vigueur sont publiés sur mystreet.fr/pricing. Toute modification fait l'objet d'une notification trente jours avant entrée en vigueur.",
     ],
   },

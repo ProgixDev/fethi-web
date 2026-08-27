@@ -39,7 +39,7 @@ const steps = [
     lead:
       "Pas d'envoi, pas de point relais. Vous fixez un rendez-vous dans un café ou sur le trottoir, et vous échangez.",
     points: [
-      "Le paiement sécurisé reste en attente jusqu'à votre confirmation de réception dans l'app.",
+      "Deux façons de payer : dans l'app (paiement sécurisé, débloqué au vendeur après votre confirmation de réception), ou en main propre au moment de l'échange.",
       "Le lieu est suggéré à mi-chemin entre les deux adresses.",
       "Une fois la transaction validée, chacun note l'autre.",
     ],
@@ -51,15 +51,19 @@ const steps = [
 const faqs = [
   {
     q: "Faut-il une carte d'identité pour s'inscrire ?",
-    a: "Oui. Une vérification d'identité légère (KYC) est demandée à partir de la deuxième transaction. Avant cela, vous pouvez naviguer et discuter librement.",
+    a: "Non, l'inscription est libre. Une vérification d'identité légère (KYC) est seulement demandée au vendeur avant de recevoir le paiement d'une vente, pour sécuriser les transferts.",
   },
   {
     q: "Quels sont les frais ?",
-    a: "Publier est gratuit. Quand une vente se finalise dans l'app, MyStreet retient 5 % sur la part du vendeur — pour couvrir le paiement protégé, le service de litige et la modération. L'acheteur paie le prix affiché. MyStreet+ (1,99 €/mois) et les boosts à l'unité sont optionnels.",
+    a: "Publier est gratuit. Quand une vente se finalise dans l'app, MyStreet retient 5 % sur la part du vendeur — pour couvrir le paiement protégé, le service de litige et la modération. L'acheteur paie le prix affiché.",
+  },
+  {
+    q: "Le paiement se fait sur l'app ou à la rencontre ?",
+    a: "Au choix. Vous pouvez payer dans l'app — les fonds restent protégés jusqu'à votre confirmation de réception — ou régler directement en main propre au moment de l'échange.",
   },
   {
     q: "Que se passe-t-il si l'objet ne correspond pas ?",
-    a: "Le paiement reste en attente jusqu'à la confirmation de réception par l'acheteur. Après confirmation, la part du vendeur est disponible immédiatement sous 500 € et après environ 48 h à partir de 500 €. Un litige ou l'absence de confirmation après sept jours bloque tout versement automatique et déclenche un examen.",
+    a: "Pour un paiement dans l'app, les fonds restent en attente jusqu'à la confirmation de réception par l'acheteur. Après confirmation, la part du vendeur est disponible immédiatement sous 500 € et après environ 48 h à partir de 500 €. Un litige ou l'absence de confirmation après sept jours bloque tout versement automatique et déclenche un examen.",
   },
   {
     q: "Pourquoi Lille seulement ?",

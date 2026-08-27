@@ -63,7 +63,7 @@ export function Pillars() {
           <div>
             <Eyebrow>Trois usages, une seule app</Eyebrow>
             <h2 className="mt-4 max-w-3xl text-display tracking-[-0.02em] text-ink">
-              On a découpé le quartier en trois rituels.
+              Acheter, vendre, se rendre service — dans le même quartier.
             </h2>
           </div>
         </div>
