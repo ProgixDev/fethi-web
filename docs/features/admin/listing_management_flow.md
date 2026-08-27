@@ -10,7 +10,8 @@
 - Backend/API Interactions: `/listings`, `/listings/{id}`,
   `/admin/categories`.
 - Special Conditions / Rules: Listing type is `VENTE`, `LOCATION`, or `SERVICE`;
-  status is `DRAFT`, `ACTIVE`, `PAUSED`, `SOLD`, or `ARCHIVED`.
+  status is `DRAFT`, `ACTIVE`, `PAUSED`, `SOLD`, or `ARCHIVED`. LOCATION has no
+  structured price and is displayed as “À convenir par message”.
 - Additional Notes: Category settings overlap with settings/category routes.
 
 ---
@@ -132,4 +133,3 @@ Failed updates preserve previous state and show actionable error feedback.
 
 - Are featured listings editorial-only, paid boosts, or both?
 - Should listing delete mean archive only?
-

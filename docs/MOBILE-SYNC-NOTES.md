@@ -8,6 +8,19 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-08-27 · SCR-027 · Contact-only rental listings — issue #60
+
+- **Listing contract:** an active `LOCATION` no longer needs
+  `price_per_day_cents`; legacy pricing/date/deposit columns remain readable.
+- **Checkout contract:** `orders-price-quote` and `orders-create` return HTTP
+  409 `RENTAL_CONTACT_ONLY` for LOCATION listings. Existing orders are unchanged.
+- **Offer contract:** the database rejects new LOCATION offers and acceptance
+  of legacy pending LOCATION offers; Messages is the only new contact path.
+- **Mobile reaction:** publish locations with photos/text only, display “À
+  convenir”, route contact through Messages, and redirect old rental deep links.
+- **Applied 2026-08-27:** both migrations and both Edge Functions are live; the
+  web and mobile applied-SCR manifests are synchronized.
+
 ## 2026-08-23 · SCR-024 · Authoritative seller-commission pricing — issue #30
 
 - **Contract:** new authenticated `orders-price-quote` returns the exact shared

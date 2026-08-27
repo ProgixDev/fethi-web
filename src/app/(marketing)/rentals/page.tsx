@@ -1,4 +1,4 @@
-import { Wrench, Refrigerator, Music, Tent, Bike, ShieldCheck } from "lucide-react";
+import { Wrench, Refrigerator, Music, Tent, Bike, MessageCircle } from "lucide-react";
 import { Container, Section, Eyebrow } from "@/components/marketing/shell/Container";
 import { Button } from "@/components/ui/Button";
 
@@ -11,16 +11,15 @@ const categories = [
 ];
 
 const steps = [
-  { n: "01", title: "Réservez", body: "Choisissez les dates. Le voisin valide en moins d'une heure." },
-  { n: "02", title: "Récupérez", body: "Dix minutes à pied, photos d'état des lieux dans l'app." },
-  { n: "03", title: "Rendez", body: "Au jour prévu. La caution est libérée si tout va bien." },
+  { n: "01", title: "Publiez", body: "Ajoutez des photos et une description simple de l'objet." },
+  { n: "02", title: "Échangez", body: "Contactez votre voisin directement dans la messagerie." },
+  { n: "03", title: "Convenez", body: "Fixez librement le tarif, la durée et la remise entre vous." },
 ];
 
-const safety = [
-  "Caution bloquée automatiquement, libérée à la restitution.",
-  "État des lieux photo avant/après directement dans l'app.",
-  "Assurance casse incluse jusqu'à 1 500 € sur les locations vérifiées.",
-  "Litige tranché par notre équipe sous 48 h, week-ends compris.",
+const contactOnly = [
+  "Une annonce claire avec photos et description.",
+  "Une messagerie pour poser toutes vos questions.",
+  "Les modalités de location sont convenues directement entre voisins.",
 ];
 
 export default function RentalsPage() {
@@ -35,8 +34,8 @@ export default function RentalsPage() {
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-body-lg text-n-600">
             Une perceuse à 80 € pour deux trous par an, c'est absurde.
-            MyStreet vous permet d'emprunter ce que votre voisin n'utilise
-            pas, à pied, sans caution liquide.
+            MyStreet vous permet de trouver ce que votre voisin n'utilise pas
+            et de le contacter simplement, près de chez vous.
           </p>
           <div className="mt-8 flex justify-center">
             <Button href="/#waitlist" size="lg">
@@ -74,8 +73,8 @@ export default function RentalsPage() {
             <div className="lg:col-span-4">
               <Eyebrow>Comment ça marche</Eyebrow>
               <h2 className="mt-6 text-h1 tracking-tight text-ink">
-                Réserver. Récupérer.{" "}
-                <span className="font-serif italic text-primary">Rendre.</span>
+                Publier. Échanger.{" "}
+                <span className="font-serif italic text-primary">S&apos;arranger.</span>
               </h2>
             </div>
             <div className="grid gap-6 lg:col-span-8 sm:grid-cols-3">
@@ -93,13 +92,13 @@ export default function RentalsPage() {
 
       <Section className="bg-surface border-y border-divider">
         <Container width="narrow">
-          <ShieldCheck className="h-8 w-8 text-accent" />
+          <MessageCircle className="h-8 w-8 text-accent" />
           <h2 className="mt-4 text-h1 tracking-tight text-ink sm:text-display">
-            Assurance &{" "}
-            <span className="font-serif italic text-primary">tranquillité.</span>
+            Simplement entre{" "}
+            <span className="font-serif italic text-primary">voisins.</span>
           </h2>
           <ul className="mt-8 space-y-3">
-            {safety.map((s) => (
+            {contactOnly.map((s) => (
               <li key={s} className="flex gap-3 text-body text-n-700">
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                 {s}

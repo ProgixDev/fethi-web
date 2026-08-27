@@ -45,8 +45,9 @@ The first production path should prioritize:
    so that I know what I will pay.
 6. As a prospective service provider, I want to understand how services are
    represented, so that I can decide whether to list my help.
-7. As a prospective renter, I want to understand how rentals work, so that I can
-   safely lend or borrow locally.
+7. As a prospective renter, I want to understand that rentals are simple
+   listings followed by a direct conversation, so I know MyStreet does not
+   manage booking dates, deposits, or rental payments.
 8. As a pre-launch visitor, I want to join the waitlist, so that I can be
    notified when MyStreet opens in Lille.
 9. As a referred visitor, I want my referral code to be recognized, so that any
@@ -182,4 +183,3 @@ The first production path should prioritize:
 This PRD is published as a repo document because no project issue tracker
 configuration is available in the current workspace. The intended issue-tracker
 label from the `to-prd` skill would be `ready-for-agent`.
-

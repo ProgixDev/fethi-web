@@ -40,8 +40,7 @@ const statusLabel: Record<ListingStatus, string> = {
 function formatPrice(l: Listing) {
   const eur = (c: number | null | undefined) =>
     c != null ? `${(c / 100).toLocaleString("fr-FR")} €` : "";
-  if (l.listingType === "LOCATION")
-    return l.pricePerDayCents != null ? `${eur(l.pricePerDayCents)} / jour` : "Sur demande";
+  if (l.listingType === "LOCATION") return "À convenir par message";
   if (l.listingType === "SERVICE") {
     if (l.hourlyRateCents != null) return `${eur(l.hourlyRateCents)} / h`;
     if (l.flatRateCents != null) return eur(l.flatRateCents);

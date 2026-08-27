@@ -93,6 +93,9 @@ Deno.serve(async (req: Request) => {
     if (!listing) throw new HttpError(404, "listing_not_found");
     if (listing.owner_id === user.id)
       throw new HttpError(409, "cannot_buy_own_listing");
+    if (listing.listing_type === "LOCATION") {
+      throw new HttpError(409, "RENTAL_CONTACT_ONLY");
+    }
     if (paymentMethod === "handoff" && listing.listing_type !== "VENTE") {
       throw new HttpError(400, "handoff_unsupported_for_listing_type");
     }
