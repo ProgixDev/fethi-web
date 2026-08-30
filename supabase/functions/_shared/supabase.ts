@@ -49,6 +49,35 @@ export class HttpError extends Error {
 }
 
 // ---------------------------------------------------------------------------
+// Seller Stripe Connect readiness (WEB-017 / A2) — a card charge is a
+// DESTINATION charge (funds route to the seller), so an un-onboarded seller
+// can't receive money. Shared so every place that can lead to a card charge
+// (price quote preview, order creation, intent creation) agrees on the exact
+// same definition instead of drifting.
+// ---------------------------------------------------------------------------
+export async function isSellerPayoutReady(
+  svc: SupabaseClient,
+  sellerId: string,
+): Promise<boolean> {
+  const [{ data: payout, error: pErr }, { data: seller, error: sErr }] =
+    await Promise.all([
+      svc
+        .from('payout_accounts')
+        .select('onboarding_status, payouts_enabled')
+        .eq('user_id', sellerId)
+        .maybeSingle(),
+      svc.from('profiles').select('kyc_status').eq('id', sellerId).maybeSingle(),
+    ]);
+  if (pErr || sErr) throw new HttpError(500, pErr?.message ?? sErr?.message ?? 'payout_status_check_failed');
+  return !!(
+    payout &&
+    payout.onboarding_status === 'ENABLED' &&
+    payout.payouts_enabled &&
+    seller?.kyc_status === 'VERIFIED'
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Idempotency — backed by public.idempotency_keys (service-role only).
 // Returns a cached response if this (scope, key) was already processed; otherwise
 // claims the key so a concurrent retry cannot double-apply.

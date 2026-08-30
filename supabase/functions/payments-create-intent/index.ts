@@ -18,7 +18,12 @@
 // Edge case: order not found → 404; not owned by buyer → 403;
 //   already paid → 409 order_already_paid
 import { corsHeaders, json } from "../_shared/cors.ts";
-import { HttpError, requireUser, serviceClient } from "../_shared/supabase.ts";
+import {
+  HttpError,
+  isSellerPayoutReady,
+  requireUser,
+  serviceClient,
+} from "../_shared/supabase.ts";
 import Stripe from "npm:stripe@^22.3.0";
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
@@ -71,21 +76,11 @@ Deno.serve(async (req: Request) => {
     // before their listing can be bought: the charge is a DESTINATION charge
     // (funds route to the seller, minus the platform application fee), so an
     // un-onboarded seller can't receive money. Block early with a clear code.
-    const [{ data: payout, error: pErr }, { data: seller, error: sellerErr }] = await Promise.all([
-      svc
-      .from("payout_accounts")
-      .select("stripe_account_id, onboarding_status, payouts_enabled")
-      .eq("user_id", order.seller_id)
-      .maybeSingle(),
-      svc.from("profiles").select("kyc_status").eq("id", order.seller_id).maybeSingle(),
-    ]);
-    if (pErr || sellerErr) throw new HttpError(500, pErr?.message ?? sellerErr?.message);
-    if (
-      !payout ||
-      payout.onboarding_status !== "ENABLED" ||
-      !payout.payouts_enabled ||
-      seller?.kyc_status !== "VERIFIED"
-    ) {
+    // orders-create already re-checks this before an order can even exist, so
+    // reaching here with a not-ready seller should be rare — this stays as
+    // defense in depth (e.g. seller's Stripe status regressed after the order
+    // was created).
+    if (!(await isSellerPayoutReady(svc, order.seller_id))) {
       throw new HttpError(409, "seller_payout_not_ready");
     }
 
