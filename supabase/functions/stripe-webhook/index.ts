@@ -19,7 +19,7 @@
 import { corsHeaders, json } from '../_shared/cors.ts';
 import { serviceClient } from '../_shared/supabase.ts';
 import { reverseTerminalTransfer } from '../_shared/held-proceeds.ts';
-import Stripe from 'npm:stripe@^22.3.0';
+import Stripe from 'npm:stripe@22.6.0';
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET');
@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.text();
     const stripe = new Stripe(STRIPE_SECRET_KEY, {
       apiVersion: '2023-10-16',
-      httpClient: Deno,
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
     // Verify signature.
@@ -257,7 +257,7 @@ async function handleEvent(
             .eq('order_id', refundOrderId)
             .in('status', ['HELD', 'RELEASE_PENDING', 'RELEASING', 'RELEASED']);
           if (!isPartialRefund) {
-            const stripe = new Stripe(STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16', httpClient: Deno });
+            const stripe = new Stripe(STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
             await reverseTerminalTransfer(svc, stripe, refundOrderId, 'refund');
           }
         }
@@ -286,7 +286,7 @@ async function handleEvent(
           .eq('order_id', (await orderIdForIntent(svc, paymentIntentId)) ?? '');
         const disputeOrderId = await orderIdForIntent(svc, paymentIntentId);
         if (disputeOrderId) {
-          const stripe = new Stripe(STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16', httpClient: Deno });
+          const stripe = new Stripe(STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
           await reverseTerminalTransfer(svc, stripe, disputeOrderId, 'dispute');
         }
 
@@ -331,7 +331,7 @@ async function handleEvent(
         if (orderId) {
           if (resolvedStatus === 'REFUNDED') {
             await svc.from('held_seller_proceeds').update({ status: 'REFUNDED', terminal_reason: 'stripe_dispute_lost' }).eq('order_id', orderId);
-            const stripe = new Stripe(STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16', httpClient: Deno });
+            const stripe = new Stripe(STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
             await reverseTerminalTransfer(svc, stripe, orderId, 'dispute');
           } else {
             const { data: hold } = await svc.from('held_seller_proceeds').select('buyer_confirmed_at').eq('order_id', orderId).maybeSingle();

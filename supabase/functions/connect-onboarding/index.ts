@@ -18,7 +18,7 @@ import {
   requireUser,
   serviceClient,
 } from '../_shared/supabase.ts';
-import Stripe from 'npm:stripe@^22.3.0';
+import Stripe from 'npm:stripe@22.6.0';
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
 // NOTE: this Express + Account-Links flow (stripe.accounts.create({type:'express'})
@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
     const svc = serviceClient();
     const stripe = new Stripe(STRIPE_SECRET_KEY, {
       apiVersion: '2023-10-16',
-      httpClient: Deno,
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
     const body = await req.json().catch(() => ({}));
@@ -171,6 +171,12 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     if (err instanceof HttpError) return json({ error: err.message }, err.status);
+    // Was previously swallowed entirely — the caught exception never reached
+    // Stripe's own logs (nothing to see there if the throw happens before
+    // the API call goes out), and never reached Supabase's function logs
+    // either since nothing logged it. Log it so the actual cause is visible
+    // in the Supabase dashboard's Edge Function logs.
+    console.error('connect-onboarding failed:', err);
     return json({ error: 'internal_error' }, 500);
   }
 });

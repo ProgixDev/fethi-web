@@ -27,7 +27,7 @@ import {
   serviceClient,
 } from '../_shared/supabase.ts';
 import { scheduleBuyerRelease, releaseDueHold } from '../_shared/held-proceeds.ts';
-import Stripe from 'npm:stripe@^22.3.0';
+import Stripe from 'npm:stripe@22.6.0';
 
 type Action = 'confirm-pickup' | 'cancel';
 const TERMINAL = new Set(['COMPLETED', 'CANCELLED', 'REFUNDED', 'DISPUTED']);
@@ -155,7 +155,7 @@ async function confirmPickup(
         .maybeSingle();
       if (hold) {
         try {
-          const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Deno });
+          const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
           await releaseDueHold(svc, stripe, hold);
         } catch (releaseError) {
           console.error('held proceeds release deferred', releaseError);
@@ -174,7 +174,7 @@ async function cancel(
 ) {
   if (order.payment_intent_id && order.payment_status !== 'FAILED') {
     if (!STRIPE_SECRET_KEY) throw new HttpError(503, 'stripe_unconfigured');
-    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Deno });
+    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
     try {
       await stripe.paymentIntents.cancel(order.payment_intent_id as string);
     } catch {

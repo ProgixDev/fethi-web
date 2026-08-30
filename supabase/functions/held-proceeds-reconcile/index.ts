@@ -6,7 +6,7 @@
 import { corsHeaders, json } from '../_shared/cors.ts';
 import { serviceClient } from '../_shared/supabase.ts';
 import { markExpiredUnconfirmedHolds, releaseDueHold, reverseTerminalTransfer } from '../_shared/held-proceeds.ts';
-import Stripe from 'npm:stripe@^22.3.0';
+import Stripe from 'npm:stripe@22.6.0';
 
 const RECONCILE_SECRET = Deno.env.get('HELD_PROCEEDS_RECONCILE_SECRET');
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
@@ -19,7 +19,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const svc = serviceClient();
-    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Deno });
+    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
     const timedOut = await markExpiredUnconfirmedHolds(svc);
     const { data: due, error } = await svc
       .from('held_seller_proceeds')

@@ -24,7 +24,7 @@ import {
   requireUser,
   serviceClient,
 } from "../_shared/supabase.ts";
-import Stripe from "npm:stripe@^22.3.0";
+import Stripe from "npm:stripe@22.6.0";
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
 
@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
     const svc = serviceClient();
     const stripe = new Stripe(STRIPE_SECRET_KEY, {
       apiVersion: "2023-10-16",
-      httpClient: Deno,
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
     const body = await req.json().catch(() => ({}));

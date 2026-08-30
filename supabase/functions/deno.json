@@ -2,7 +2,7 @@
   "_comment": "Deno config for the Edge Functions. These run on the Supabase Edge (Deno), NOT in the Next.js/Node typecheck — supabase/functions is excluded from tsconfig.json. Typecheck them with `deno check supabase/functions/**/*.ts` or on deploy.",
   "imports": {
     "@supabase/supabase-js": "jsr:@supabase/supabase-js@2",
-    "stripe": "npm:stripe@^22.3.0"
+    "stripe": "npm:stripe@22.6.0"
   },
   "lint": {
     "rules": { "tags": ["recommended"] }
