@@ -8,7 +8,12 @@ import {
   type ListingPricing,
   PricingError,
 } from "../_shared/pricing.ts";
-import { HttpError, requireUser, serviceClient } from "../_shared/supabase.ts";
+import {
+  HttpError,
+  isSellerPayoutReady,
+  requireUser,
+  serviceClient,
+} from "../_shared/supabase.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -78,7 +83,11 @@ Deno.serve(async (req: Request) => {
       agreedItemCents,
       agreementKey: offerId,
     });
-    return json(quote, 200);
+    // Surfaced so the client can grey out / hide "card" up front instead of
+    // only finding out after orders-create rejects it (or, before that check
+    // existed there, after a card order was already created — see WEB-017).
+    const sellerPayoutReady = await isSellerPayoutReady(svc, listing.owner_id);
+    return json({ ...quote, sellerPayoutReady }, 200);
   } catch (error) {
     if (error instanceof PricingError) {
       return json({ error: error.code }, 400);
