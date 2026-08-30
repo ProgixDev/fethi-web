@@ -43,13 +43,16 @@ function resolveCountry(raw: unknown): string {
 // a usable `origin` header — the mobile app is exactly this case (React
 // Native's fetch never sends `Origin`, so `req.headers.get('origin')` is
 // null there). Without this guard the old code built the literal string
-// "null/seller/dashboard", which Stripe's accountLinks.create() rejects as
-// an invalid URL, breaking onboarding for every mobile caller. The mobile
-// client is expected to pass its own deep link explicitly (see
-// connectApi.startOnboarding) — this is just the safety net for when it
-// doesn't, or for any other non-browser caller.
+// "null/seller/dashboard", which Stripe's accountLinks.create() rejects with
+// `url_invalid` ("Not a valid URL"), breaking onboarding for every mobile
+// caller. Stripe's Account Links API requires a real http(s) URL — it
+// rejects a custom app URI scheme (mystreet://...) the exact same way, so
+// this fallback (and the mobile client's own explicit value — see
+// connectApi.startOnboarding) must be an https URL too, not a deep link. The
+// seller just manually switches back to the app afterward; the webhook
+// keeps payout_accounts in sync regardless of what this page does.
 const MOBILE_APP_RETURN_BASE =
-  Deno.env.get('MOBILE_APP_DEEP_LINK_BASE') ?? 'mystreet://payouts/connect';
+  Deno.env.get('MOBILE_APP_RETURN_BASE') ?? 'https://mystreet-web.vercel.app/stripe/return';
 
 function resolveRedirectUrl(explicit: unknown, origin: string | null, path: string): string {
   if (typeof explicit === 'string' && explicit.length > 0) return explicit;
