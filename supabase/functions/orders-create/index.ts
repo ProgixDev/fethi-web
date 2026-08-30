@@ -50,6 +50,7 @@ import {
 import {
   HttpError,
   idempotentReplay,
+  isSellerPayoutReady,
   requireUser,
   serviceClient,
 } from "../_shared/supabase.ts";
@@ -98,6 +99,16 @@ Deno.serve(async (req: Request) => {
     }
     if (!offerId && listing.status !== "ACTIVE") {
       throw new HttpError(409, "listing_not_available");
+    }
+
+    // A2 (WEB-017) — block a card order before it exists, not after. Without
+    // this, a card order for a not-Connect-ready seller was created here
+    // (flipping a direct-buy listing to SOLD / consuming the offer), then
+    // failed at payments-create-intent's own seller_payout_not_ready check —
+    // leaving a dangling unpayable order and the listing stuck unavailable to
+    // every other buyer, including one retrying with a cash handoff instead.
+    if (paymentMethod === "card" && !(await isSellerPayoutReady(svc, listing.owner_id))) {
+      throw new HttpError(409, "seller_payout_not_ready");
     }
 
     let pricing: PricingBreakdown;
