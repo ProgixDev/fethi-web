@@ -39,6 +39,24 @@ function resolveCountry(raw: unknown): string {
   return DEFAULT_CONNECT_COUNTRY;
 }
 
+// Fallback base used when a caller supplies neither returnUrl/refreshUrl NOR
+// a usable `origin` header — the mobile app is exactly this case (React
+// Native's fetch never sends `Origin`, so `req.headers.get('origin')` is
+// null there). Without this guard the old code built the literal string
+// "null/seller/dashboard", which Stripe's accountLinks.create() rejects as
+// an invalid URL, breaking onboarding for every mobile caller. The mobile
+// client is expected to pass its own deep link explicitly (see
+// connectApi.startOnboarding) — this is just the safety net for when it
+// doesn't, or for any other non-browser caller.
+const MOBILE_APP_RETURN_BASE =
+  Deno.env.get('MOBILE_APP_DEEP_LINK_BASE') ?? 'mystreet://payouts/connect';
+
+function resolveRedirectUrl(explicit: unknown, origin: string | null, path: string): string {
+  if (typeof explicit === 'string' && explicit.length > 0) return explicit;
+  if (origin && /^https?:\/\//i.test(origin)) return `${origin}${path}`;
+  return MOBILE_APP_RETURN_BASE;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -57,8 +75,9 @@ Deno.serve(async (req: Request) => {
     });
 
     const body = await req.json().catch(() => ({}));
-    const returnUrl = body.returnUrl ?? `${req.headers.get('origin')}/seller/dashboard`;
-    const refreshUrl = body.refreshUrl ?? `${req.headers.get('origin')}/seller/onboarding`;
+    const origin = req.headers.get('origin');
+    const returnUrl = resolveRedirectUrl(body.returnUrl, origin, '/seller/dashboard');
+    const refreshUrl = resolveRedirectUrl(body.refreshUrl, origin, '/seller/onboarding');
 
     // Check if user already has a Connect account
     const { data: existingAccount } = await svc
