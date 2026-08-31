@@ -52,7 +52,7 @@ function resolveCountry(raw: unknown): string {
 // seller just manually switches back to the app afterward; the webhook
 // keeps payout_accounts in sync regardless of what this page does.
 const MOBILE_APP_RETURN_BASE =
-  Deno.env.get('MOBILE_APP_RETURN_BASE') ?? 'https://mystreet-web.vercel.app/stripe/return';
+  Deno.env.get('MOBILE_APP_RETURN_BASE') ?? 'https://mystreet-web-five.vercel.app/stripe/return';
 
 function resolveRedirectUrl(explicit: unknown, origin: string | null, path: string): string {
   if (typeof explicit === 'string' && explicit.length > 0) return explicit;
