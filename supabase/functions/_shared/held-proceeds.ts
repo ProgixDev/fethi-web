@@ -1,4 +1,4 @@
-import Stripe from "npm:stripe@^22.3.0";
+import Stripe from "npm:stripe@22.6.0";
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 const IMMEDIATE_RELEASE_CENTS = 50_000;
