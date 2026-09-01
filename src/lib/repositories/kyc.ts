@@ -291,17 +291,4 @@ export class KycRepository extends BaseRepository {
       connectUpdatedAt: pa?.updated_at ?? null,
     };
   }
-
-  /**
-   * Trigger a refresh of the Stripe Connect account status.
-   * This calls the kyc-status Edge Function which fetches fresh data
-   * from Stripe and updates the payout_accounts table.
-   */
-  async refreshStatus(userId: string): Promise<KycDetail> {
-    // This would call the Edge Function to refresh from Stripe
-    // For now, just return the current status
-    const detail = await this.getDetail(userId);
-    if (!detail) throw new Error('NOT_FOUND: user not found');
-    return detail;
-  }
 }

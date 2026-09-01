@@ -45,7 +45,7 @@ function formatListingPrice(l: Listing): string {
   const eur = (cents: number | null | undefined) =>
     cents != null ? `${(cents / 100).toLocaleString("fr-FR")} €` : "";
   if (l.listingType === "LOCATION") {
-    return l.pricePerDayCents != null ? `${eur(l.pricePerDayCents)}/j` : "Sur demande";
+    return "À convenir par message";
   }
   if (l.listingType === "SERVICE") {
     if (l.hourlyRateCents != null) return `${eur(l.hourlyRateCents)}/h`;

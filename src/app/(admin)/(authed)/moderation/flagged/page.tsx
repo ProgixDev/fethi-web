@@ -31,7 +31,7 @@ export default function ModerationFlaggedPage() {
       <PageHeader
         crumbs={[
           { href: "/dashboard", label: "Tableau de bord" },
-          { href: "/moderation", label: "Modération" },
+          { href: "/moderation", label: "Signalements" },
           { label: "En cours d'examen" },
         ]}
         title="Signalements en cours"

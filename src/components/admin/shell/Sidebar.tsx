@@ -69,7 +69,6 @@ const sections: NavSection[] = [
           { href: "/listings/grid", label: "Vue grille" },
           { href: "/listings/pending", label: "En attente" },
           { href: "/listings/featured", label: "À la une" },
-          { href: "/listings/categories", label: "Catégories" },
         ],
       },
       {
@@ -79,7 +78,7 @@ const sections: NavSection[] = [
         base: "/moderation",
         children: [
           { href: "/moderation", label: "Signalements" },
-          { href: "/moderation/flagged", label: "Annonces flaguées" },
+          { href: "/moderation/flagged", label: "Signalements en cours" },
           { href: "/moderation/blocked", label: "Comptes bannis" },
           { href: "/moderation/policies", label: "Politiques" },
           { href: "/moderation/audit", label: "Audit" },
@@ -163,11 +162,7 @@ const sections: NavSection[] = [
           { href: "/settings/system", label: "Système" },
           { href: "/settings/categories", label: "Catégories" },
           { href: "/settings/cities", label: "Villes" },
-          { href: "/settings/feature-flags", label: "Feature flags" },
-          { href: "/settings/integrations", label: "Intégrations" },
           { href: "/settings/audit", label: "Audit" },
-          { href: "/settings/webhooks", label: "Webhooks" },
-          { href: "/settings/api-keys", label: "Clés API" },
         ],
       },
       { href: "/docs", label: "Aide & docs", icon: HelpCircle },
