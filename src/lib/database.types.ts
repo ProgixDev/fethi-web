@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: d80ee108aad2
+ * schema-version: 15d05f31574d
  */
 
 export type Json =
@@ -1724,20 +1724,6 @@ export type Database = {
           ticket_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "support_ticket_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "support_ticket_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "support_ticket_messages_ticket_id_fkey"
             columns: ["ticket_id"]

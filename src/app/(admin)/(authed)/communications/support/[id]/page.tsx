@@ -115,14 +115,14 @@ export default function SupportTicketDetailPage() {
                     key={m.id}
                     className={`rounded-lg px-3 py-2 text-body-sm ${
                       m.senderRole === "STAFF"
-                        ? "ml-8 bg-ink text-white"
+                        ? "ml-8 bg-ink text-paper"
                         : "mr-8 bg-n-100 text-n-800"
                     }`}
                   >
                     <p className="whitespace-pre-line">{m.body}</p>
                     <p
                       className={`mt-1 text-caption ${
-                        m.senderRole === "STAFF" ? "text-white/60" : "text-n-500"
+                        m.senderRole === "STAFF" ? "text-paper/60" : "text-n-500"
                       }`}
                     >
                       {m.senderRole === "STAFF" ? "Support" : ticket.requesterName} ·{" "}

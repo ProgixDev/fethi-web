@@ -36,7 +36,10 @@ create trigger support_tickets_touch_updated_at
 create table public.support_ticket_messages (
   id          uuid primary key default gen_random_uuid(),
   ticket_id   uuid not null references public.support_tickets (id) on delete cascade,
-  sender_id   uuid not null references public.profiles (id) on delete cascade,
+  -- auth.users, NOT profiles: sender is USER or STAFF, and a staff account is
+  -- not guaranteed to have a marketplace profile row (mirrors
+  -- staff_audit_log.actor_id's FK, SCR-004).
+  sender_id   uuid not null references auth.users (id) on delete cascade,
   sender_role public.support_sender_role not null,
   body        text not null check (char_length(body) between 1 and 4000),
   created_at  timestamptz not null default now()

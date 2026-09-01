@@ -240,3 +240,36 @@ test('RLS: a non-staff user cannot read or write another user\'s ticket', async 
 
   await other.auth.signOut();
 });
+
+test('a staff member with no profiles row can still reply (sender_id FK regression)', async () => {
+  // Root cause of a real production bug: support_ticket_messages.sender_id was
+  // FK'd to profiles(id), but a staff/admin account is not guaranteed to have a
+  // marketplace profile row (mirrors staff_audit_log.actor_id, which correctly
+  // FKs to auth.users). Seed a staff member deliberately WITHOUT a profiles row
+  // and confirm the reply path doesn't assume one.
+  const staffEmail = `web022.staffnoprofile.${stamp}@example.com`;
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email: staffEmail,
+    password: `Pw!${stamp}sS`,
+    email_confirm: true,
+  });
+  if (createErr || !created?.user) throw new Error(`seed staff-no-profile user failed: ${createErr?.message}`);
+  const staffId = created.user.id;
+
+  const { error: staffErr } = await admin.from('staff_members').insert({ user_id: staffId, roles: ['support'] });
+  if (staffErr) throw new Error(`seed staff_members row failed: ${staffErr.message}`);
+
+  // Deliberately NOT inserting a profiles row for staffId.
+
+  const { error: replyErr } = await admin.from('support_ticket_messages').insert({
+    ticket_id: ticketId,
+    sender_id: staffId,
+    sender_role: 'STAFF',
+    body: 'Réponse staff sans profil',
+  });
+  expect(replyErr, 'a staff reply must not require a profiles row').toBeNull();
+
+  await admin.from('support_ticket_messages').delete().eq('sender_id', staffId);
+  await admin.from('staff_members').delete().eq('user_id', staffId);
+  await admin.auth.admin.deleteUser(staffId).catch(() => {});
+});
