@@ -2,7 +2,7 @@
   "project": "MyStreet Web (admin + marketing) — DB OWNER",
   "currentFocus": "Own the shared Supabase backend (schema, RLS, Edge Functions) and wire the admin dashboard; coordinate all DB changes with fethi-mobile via SCRs",
   "currentMilestone": "10-day production launch — shared backend + admin surface, two parallel build lanes",
-  "updated": "2026-08-11",
+  "updated": "2026-09-01",
   "recommendedStart": "WEB-001 (Dev A) and WEB-002 (Dev B) in parallel",
   "coordination": "fethi-web is the canonical owner of the shared Supabase DB. Every schema/RLS/Edge change goes through an SCR in docs/db/decisions/ and updates docs/MOBILE-SYNC-NOTES.md. See docs/db/COORDINATION.md.",
   "lanes": {
@@ -241,6 +241,15 @@
       "priority": "P2",
       "owner": "Dev A",
       "path": ".agent-board/tasks/WEB-021.md",
+      "blockedBy": []
+    },
+    {
+      "id": "WEB-022",
+      "title": "Support inbox: support_tickets schema + admin panel — issue #77",
+      "status": "Review",
+      "priority": "P1",
+      "owner": "Dev A",
+      "path": ".agent-board/tasks/WEB-022.md",
       "blockedBy": []
     }
   ]

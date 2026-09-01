@@ -8,6 +8,34 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-09-01 · SCR-028 · Support inbox: `support_tickets` — issue #77
+
+- **New tables:** `support_tickets` (one per user request; `status`:
+  `OPEN`/`IN_PROGRESS`/`RESOLVED`/`CLOSED`) and append-only
+  `support_ticket_messages` (`sender_role`: `USER`/`STAFF`).
+- **RLS:** a user reads/writes only their own tickets/messages; staff with
+  `support` or `admin` role read/write all. Users create tickets and messages
+  only via `insert` — the parent ticket's `last_message*`, unread counters, and
+  `status` update through a trigger on new messages. A user reply reopens a
+  `RESOLVED`/`CLOSED` ticket.
+- **Realtime:** both tables are on `supabase_realtime` — mobile can subscribe
+  the same way it does for `threads`/`messages`.
+- **Mobile reaction:** build a support screen — "Open a request" (insert into
+  `support_tickets`), a thread view (list/insert `support_ticket_messages`,
+  ordered by `created_at`), and an unread badge from `unread_by_user`. Filed as
+  fethi-mobile board **TASK-029**, gated on this SCR (now applied) and on
+  vendoring the regenerated types below.
+- **`mark_support_ticket_read(p_ticket_id uuid)` RPC:** `support_tickets` has
+  no client `UPDATE` policy, so the ticket owner calls this (like
+  `mark_thread_read` for messaging) to clear their own `unread_by_user` when
+  they open a ticket.
+- **Applied 2026-09-01:** both migrations
+  (`20260901120000_scr028_support_tickets.sql`,
+  `20260901121500_scr028_support_ticket_mark_read.sql`) are live;
+  `applied-scrs.json` updated; types vendored into
+  `fethi-mobile/src/shared/types/`.
+- **Generated contract version:** `d80ee108aad2`.
+
 ## 2026-08-27 · SCR-027 · Contact-only rental listings — issue #60
 
 - **Listing contract:** an active `LOCATION` no longer needs

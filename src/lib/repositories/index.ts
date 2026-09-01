@@ -23,6 +23,7 @@ import { ListingsRepository } from './listings';
 import { MessagesRepository } from './messages';
 import { OrdersRepository } from './orders';
 import { ReportsRepository } from './reports';
+import { SupportRepository } from './support';
 import { UsersRepository } from './users';
 
 export function createRepositories(db: DbClient) {
@@ -37,6 +38,7 @@ export function createRepositories(db: DbClient) {
     categories: new CategoriesRepository(db),
     messages: new MessagesRepository(db),
     billing: new BillingRepository(db),
+    support: new SupportRepository(db),
   } as const;
 }
 
@@ -60,6 +62,7 @@ export { ListingsRepository } from './listings';
 export { MessagesRepository } from './messages';
 export { OrdersRepository } from './orders';
 export { ReportsRepository } from './reports';
+export { SupportRepository } from './support';
 export { UsersRepository } from './users';
 export type { DbClient } from './base';
 export type { KycListItem, KycDetail, KycFilters } from './kyc';

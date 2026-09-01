@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 48c5ef16fea1
+ * schema-version: 15d05f31574d
  */
 
 export type Json =
@@ -18,11 +18,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -855,6 +850,7 @@ export type Database = {
         Row: {
           amount_cents: number
           buyer_id: string
+          checkout_expires_at: string | null
           created_at: string
           expires_at: string
           id: string
@@ -870,6 +866,7 @@ export type Database = {
         Insert: {
           amount_cents: number
           buyer_id: string
+          checkout_expires_at?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -885,6 +882,7 @@ export type Database = {
         Update: {
           amount_cents?: number
           buyer_id?: string
+          checkout_expires_at?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -1700,6 +1698,114 @@ export type Database = {
         }
         Relationships: []
       }
+      support_ticket_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string
+          sender_role: Database["public"]["Enums"]["support_sender_role"]
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          sender_role: Database["public"]["Enums"]["support_sender_role"]
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          sender_role?: Database["public"]["Enums"]["support_sender_role"]
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_staff_id: string | null
+          created_at: string
+          id: string
+          last_message: string | null
+          last_message_at: string | null
+          last_sender_role:
+            | Database["public"]["Enums"]["support_sender_role"]
+            | null
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          unread_by_staff: number
+          unread_by_user: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_staff_id?: string | null
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          last_sender_role?:
+            | Database["public"]["Enums"]["support_sender_role"]
+            | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          unread_by_staff?: number
+          unread_by_user?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_staff_id?: string | null
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          last_sender_role?:
+            | Database["public"]["Enums"]["support_sender_role"]
+            | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject?: string
+          unread_by_staff?: number
+          unread_by_user?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       threads: {
         Row: {
           buyer_id: string
@@ -2022,6 +2128,7 @@ export type Database = {
         Returns: {
           amount_cents: number
           buyer_id: string
+          checkout_expires_at: string | null
           created_at: string
           expires_at: string
           id: string
@@ -2155,6 +2262,10 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      expire_offer_reservation: {
+        Args: { p_listing_id: string }
+        Returns: undefined
+      }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -2263,11 +2374,19 @@ export type Database = {
         Returns: number
       }
       is_staff: { Args: { uid: string }; Returns: boolean }
+      is_support_ticket_participant: {
+        Args: { p_ticket_id: string; p_uid: string }
+        Returns: boolean
+      }
       is_thread_participant: {
         Args: { p_thread_id: string; p_uid: string }
         Returns: boolean
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      mark_support_ticket_read: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       mark_thread_read: { Args: { p_thread_id: string }; Returns: undefined }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -3003,6 +3122,8 @@ export type Database = {
         | "CANCELLED"
         | "REVIEW_REQUIRED"
       staff_role: "admin" | "moderator" | "finance" | "support"
+      support_sender_role: "USER" | "STAFF"
+      support_ticket_status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED"
       user_status: "ACTIVE" | "PENDING" | "SUSPENDED" | "BANNED"
     }
     CompositeTypes: {
@@ -3186,6 +3307,8 @@ export const Constants = {
         "REVIEW_REQUIRED",
       ],
       staff_role: ["admin", "moderator", "finance", "support"],
+      support_sender_role: ["USER", "STAFF"],
+      support_ticket_status: ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"],
       user_status: ["ACTIVE", "PENDING", "SUSPENDED", "BANNED"],
     },
   },

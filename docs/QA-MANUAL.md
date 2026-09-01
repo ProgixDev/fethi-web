@@ -88,6 +88,30 @@ Sign in as admin.
   under this environment's Node/WebSocket setup (same pre-existing gap as
   `e2e/tasks/WEB-014.spec.ts`); verify this one by hand until that's fixed.
 
+## WEB-022 — Support inbox (`support_tickets`, SCR-028) — issue #77
+
+Sign in as admin, go to **`/communications/support`**.
+- ✅ **Inbox list:** open/in-progress tickets, filter tabs by status, requester
+  name, subject, last-message preview, unread badge when `unreadByStaff > 0`.
+  Empty state (no fabricated data) when a filter has zero tickets.
+- ✅ **Ticket detail:** open a ticket → thread renders oldest→newest, USER vs
+  STAFF messages visually distinct. Reply → message lands, ticket's last
+  message/status update live on the page after refetch.
+- ✅ **Status control:** change status (Open/In progress/Resolved/Closed);
+  idempotent re-apply is a no-op.
+- ✅ **Reopen on user reply:** if a user replies (from the mobile app, via
+  fethi-mobile TASK-029) to a `RESOLVED`/`CLOSED` ticket, it flips back to
+  `OPEN` (DB trigger, not app logic) — verify by replying as the seeded e2e
+  user against a resolved ticket and checking `status` in the DB.
+- ✅ **Security:** `/api/admin/support/[id]/status` rejects unauthenticated
+  requests; RLS denies a non-staff user reading or inserting into another
+  user's ticket/messages.
+- ⚠️ No realtime subscription on this admin screen (deliberately cut from
+  scope — refresh/reopen the page to see new messages/tickets). Mobile does
+  subscribe live; both tables carry `supabase_realtime`.
+- *Auto:* `e2e/tasks/WEB-022.spec.ts` (staff reply + status round-trip, staff
+  gate, RLS contract check — 3/3 passing).
+
 ---
 
 ## Not yet shippable to QA (don't test as "done")
