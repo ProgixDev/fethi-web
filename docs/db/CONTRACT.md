@@ -26,3 +26,16 @@ SCRs in `docs/db/decisions/` are the change history.
   `RENTAL_CONTACT_ONLY`.
 - Historical rental orders and their snapshots remain readable; SCR-027 does
   not delete or rewrite them.
+
+## Support inbox
+
+- Since SCR-028: `support_tickets` (one per user-opened request,
+  `status`: `OPEN`/`IN_PROGRESS`/`RESOLVED`/`CLOSED`) and append-only
+  `support_ticket_messages` (`sender_role`: `USER`/`STAFF`).
+- A user reads/writes only their own tickets and messages on them; staff with
+  the `support` or `admin` role reads/writes all.
+- Users can only `insert` tickets and messages, never update a ticket row
+  directly — replying via `support_ticket_messages` updates the parent
+  ticket's `last_message*`/unread counters/`status` through a trigger.
+- A user reply on a `RESOLVED`/`CLOSED` ticket reopens it to `OPEN`.
+- Both tables are on the `supabase_realtime` publication.
