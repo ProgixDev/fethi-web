@@ -60,7 +60,7 @@ Sign in as admin, go to **`/users`**.
 Sign in as admin, go to **`/listings`**.
 - 🖐 Lists **live** listings; filter by status/type/owner works.
 - 🖐 Open a listing → **Pause** → status flips to PAUSED + persists; **Archive** → ARCHIVED; **Restore** → ACTIVE. Each action records an audit row capturing the prior status.
-- 🖐 **`/listings/moderation`** surfaces listings needing attention (DRAFT / PAUSED / ARCHIVED); restoring/pausing inline round-trips.
+- 🖐 **`/listings/moderation`** surfaces listings needing attention (PENDING_REVIEW / DRAFT / PAUSED / ARCHIVED); approving/rejecting/restoring/pausing inline round-trips. See WEB-023 below for the PENDING_REVIEW approval flow specifically.
 - ✅ **Security:** the moderation/status endpoints are staff-gated (unauth → 401/403).
 - *Auto:* `e2e/tasks/WEB-010.spec.ts` — staff sees a live listing, soft-hide + restore round-trip, and the moderation route is staff-gated.
 
@@ -111,6 +111,21 @@ Sign in as admin, go to **`/communications/support`**.
   subscribe live; both tables carry `supabase_realtime`.
 - *Auto:* `e2e/tasks/WEB-022.spec.ts` (staff reply + status round-trip, staff
   gate, RLS contract check — 3/3 passing).
+
+---
+
+## WEB-023 — Pre-publish listing moderation gate (`PENDING_REVIEW`, SCR-029) — issue #68
+
+A listing inserted with `status: PENDING_REVIEW` is invisible to the public (same RLS as DRAFT) until staff approves it.
+- ✅ **Invisible while pending:** a `PENDING_REVIEW` listing does not appear on the public marketplace or in `GET /rest/v1/listings` for `anon`; its owner can still see it (own-row RLS).
+- 🖐 **`/listings/pending`:** sign in as admin, go to `/listings/pending` — table of PENDING_REVIEW listings (title, category, price, submitted date). **Approuver** → status flips to ACTIVE, listing disappears from this queue, becomes publicly visible. **Rejeter** → status flips to ARCHIVED.
+- 🖐 **`/listings/moderation`:** filter to "En attente de validation" shows the same set with Approuver/Rejeter row actions; other statuses keep their existing Masquer/Restaurer/Retirer actions.
+- 🖐 **Listing detail (`/listings/[id]`):** a PENDING_REVIEW listing shows Approuver/Rejeter instead of the usual Pause/Archive actions.
+- 🖐 **Sidebar badge:** the "Annonces" nav group and its "En attente" child show a live count of PENDING_REVIEW listings (polls every 60s); disappears when the count is 0.
+- ✅ **Audit:** approve records `listing.approve`, reject records `listing.reject` (SCR-004 audit log), both under `target_type: listing`.
+- ✅ **DB-level guard (not just the admin UI):** an owner cannot self-approve their own PENDING_REVIEW/DRAFT listing to ACTIVE via a direct client-side `UPDATE` (`guard_listing_status_transition` trigger) — only the staff service-role path can. Editing an already-ACTIVE listing, and owner pause/unpause, are unaffected (not gated).
+- ⚠️ **Dormant until fethi-mobile ships its follow-up:** `sell/review.tsx` still defaults new listings to `ACTIVE` today (unchanged in this PR) — no listing will actually reach `PENDING_REVIEW` in production until that mobile PR lands. Everything above is fully live/testable now by seeding a `PENDING_REVIEW` row directly (as the e2e does), just not yet reachable by a real seller flow.
+- *Auto:* `e2e/tasks/WEB-023.spec.ts` — RLS visibility (anon denied, owner allowed), the self-approval DB guard, staff approve round-trip (+ public visibility after), staff reject round-trip, and the status route handler's staff gate (5/5 passing).
 
 ---
 

@@ -26,6 +26,9 @@ import { Mark, Wordmark } from "@/components/shared/Wordmark";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { hasRole, type StaffRole } from "@/lib/staff-roles";
+import { listingsApi } from "@/lib/api";
+
+const PENDING_LISTINGS_POLL_MS = 60_000;
 
 type LeafItem = {
   href: string;
@@ -206,19 +209,55 @@ export function AdminSidebar({
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState<boolean>(false);
   const [loggingOut, setLoggingOut] = React.useState(false);
+  const [pendingListingsCount, setPendingListingsCount] = React.useState(0);
   const staffInitials = (email ?? "??").slice(0, 2).toUpperCase();
+
+  // Live "needs approval" badge on Annonces/En attente (WEB-023) — staff see a
+  // count without having to remember to check the queue. Best-effort: a
+  // fetch failure (e.g. a role without /listings access) just leaves it at 0.
+  React.useEffect(() => {
+    if (!canSee("/listings", roles)) return;
+    let alive = true;
+    async function poll() {
+      try {
+        const res = await listingsApi.moderationQueue({ status: "PENDING_REVIEW", size: 1 });
+        if (alive) setPendingListingsCount(res.totalElements);
+      } catch {
+        /* best-effort badge — ignore */
+      }
+    }
+    poll();
+    const id = setInterval(poll, PENDING_LISTINGS_POLL_MS);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [roles]);
 
   const visibleSections = React.useMemo(
     () =>
       sections
         .map((section) => ({
           ...section,
-          items: section.items.filter((item) =>
-            canSee("href" in item ? item.href : item.base, roles),
-          ),
+          items: section.items
+            .filter((item) => canSee("href" in item ? item.href : item.base, roles))
+            .map((item) => {
+              if (!("key" in item) || item.key !== "listings" || !pendingListingsCount) {
+                return item;
+              }
+              return {
+                ...item,
+                badge: pendingListingsCount,
+                children: item.children.map((c) =>
+                  c.href === "/listings/pending"
+                    ? { ...c, badge: pendingListingsCount }
+                    : c,
+                ),
+              };
+            }),
         }))
         .filter((section) => section.items.length > 0),
-    [roles],
+    [roles, pendingListingsCount],
   );
 
   async function handleLogout() {

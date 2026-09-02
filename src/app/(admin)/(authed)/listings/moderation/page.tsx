@@ -19,27 +19,30 @@ import { formatDate } from "@/lib/utils/format";
 const statusTone: Record<ListingStatus, React.ComponentProps<typeof Pill>["tone"]> = {
   ACTIVE: "success",
   DRAFT: "info",
+  PENDING_REVIEW: "accent",
   PAUSED: "warning",
   SOLD: "neutral",
   ARCHIVED: "danger",
 };
 const statusLabel: Record<ListingStatus, string> = {
   ACTIVE: "Actif",
-  DRAFT: "À examiner",
+  DRAFT: "Brouillon",
+  PENDING_REVIEW: "En attente de validation",
   PAUSED: "Masqué",
   SOLD: "Vendu",
   ARCHIVED: "Retiré",
 };
 
-type QueueFilter = "ALL" | "DRAFT" | "PAUSED" | "ARCHIVED";
+type QueueFilter = "ALL" | "PENDING_REVIEW" | "DRAFT" | "PAUSED" | "ARCHIVED";
 
 /**
- * Moderation queue (WEB-010). Surfaces listings needing staff attention —
- * pending review (DRAFT), soft-hidden (PAUSED) and taken-down (ARCHIVED) — and
- * lets a moderator soft-hide / archive / restore inline. Every action goes
- * through `listingsApi.setStatus` → staff-gated service-role handler + SCR-004
- * audit. Once WEB-008 `reports` lands, reported listings join this feed and
- * `reportsCount` becomes live.
+ * Moderation queue (WEB-010, extended by WEB-023). Surfaces listings needing
+ * staff attention — awaiting first-publish approval (PENDING_REVIEW),
+ * incomplete drafts (DRAFT), soft-hidden (PAUSED) and taken-down (ARCHIVED) —
+ * and lets a moderator approve/reject/soft-hide/archive/restore inline. Every
+ * action goes through `listingsApi.setStatus` → staff-gated service-role
+ * handler + SCR-004 audit. Once WEB-008 `reports` lands, reported listings
+ * join this feed and `reportsCount` becomes live.
  */
 export default function ListingsModerationPage() {
   const [filter, setFilter] = React.useState<QueueFilter>("ALL");
@@ -115,7 +118,8 @@ export default function ListingsModerationPage() {
             className="w-48"
           >
             <option value="ALL">Toute la file</option>
-            <option value="DRAFT">À examiner (brouillons)</option>
+            <option value="PENDING_REVIEW">En attente de validation</option>
+            <option value="DRAFT">Brouillons</option>
             <option value="PAUSED">Masquées</option>
             <option value="ARCHIVED">Retirées</option>
           </Select>
@@ -168,35 +172,59 @@ export default function ListingsModerationPage() {
               </Pill>
 
               <div className="flex items-center gap-2">
-                {l.status !== "PAUSED" && l.status !== "ARCHIVED" ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    data-testid="queue-hide"
-                    disabled={pendingId !== null}
-                    onClick={() => moderate(l.id, "PAUSED")}
-                  >
-                    Masquer
-                  </Button>
+                {l.status === "PENDING_REVIEW" ? (
+                  <>
+                    <Button
+                      size="sm"
+                      data-testid="queue-approve"
+                      disabled={pendingId !== null}
+                      onClick={() => moderate(l.id, "ACTIVE")}
+                    >
+                      Approuver
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      data-testid="queue-reject"
+                      disabled={pendingId !== null}
+                      onClick={() => moderate(l.id, "ARCHIVED")}
+                    >
+                      Rejeter
+                    </Button>
+                  </>
                 ) : (
-                  <Button
-                    size="sm"
-                    data-testid="queue-restore"
-                    disabled={pendingId !== null}
-                    onClick={() => moderate(l.id, "ACTIVE")}
-                  >
-                    Restaurer
-                  </Button>
+                  <>
+                    {l.status !== "PAUSED" && l.status !== "ARCHIVED" ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        data-testid="queue-hide"
+                        disabled={pendingId !== null}
+                        onClick={() => moderate(l.id, "PAUSED")}
+                      >
+                        Masquer
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        data-testid="queue-restore"
+                        disabled={pendingId !== null}
+                        onClick={() => moderate(l.id, "ACTIVE")}
+                      >
+                        Restaurer
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      data-testid="queue-archive"
+                      disabled={pendingId !== null || l.status === "ARCHIVED"}
+                      onClick={() => moderate(l.id, "ARCHIVED")}
+                    >
+                      Retirer
+                    </Button>
+                  </>
                 )}
-                <Button
-                  size="sm"
-                  variant="danger"
-                  data-testid="queue-archive"
-                  disabled={pendingId !== null || l.status === "ARCHIVED"}
-                  onClick={() => moderate(l.id, "ARCHIVED")}
-                >
-                  Retirer
-                </Button>
               </div>
             </li>
           ))}

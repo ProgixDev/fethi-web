@@ -42,7 +42,14 @@ type OrderStatus = Database['public']['Enums']['order_status'];
 
 const USER_STATUSES: UserStatus[] = ['ACTIVE', 'PENDING', 'SUSPENDED', 'BANNED'];
 const KYC_STATUSES: KycStatus[] = ['UNVERIFIED', 'PENDING', 'VERIFIED', 'REJECTED'];
-const LISTING_STATUSES: ListingStatus[] = ['DRAFT', 'ACTIVE', 'PAUSED', 'SOLD', 'ARCHIVED'];
+const LISTING_STATUSES: ListingStatus[] = [
+  'DRAFT',
+  'PENDING_REVIEW',
+  'ACTIVE',
+  'PAUSED',
+  'SOLD',
+  'ARCHIVED',
+];
 const LISTING_TYPES: ListingType[] = ['VENTE', 'LOCATION', 'SERVICE'];
 const ORDER_STATUSES: OrderStatus[] = [
   'AWAITING_PICKUP',
@@ -233,6 +240,7 @@ export class AnalyticsRepository extends BaseRepository {
     const byType: Record<ListingType, number> = { VENTE: 0, LOCATION: 0, SERVICE: 0 };
     const byStatus: Record<ListingStatus, number> = {
       DRAFT: 0,
+      PENDING_REVIEW: 0,
       ACTIVE: 0,
       PAUSED: 0,
       SOLD: 0,

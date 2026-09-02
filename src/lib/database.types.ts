@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: 15d05f31574d
+ * schema-version: fb02e0e0fe0b
  */
 
 export type Json =
@@ -3074,7 +3074,13 @@ export type Database = {
       fee_receivable_status: "OUTSTANDING" | "SETTLED" | "WAIVED"
       kyc_status: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
       listing_condition: "new" | "likenew" | "good" | "fair"
-      listing_status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD" | "ARCHIVED"
+      listing_status:
+        | "DRAFT"
+        | "PENDING_REVIEW"
+        | "ACTIVE"
+        | "PAUSED"
+        | "SOLD"
+        | "ARCHIVED"
       listing_type: "VENTE" | "LOCATION" | "SERVICE"
       message_kind:
         | "TEXT"
@@ -3266,7 +3272,14 @@ export const Constants = {
       fee_receivable_status: ["OUTSTANDING", "SETTLED", "WAIVED"],
       kyc_status: ["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"],
       listing_condition: ["new", "likenew", "good", "fair"],
-      listing_status: ["DRAFT", "ACTIVE", "PAUSED", "SOLD", "ARCHIVED"],
+      listing_status: [
+        "DRAFT",
+        "PENDING_REVIEW",
+        "ACTIVE",
+        "PAUSED",
+        "SOLD",
+        "ARCHIVED",
+      ],
       listing_type: ["VENTE", "LOCATION", "SERVICE"],
       message_kind: ["TEXT", "PHOTO", "LOCATION", "OFFER", "PICKUP", "SYSTEM"],
       notif_kind: [
