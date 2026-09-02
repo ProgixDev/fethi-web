@@ -187,6 +187,23 @@ test('DB guard: the owner cannot self-approve via a direct client update', async
   await owner.auth.signOut();
 });
 
+test('issue #69: the notifications page shows a real, clickable pending-listings card', async ({
+  page,
+}) => {
+  // Before this task, /notifications showed a hardcoded, non-clickable
+  // "Annonces en attente de modération" example row (fethi-mobile issue #69:
+  // "quand on clique dessus, ya rien" / "ça sert à quoi cette partie ?"). It's
+  // now a real card sourced from the live PENDING_REVIEW count, and clicking
+  // it navigates to /listings/pending.
+  await signIn(page);
+  await page.goto('/notifications');
+  const card = page.getByTestId('notif-listings-pending');
+  await expect(card).toBeVisible({ timeout: 20_000 });
+  await expect(card).toContainText('en attente de validation');
+  await card.click();
+  await page.waitForURL(/\/listings\/pending/, { timeout: 20_000 });
+});
+
 test('staff sees the pending queue, approves a listing, and it becomes publicly visible', async ({
   page,
 }) => {
