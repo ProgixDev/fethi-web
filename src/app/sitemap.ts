@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = "https://mystreet.fr";
+import { SITE_URL } from "@/lib/site";
 
 // Static marketing routes. Keep in sync with `src/app/(marketing)/*` — this is
 // not derived automatically because Next has no route-group introspection API,

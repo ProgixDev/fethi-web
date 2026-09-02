@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 import { Instrument_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, themeBootScript } from "@/components/providers/ThemeProvider";
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
   },
   description:
     "MyStreet est une marketplace hyperlocale pour acheter, vendre, louer et proposer des services entre voisins, à pied. Lancement à Lille en septembre 2026.",
-  metadataBase: new URL("https://mystreet.fr"),
+  metadataBase: new URL(SITE_URL),
   openGraph: {
     title: "MyStreet — L'achat-vente entre voisins",
     description:
