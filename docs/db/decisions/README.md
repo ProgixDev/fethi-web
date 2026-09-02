@@ -15,13 +15,15 @@ written. This is the coordination gate between `fethi-web` (DB owner) and
 
 ## Index
 
-| SCR | Title | Status | Unblocks |
-| --- | --- | --- | --- |
-| SCR-000 | Coordination protocol bootstrap (example) | Accepted | — |
-| SCR-016 | `listings.meeting_venue` (persist the public handoff venue) | Accepted | fethi-mobile issue #23 |
-| SCR-019 | `seller_fee_receivables` (deferred handoff-sale platform fee) | Accepted | fethi-mobile issue #36 |
+| SCR     | Title                                                                                     | Status   | Unblocks               |
+| ------- | ----------------------------------------------------------------------------------------- | -------- | ---------------------- |
+| SCR-000 | Coordination protocol bootstrap (example)                                                 | Accepted | —                      |
+| SCR-016 | `listings.meeting_venue` (persist the public handoff venue)                               | Accepted | fethi-mobile issue #23 |
+| SCR-019 | `seller_fee_receivables` (deferred handoff-sale platform fee)                             | Accepted | fethi-mobile issue #36 |
 | SCR-020 | Didit webhook support (`didit_webhook_events` + `profiles.kyc_session_id`/`kyc_decision`) | Accepted | fethi-mobile issue #28 |
-| SCR-021 | `didit-session-create` Edge Function contract | Accepted | fethi-mobile issue #28 |
-| SCR-022 | Separate Didit identity status from Stripe payout readiness | Accepted | fethi-mobile issue #28 |
+| SCR-021 | `didit-session-create` Edge Function contract                                             | Accepted | fethi-mobile issue #28 |
+| SCR-022 | Separate Didit identity status from Stripe payout readiness                               | Accepted | fethi-mobile issue #28 |
+| SCR-024 | Authoritative seller-commission pricing quote                                             | Accepted | fethi-mobile issue #30 |
+| SCR-027 | Contact-only rental listings                                                               | Accepted | fethi-mobile issue #60 |
 
 > Keep this index current — one row per SCR.

@@ -23,6 +23,7 @@ import { formatDate, initials } from "@/lib/utils/format";
 const statusTone: Record<ListingStatus, React.ComponentProps<typeof Pill>["tone"]> = {
   ACTIVE: "success",
   DRAFT: "neutral",
+  PENDING_REVIEW: "accent",
   PAUSED: "warning",
   SOLD: "neutral",
   ARCHIVED: "neutral",
@@ -30,6 +31,7 @@ const statusTone: Record<ListingStatus, React.ComponentProps<typeof Pill>["tone"
 const statusLabel: Record<ListingStatus, string> = {
   ACTIVE: "Actif",
   DRAFT: "Brouillon",
+  PENDING_REVIEW: "En attente de validation",
   PAUSED: "En pause",
   SOLD: "Vendu",
   ARCHIVED: "Archivé",
@@ -45,7 +47,7 @@ function formatListingPrice(l: Listing): string {
   const eur = (cents: number | null | undefined) =>
     cents != null ? `${(cents / 100).toLocaleString("fr-FR")} €` : "";
   if (l.listingType === "LOCATION") {
-    return l.pricePerDayCents != null ? `${eur(l.pricePerDayCents)}/j` : "Sur demande";
+    return "À convenir par message";
   }
   if (l.listingType === "SERVICE") {
     if (l.hourlyRateCents != null) return `${eur(l.hourlyRateCents)}/h`;

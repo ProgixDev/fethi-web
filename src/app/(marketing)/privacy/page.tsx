@@ -10,7 +10,7 @@ const sections = [
     paragraphs: [
       "Identité : nom, prénom, date de naissance, adresse, e-mail, téléphone et résultat de vérification d'identité. Lors du parcours KYC, Didit collecte directement la pièce d'identité et une photo faciale ; MyStreet ne conserve pas les images de la pièce d'identité.",
       "Localisation : adresse de résidence, géolocalisation approximative (rayon 200 m) pour le matching d'annonces.",
-      "Activité : annonces publiées, transactions, messages, signalements, notations.",
+      "Activité : annonces publiées, transactions, messages, signalements, notations et état du paiement sécurisé (confirmation de réception, retenue, versement, remboursement ou litige).",
       "Technique : adresse IP, type d'appareil, journaux de connexion, données de paiement (tokenisées via Stripe).",
     ],
   },

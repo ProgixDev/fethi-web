@@ -17,6 +17,7 @@ function formatEur(cents: number | null | undefined) {
 const tone: Record<Listing["status"], React.ComponentProps<typeof Pill>["tone"]> = {
   ACTIVE: "success",
   DRAFT: "neutral",
+  PENDING_REVIEW: "accent",
   PAUSED: "warning",
   SOLD: "neutral",
   ARCHIVED: "neutral",

@@ -8,6 +8,61 @@ Each entry: date · SCR · what changed · what mobile must do.
 
 ---
 
+## 2026-09-01 · SCR-028 · Support inbox: `support_tickets` — issue #77
+
+- **New tables:** `support_tickets` (one per user request; `status`:
+  `OPEN`/`IN_PROGRESS`/`RESOLVED`/`CLOSED`) and append-only
+  `support_ticket_messages` (`sender_role`: `USER`/`STAFF`).
+- **RLS:** a user reads/writes only their own tickets/messages; staff with
+  `support` or `admin` role read/write all. Users create tickets and messages
+  only via `insert` — the parent ticket's `last_message*`, unread counters, and
+  `status` update through a trigger on new messages. A user reply reopens a
+  `RESOLVED`/`CLOSED` ticket.
+- **Realtime:** both tables are on `supabase_realtime` — mobile can subscribe
+  the same way it does for `threads`/`messages`.
+- **Mobile reaction:** build a support screen — "Open a request" (insert into
+  `support_tickets`), a thread view (list/insert `support_ticket_messages`,
+  ordered by `created_at`), and an unread badge from `unread_by_user`. Filed as
+  fethi-mobile board **TASK-029**, gated on this SCR (now applied) and on
+  vendoring the regenerated types below.
+- **`mark_support_ticket_read(p_ticket_id uuid)` RPC:** `support_tickets` has
+  no client `UPDATE` policy, so the ticket owner calls this (like
+  `mark_thread_read` for messaging) to clear their own `unread_by_user` when
+  they open a ticket.
+- **Applied 2026-09-01:** both migrations
+  (`20260901120000_scr028_support_tickets.sql`,
+  `20260901121500_scr028_support_ticket_mark_read.sql`) are live;
+  `applied-scrs.json` updated; types vendored into
+  `fethi-mobile/src/shared/types/`.
+- **Generated contract version:** `d80ee108aad2`.
+
+## 2026-08-27 · SCR-027 · Contact-only rental listings — issue #60
+
+- **Listing contract:** an active `LOCATION` no longer needs
+  `price_per_day_cents`; legacy pricing/date/deposit columns remain readable.
+- **Checkout contract:** `orders-price-quote` and `orders-create` return HTTP
+  409 `RENTAL_CONTACT_ONLY` for LOCATION listings. Existing orders are unchanged.
+- **Offer contract:** the database rejects new LOCATION offers and acceptance
+  of legacy pending LOCATION offers; Messages is the only new contact path.
+- **Mobile reaction:** publish locations with photos/text only, display “À
+  convenir”, route contact through Messages, and redirect old rental deep links.
+- **Applied 2026-08-27:** both migrations and both Edge Functions are live; the
+  web and mobile applied-SCR manifests are synchronized.
+
+## 2026-08-23 · SCR-024 · Authoritative seller-commission pricing — issue #30
+
+- **Contract:** new authenticated `orders-price-quote` returns the exact shared
+  calculation later persisted by `orders-create`.
+- **Approved model:** buyers pay the advertised/agreed price with no added fee
+  or tax; MyStreet deducts 5% from seller proceeds using nearest-cent rounding.
+  Full pre-validation refunds reverse both seller transfer and commission.
+- **Mobile reaction:** render quote fields instead of local percentage math.
+  Card orders store the seller commission in `fee_cents`; handoff orders book
+  the same amount in `seller_fee_receivables` because no card is charged.
+- **Receipt snapshot:** `orders` now persists `pricing_version`, `item_cents`,
+  `buyer_fee_cents`, `tax_cents`, `seller_fee_cents`, and `payment_method`.
+  Generated contract version: `331d6fbec64c`.
+
 ## 2026-08-23 · SCR-023 · Didit erasure during account deletion — issue #28
 
 - **Contract:** `account-delete` keeps the same authenticated request and
@@ -456,3 +511,50 @@ cancel`); raw clients have no write policy on order/offer status. (2) Open-or-re
   here. No code action yet — types land with WEB-001.
 
 <!-- New entries above this line, newest first. -->
+## 2026-09-01 · SCR-029 · Pre-publish listing moderation gate — issue #68
+
+- **What:** `listing_status` enum gained `PENDING_REVIEW` (between `DRAFT`
+  and `ACTIVE`). No RLS change — existing `listings_select_active` already
+  restricts public reads to `status = 'ACTIVE'`, so a `PENDING_REVIEW`
+  listing is automatically invisible to the public and visible only to its
+  owner + staff. Admin can now approve (`PENDING_REVIEW` → `ACTIVE`) or
+  reject (`PENDING_REVIEW` → `ARCHIVED`) from `/listings/pending` or
+  `/listings/moderation`, both audited (SCR-004).
+- **Mobile must (follow-up task, not yet built):** `sell/review.tsx` (via
+  `listingsApi.create` in `src/shared/lib/api.ts`, which currently defaults
+  `status` to `ACTIVE` — see doc comment ~line 1722) must default new
+  listings to `PENDING_REVIEW` instead, and the seller-facing copy after
+  submission should say the listing is "en cours de validation" / under
+  review rather than implying it's already live. Do **not** change the
+  behavior of `my-listings/[id]/edit.tsx`'s republish call — edits to an
+  already-`ACTIVE` listing should keep it `ACTIVE`, only fresh creation is
+  gated. Until this ships, the gate is dormant: no listing reaches
+  `PENDING_REVIEW` and current behavior (immediate `ACTIVE` publish) is
+  unchanged. Vendor the regenerated types + `applied-scrs.json` (SCR-029
+  now included) first; the mobile task is gated on that per
+  `scripts/check-scr.mjs`.
+- **DB now enforces the gate, not just the admin UI:** a
+  `before update of status` trigger rejects any client attempt to set
+  `status: 'ACTIVE'` on a `DRAFT`/`PENDING_REVIEW` listing via
+  `listingsApi.update()` (error code `LISTING_NOT_APPROVED`, Postgres
+  `42501`). If a future mobile screen ever adds an owner-facing "publish my
+  draft" action, it must go through the normal `ACTIVE`-on-`INSERT` path (or
+  wait for staff approval), not an `update()` call — the update path is
+  guarded server-side now.
+## 2026-08-23 · SCR-025 · Held seller proceeds — issue #35
+
+- **What:** Card PaymentIntents are now platform charges. A successful webhook
+  records one `held_seller_proceeds` row linked to the Stripe Charge; no seller
+  transfer happens until authenticated buyer confirmation.
+- **Release rule:** under €500, release is eligible immediately after buyer
+  confirmation; at or above €500 it is eligible after 48 hours. Seven days
+  without that confirmation becomes `REVIEW_REQUIRED` — no automatic payout or
+  refund. `held-proceeds-status` exposes this lifecycle to both parties.
+- **Safety:** release requires Didit `VERIFIED` plus enabled Stripe Connect,
+  consumes outstanding handoff-fee receivables, and is idempotent. Refunds and
+  disputes freeze/reverse transfers; failed reversals persist for the scheduled
+  `held-proceeds-reconcile` worker to retry. Finance-only timeout release uses
+  `held-proceeds-resolution`.
+- **Mobile:** invoke `held-proceeds-status` with `{ orderId }`; do not infer
+  payout state locally. Deploy the reconciler with its service secret and run it
+  at least every five minutes before enabling this flow.

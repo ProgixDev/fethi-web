@@ -3,6 +3,7 @@
   "deployed": [
     "offers-respond",
     "orders-create",
+    "orders-price-quote",
     "orders-transition",
     "account-delete",
     "account-export",
@@ -16,6 +17,9 @@
     "revenuecat-webhook",
     "listing-category-suggest",
     "didit-webhook",
-    "didit-session-create"
+    "didit-session-create",
+    "held-proceeds-reconcile",
+    "held-proceeds-status",
+    "held-proceeds-resolution"
   ]
 }

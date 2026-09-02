@@ -16,7 +16,6 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/about", priority: 0.5 },
   { path: "/safety", priority: 0.5 },
   { path: "/community-guidelines", priority: 0.4 },
-  { path: "/careers", priority: 0.5 },
   { path: "/press", priority: 0.4 },
   { path: "/contact", priority: 0.5 },
   { path: "/help", priority: 0.6 },
@@ -42,14 +41,6 @@ const BLOG_SLUGS = [
   "kyc-pourquoi-on-le-fait",
 ];
 
-const CAREERS_SLUGS = [
-  "senior-backend-engineer",
-  "product-designer",
-  "community-manager-lille",
-  "operations-trust",
-  "ios-engineer",
-];
-
 const HELP_SLUGS = ["comment-publier-une-annonce", "comment-payer-en-ligne"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -61,9 +52,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   for (const slug of BLOG_SLUGS) {
     entries.push({ url: `${SITE_URL}/blog/${slug}`, priority: 0.5, changeFrequency: "monthly" });
-  }
-  for (const slug of CAREERS_SLUGS) {
-    entries.push({ url: `${SITE_URL}/careers/${slug}`, priority: 0.4, changeFrequency: "weekly" });
   }
   for (const slug of HELP_SLUGS) {
     entries.push({ url: `${SITE_URL}/help/${slug}`, priority: 0.5, changeFrequency: "monthly" });

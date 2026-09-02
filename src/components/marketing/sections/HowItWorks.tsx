@@ -21,7 +21,7 @@ const steps = [
     n: "03",
     icon: Footprints,
     title: "Rencontrez à pied",
-    body: "Vous fixez un point de remise dans le quartier. Paiement validé à la rencontre. Note réciproque.",
+    body: "Vous vérifiez l'objet puis l'acheteur confirme dans l'app. Les fonds restent en attente jusque-là ; le vendeur est payé immédiatement sous 500 € et après 48 h au-delà.",
   },
 ];
 

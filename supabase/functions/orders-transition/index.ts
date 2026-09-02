@@ -26,9 +26,12 @@ import {
   requireUser,
   serviceClient,
 } from '../_shared/supabase.ts';
+import { scheduleBuyerRelease, releaseDueHold } from '../_shared/held-proceeds.ts';
+import Stripe from 'npm:stripe@22.6.0';
 
 type Action = 'confirm-pickup' | 'cancel';
-const TERMINAL = new Set(['COMPLETED', 'CANCELLED', 'REFUNDED']);
+const TERMINAL = new Set(['COMPLETED', 'CANCELLED', 'REFUNDED', 'DISPUTED']);
+const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -137,6 +140,29 @@ async function confirmPickup(
       note: isBuyer ? 'buyer_confirmed_pickup' : 'seller_confirmed_pickup',
     });
   }
+
+  // Only the authenticated buyer can authorise seller-release scheduling. A
+  // seller confirmation still completes the fulfilment record, but never moves
+  // money. Immediate (<€500) releases are attempted here; failed attempts stay
+  // safely pending for the reconciler rather than undoing the buyer's receipt.
+  if (isBuyer && order.payment_intent_id) {
+    await scheduleBuyerRelease(svc, updated.id as string);
+    if (STRIPE_SECRET_KEY) {
+      const { data: hold } = await svc
+        .from('held_seller_proceeds')
+        .select('id, order_id, seller_id, stripe_charge_id, seller_net_cents, status, release_after')
+        .eq('order_id', updated.id as string)
+        .maybeSingle();
+      if (hold) {
+        try {
+          const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
+          await releaseDueHold(svc, stripe, hold);
+        } catch (releaseError) {
+          console.error('held proceeds release deferred', releaseError);
+        }
+      }
+    }
+  }
   return updated;
 }
 
@@ -146,6 +172,15 @@ async function cancel(
   uid: string,
   reason: string | null,
 ) {
+  if (order.payment_intent_id && order.payment_status !== 'FAILED') {
+    if (!STRIPE_SECRET_KEY) throw new HttpError(503, 'stripe_unconfigured');
+    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
+    try {
+      await stripe.paymentIntents.cancel(order.payment_intent_id as string);
+    } catch {
+      throw new HttpError(409, 'payment_cancellation_required');
+    }
+  }
   const fromStatus = order.status as string;
   const { data: updated, error } = await svc
     .from('orders')
@@ -169,6 +204,23 @@ async function cancel(
     to_status: 'CANCELLED',
     note: reason ?? 'cancelled',
   });
+  // A cancelled, unpaid offer checkout releases its reservation. The offer is
+  // terminally withdrawn, allowing the seller to accept another pending offer.
+  if (order.offer_id) {
+    await svc
+      .from('offers')
+      .update({ status: 'WITHDRAWN', response_message: 'Paiement non finalisé.', responded_at: new Date().toISOString() })
+      .eq('id', order.offer_id as string)
+      .eq('order_id', order.id as string)
+      .eq('status', 'ACCEPTED');
+    await svc
+      .from('listings')
+      .update({ status: 'ACTIVE' })
+      .eq('id', order.listing_id as string)
+      .eq('status', 'SOLD');
+  } else if (order.listing_type === 'VENTE') {
+    await svc.from('listings').update({ status: 'ACTIVE' }).eq('id', order.listing_id as string).eq('status', 'SOLD');
+  }
   return updated;
 }
 

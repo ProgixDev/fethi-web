@@ -76,8 +76,19 @@ Deno.serve(async (req: Request) => {
       throw new HttpError(409, 'offer_expired');
     }
 
-    const nextStatus =
-      action === 'accept' ? 'ACCEPTED' : action === 'reject' ? 'REJECTED' : 'WITHDRAWN';
+    if (action === 'accept') {
+      const { data: accepted, error: acceptError } = await svc.rpc('accept_offer', {
+        p_offer_id: offerId,
+        p_seller_id: user.id,
+        p_message: message,
+      });
+      if (acceptError) throw new HttpError(409, acceptError.message);
+      const response = toOfferResponse(accepted as Record<string, unknown>);
+      await idem.commit(response);
+      return json(response, 200);
+    }
+
+    const nextStatus = action === 'reject' ? 'REJECTED' : 'WITHDRAWN';
 
     // Guarded update: status must still be PENDING (optimistic concurrency).
     const { data: updated, error: upErr } = await svc

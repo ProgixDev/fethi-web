@@ -6,7 +6,7 @@
  * fethi-mobile/src/shared/types/database.types.ts and update docs/MOBILE-SYNC-NOTES.md
  * + supabase/applied-scrs.json (see docs/db/COORDINATION.md §2/§5).
  *
- * schema-version: c96ca614f911
+ * schema-version: fb02e0e0fe0b
  */
 
 export type Json =
@@ -18,11 +18,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -412,6 +407,88 @@ export type Database = {
           },
         ]
       }
+      held_seller_proceeds: {
+        Row: {
+          buyer_confirmed_at: string | null
+          created_at: string
+          gross_cents: number
+          id: string
+          order_id: string
+          platform_fee_cents: number
+          release_after: string | null
+          released_at: string | null
+          review_after: string
+          seller_id: string
+          seller_net_cents: number
+          settled_receivable_cents: number
+          status: Database["public"]["Enums"]["proceeds_hold_status"]
+          stripe_charge_id: string
+          stripe_transfer_id: string | null
+          terminal_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_confirmed_at?: string | null
+          created_at?: string
+          gross_cents: number
+          id?: string
+          order_id: string
+          platform_fee_cents: number
+          release_after?: string | null
+          released_at?: string | null
+          review_after?: string
+          seller_id: string
+          seller_net_cents: number
+          settled_receivable_cents?: number
+          status?: Database["public"]["Enums"]["proceeds_hold_status"]
+          stripe_charge_id: string
+          stripe_transfer_id?: string | null
+          terminal_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_confirmed_at?: string | null
+          created_at?: string
+          gross_cents?: number
+          id?: string
+          order_id?: string
+          platform_fee_cents?: number
+          release_after?: string | null
+          released_at?: string | null
+          review_after?: string
+          seller_id?: string
+          seller_net_cents?: number
+          settled_receivable_cents?: number
+          status?: Database["public"]["Enums"]["proceeds_hold_status"]
+          stripe_charge_id?: string
+          stripe_transfer_id?: string | null
+          terminal_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "held_seller_proceeds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "held_seller_proceeds_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "held_seller_proceeds_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       idempotency_keys: {
         Row: {
           created_at: string
@@ -773,6 +850,7 @@ export type Database = {
         Row: {
           amount_cents: number
           buyer_id: string
+          checkout_expires_at: string | null
           created_at: string
           expires_at: string
           id: string
@@ -788,6 +866,7 @@ export type Database = {
         Insert: {
           amount_cents: number
           buyer_id: string
+          checkout_expires_at?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -803,6 +882,7 @@ export type Database = {
         Update: {
           amount_cents?: number
           buyer_id?: string
+          checkout_expires_at?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -919,6 +999,7 @@ export type Database = {
         Row: {
           amount_cents: number
           buyer_confirmed: boolean
+          buyer_fee_cents: number
           buyer_id: string
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -929,6 +1010,7 @@ export type Database = {
           deposit_released: boolean | null
           fee_cents: number
           id: string
+          item_cents: number
           listing_id: string
           listing_thumb: string | null
           listing_title: string | null
@@ -936,17 +1018,22 @@ export type Database = {
           offer_id: string | null
           paid_at: string | null
           payment_intent_id: string | null
+          payment_method: string
           payment_status: Database["public"]["Enums"]["payment_status"] | null
+          pricing_version: string
           rental_end: string | null
           rental_start: string | null
           seller_confirmed: boolean
+          seller_fee_cents: number
           seller_id: string
           status: Database["public"]["Enums"]["order_status"]
+          tax_cents: number
           updated_at: string
         }
         Insert: {
           amount_cents: number
           buyer_confirmed?: boolean
+          buyer_fee_cents?: number
           buyer_id: string
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -957,6 +1044,7 @@ export type Database = {
           deposit_released?: boolean | null
           fee_cents?: number
           id?: string
+          item_cents?: number
           listing_id: string
           listing_thumb?: string | null
           listing_title?: string | null
@@ -964,17 +1052,22 @@ export type Database = {
           offer_id?: string | null
           paid_at?: string | null
           payment_intent_id?: string | null
+          payment_method?: string
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          pricing_version?: string
           rental_end?: string | null
           rental_start?: string | null
           seller_confirmed?: boolean
+          seller_fee_cents?: number
           seller_id: string
           status?: Database["public"]["Enums"]["order_status"]
+          tax_cents?: number
           updated_at?: string
         }
         Update: {
           amount_cents?: number
           buyer_confirmed?: boolean
+          buyer_fee_cents?: number
           buyer_id?: string
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -985,6 +1078,7 @@ export type Database = {
           deposit_released?: boolean | null
           fee_cents?: number
           id?: string
+          item_cents?: number
           listing_id?: string
           listing_thumb?: string | null
           listing_title?: string | null
@@ -992,12 +1086,16 @@ export type Database = {
           offer_id?: string | null
           paid_at?: string | null
           payment_intent_id?: string | null
+          payment_method?: string
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          pricing_version?: string
           rental_end?: string | null
           rental_start?: string | null
           seller_confirmed?: boolean
+          seller_fee_cents?: number
           seller_id?: string
           status?: Database["public"]["Enums"]["order_status"]
+          tax_cents?: number
           updated_at?: string
         }
         Relationships: [
@@ -1600,6 +1698,114 @@ export type Database = {
         }
         Relationships: []
       }
+      support_ticket_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string
+          sender_role: Database["public"]["Enums"]["support_sender_role"]
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          sender_role: Database["public"]["Enums"]["support_sender_role"]
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          sender_role?: Database["public"]["Enums"]["support_sender_role"]
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_staff_id: string | null
+          created_at: string
+          id: string
+          last_message: string | null
+          last_message_at: string | null
+          last_sender_role:
+            | Database["public"]["Enums"]["support_sender_role"]
+            | null
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          unread_by_staff: number
+          unread_by_user: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_staff_id?: string | null
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          last_sender_role?:
+            | Database["public"]["Enums"]["support_sender_role"]
+            | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          unread_by_staff?: number
+          unread_by_user?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_staff_id?: string | null
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          last_sender_role?:
+            | Database["public"]["Enums"]["support_sender_role"]
+            | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject?: string
+          unread_by_staff?: number
+          unread_by_user?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       threads: {
         Row: {
           buyer_id: string
@@ -1917,6 +2123,31 @@ export type Database = {
         Returns: unknown
       }
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      accept_offer: {
+        Args: { p_message?: string; p_offer_id: string; p_seller_id: string }
+        Returns: {
+          amount_cents: number
+          buyer_id: string
+          checkout_expires_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          listing_id: string
+          message: string | null
+          order_id: string | null
+          responded_at: string | null
+          response_message: string | null
+          seller_id: string
+          status: Database["public"]["Enums"]["offer_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "offers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       addauth: { Args: { "": string }; Returns: boolean }
       addgeometrycolumn:
         | {
@@ -1960,6 +2191,7 @@ export type Database = {
         Returns: {
           amount_cents: number
           buyer_confirmed: boolean
+          buyer_fee_cents: number
           buyer_id: string
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -1970,6 +2202,7 @@ export type Database = {
           deposit_released: boolean | null
           fee_cents: number
           id: string
+          item_cents: number
           listing_id: string
           listing_thumb: string | null
           listing_title: string | null
@@ -1977,12 +2210,16 @@ export type Database = {
           offer_id: string | null
           paid_at: string | null
           payment_intent_id: string | null
+          payment_method: string
           payment_status: Database["public"]["Enums"]["payment_status"] | null
+          pricing_version: string
           rental_end: string | null
           rental_start: string | null
           seller_confirmed: boolean
+          seller_fee_cents: number
           seller_id: string
           status: Database["public"]["Enums"]["order_status"]
+          tax_cents: number
           updated_at: string
         }
         SetofOptions: {
@@ -2025,6 +2262,10 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      expire_offer_reservation: {
+        Args: { p_listing_id: string }
+        Returns: undefined
+      }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -2133,11 +2374,19 @@ export type Database = {
         Returns: number
       }
       is_staff: { Args: { uid: string }; Returns: boolean }
+      is_support_ticket_participant: {
+        Args: { p_ticket_id: string; p_uid: string }
+        Returns: boolean
+      }
       is_thread_participant: {
         Args: { p_thread_id: string; p_uid: string }
         Returns: boolean
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      mark_support_ticket_read: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       mark_thread_read: { Args: { p_thread_id: string }; Returns: undefined }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -2825,7 +3074,13 @@ export type Database = {
       fee_receivable_status: "OUTSTANDING" | "SETTLED" | "WAIVED"
       kyc_status: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
       listing_condition: "new" | "likenew" | "good" | "fair"
-      listing_status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD" | "ARCHIVED"
+      listing_status:
+        | "DRAFT"
+        | "PENDING_REVIEW"
+        | "ACTIVE"
+        | "PAUSED"
+        | "SOLD"
+        | "ARCHIVED"
       listing_type: "VENTE" | "LOCATION" | "SERVICE"
       message_kind:
         | "TEXT"
@@ -2863,7 +3118,18 @@ export type Database = {
         | "REFUNDED"
         | "DISPUTED"
         | "PARTIALLY_REFUNDED"
+      proceeds_hold_status:
+        | "HELD"
+        | "RELEASE_PENDING"
+        | "RELEASING"
+        | "RELEASED"
+        | "REFUNDED"
+        | "DISPUTED"
+        | "CANCELLED"
+        | "REVIEW_REQUIRED"
       staff_role: "admin" | "moderator" | "finance" | "support"
+      support_sender_role: "USER" | "STAFF"
+      support_ticket_status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED"
       user_status: "ACTIVE" | "PENDING" | "SUSPENDED" | "BANNED"
     }
     CompositeTypes: {
@@ -3006,7 +3272,14 @@ export const Constants = {
       fee_receivable_status: ["OUTSTANDING", "SETTLED", "WAIVED"],
       kyc_status: ["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"],
       listing_condition: ["new", "likenew", "good", "fair"],
-      listing_status: ["DRAFT", "ACTIVE", "PAUSED", "SOLD", "ARCHIVED"],
+      listing_status: [
+        "DRAFT",
+        "PENDING_REVIEW",
+        "ACTIVE",
+        "PAUSED",
+        "SOLD",
+        "ARCHIVED",
+      ],
       listing_type: ["VENTE", "LOCATION", "SERVICE"],
       message_kind: ["TEXT", "PHOTO", "LOCATION", "OFFER", "PICKUP", "SYSTEM"],
       notif_kind: [
@@ -3036,7 +3309,19 @@ export const Constants = {
         "DISPUTED",
         "PARTIALLY_REFUNDED",
       ],
+      proceeds_hold_status: [
+        "HELD",
+        "RELEASE_PENDING",
+        "RELEASING",
+        "RELEASED",
+        "REFUNDED",
+        "DISPUTED",
+        "CANCELLED",
+        "REVIEW_REQUIRED",
+      ],
       staff_role: ["admin", "moderator", "finance", "support"],
+      support_sender_role: ["USER", "STAFF"],
+      support_ticket_status: ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"],
       user_status: ["ACTIVE", "PENDING", "SUSPENDED", "BANNED"],
     },
   },

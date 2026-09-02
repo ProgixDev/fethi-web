@@ -55,10 +55,30 @@ const articles: Record<string, Article> = {
             "Les cartes prépayées et les comptes Revolut Junior ne sont pas acceptés au-delà de 100 €.",
           ],
         },
+      ],
+    },
+  },
+  "paiement-protege": {
+    slug: "paiement-protege",
+    title: "Comment fonctionne le paiement sécurisé",
+    category: "Paiement",
+    categorySlug: "paiement",
+    updatedAt: "23 août 2026",
+    body: {
+      lead: "Votre carte est débitée par MyStreet, mais la part du vendeur reste en attente jusqu'à votre confirmation de réception dans l'application. Ce n'est pas un service juridique de séquestre.",
+      sections: [
         {
-          heading: "Pour les abonnés MyStreet+",
+          heading: "Après la rencontre",
           paragraphs: [
-            "Le prélèvement SEPA arrive courant 2027 pour les abonnements et factures. En attendant, MyStreet+ se règle par carte bancaire, Apple Pay ou Google Pay.",
+            "Vérifiez l'objet avant de confirmer. Une fois la réception confirmée, le vendeur reçoit sa part immédiatement pour un article de moins de 500 € et après environ 48 h pour un article de 500 € ou plus.",
+            "Le vendeur doit avoir une identité vérifiée et un compte de versement activé. Cette vérification ne change jamais votre droit de signaler un problème.",
+          ],
+        },
+        {
+          heading: "En cas de problème ou d'absence de confirmation",
+          paragraphs: [
+            "N'appuyez pas sur confirmer et ouvrez un litige depuis votre commande. Un remboursement, une annulation ou une contestation bancaire bloque le versement au vendeur.",
+            "Sans confirmation dans les sept jours calendaires, aucun argent n'est libéré ni remboursé automatiquement : notre équipe examine la Transaction. Nous vous envoyons des rappels avant cette étape.",
           ],
         },
       ],

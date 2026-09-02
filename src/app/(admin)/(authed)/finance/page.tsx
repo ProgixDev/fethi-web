@@ -4,9 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowUpRight, Banknote, FileText, KeyRound, Receipt } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
+import { NotConnectedNotice } from "@/components/admin/NotConnectedNotice";
 import { KPIStat } from "@/components/ui/KPIStat";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Pill } from "@/components/ui/Pill";
 import { Button } from "@/components/ui/Button";
 import { financeApi, type FinanceSummary } from "@/lib/api";
 import { formatEuro, formatNumber } from "@/lib/utils/format";
@@ -99,36 +99,30 @@ export default function FinancePage() {
           <p className="mt-1 text-body-sm text-n-500">
             État du compte Stripe Connect en temps réel.
           </p>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-3">
-            <li className="rounded-md border border-n-100 bg-paper p-4">
-              <p className="text-label text-n-500">Solde disponible</p>
-              <p className="mt-1 text-h2 font-medium tabular text-ink">{formatEuro(28420)}</p>
-              <Pill tone="success" dot>Synchronisé</Pill>
-            </li>
-            <li className="rounded-md border border-n-100 bg-paper p-4">
-              <p className="text-label text-n-500">Solde en attente</p>
-              <p className="mt-1 text-h2 font-medium tabular text-ink">{formatEuro(14580)}</p>
-              <Pill tone="warning" dot>D+2</Pill>
-            </li>
-            <li className="rounded-md border border-n-100 bg-paper p-4">
-              <p className="text-label text-n-500">Disputes Stripe</p>
-              <p className="mt-1 text-h2 font-medium tabular text-ink">0</p>
-              <Pill tone="success" dot>RAS</Pill>
-            </li>
-          </ul>
+          <div className="mt-4">
+            <NotConnectedNotice>
+              <p className="font-medium">Panneau non connecté à un backend.</p>
+              <p className="mt-0.5 text-n-600">
+                Aucun appel au solde Stripe Connect n&apos;est encore fait ici — ces montants ne
+                sont pas des données réelles.
+              </p>
+            </NotConnectedNotice>
+          </div>
         </CardBody>
       </Card>
 
       <Card>
         <CardBody>
           <h3 className="text-h3 font-medium text-ink">Rapport rapide</h3>
-          <ul className="mt-3 space-y-2 text-body-sm">
-            <li className="flex justify-between"><span className="text-n-500">Utilisateurs payants ce mois</span><span className="tabular text-ink">168</span></li>
-            <li className="flex justify-between"><span className="text-n-500">Commission effective</span><span className="tabular text-ink">5,0 %</span></li>
-            <li className="flex justify-between"><span className="text-n-500">Remboursements</span><span className="tabular text-ink">{formatNumber(8)} (0,4 % GMV)</span></li>
-            <li className="flex justify-between"><span className="text-n-500">Coût Stripe (estimé)</span><span className="tabular text-ink">{formatEuro(642)}</span></li>
-            <li className="flex justify-between"><span className="text-n-500">Marge brute après Stripe</span><span className="tabular text-success">{formatEuro(1045)}</span></li>
-          </ul>
+          <div className="mt-3">
+            <NotConnectedNotice>
+              <p className="font-medium">Panneau non connecté à un backend.</p>
+              <p className="mt-0.5 text-n-600">
+                Ce récapitulatif (utilisateurs payants, commission effective, coût Stripe estimé)
+                n&apos;est pas encore calculé à partir de données réelles.
+              </p>
+            </NotConnectedNotice>
+          </div>
         </CardBody>
       </Card>
     </div>

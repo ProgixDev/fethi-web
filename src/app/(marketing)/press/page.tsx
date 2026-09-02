@@ -56,7 +56,7 @@ export default function PressPage() {
               éditoriale, écrivez à notre équipe communication.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Button href="mailto:presse@mystreet.fr" size="lg">presse@mystreet.fr</Button>
+              <Button href="mailto:support@mystreet.fr" size="lg">support@mystreet.fr</Button>
               <span className="text-body-sm text-n-500">Réponse sous 24 h ouvrées</span>
             </div>
           </div>

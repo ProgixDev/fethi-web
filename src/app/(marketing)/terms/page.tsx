@@ -34,14 +34,15 @@ const sections = [
   {
     heading: "5. Transactions",
     paragraphs: [
-      "Les Transactions sont conclues directement entre Utilisateurs. MyStreet agit comme tiers de confiance via son système de paiement protégé.",
-      "Le paiement est bloqué jusqu'à confirmation de la rencontre par l'acheteur, puis libéré au vendeur sous trois jours ouvrés.",
+      "Les Transactions sont conclues directement entre Utilisateurs. MyStreet fournit le parcours de paiement sécurisé et de résolution des incidents décrit ci-dessous ; cette formulation ne constitue pas une qualification juridique de séquestre.",
+      "Pour un achat par carte, le paiement est conservé en attente de la confirmation de réception par l'acheteur dans l'application. Après cette confirmation, la part du vendeur est disponible immédiatement pour un article de moins de 500 € et après environ 48 heures pour un article de 500 € ou plus. Un remboursement, un litige ou une annulation bloque ce versement.",
+      "Sans confirmation de réception dans les sept jours calendaires, aucun versement ni remboursement n'est automatique : la Transaction est transmise à notre équipe pour examen. Les deux parties reçoivent des rappels et peuvent signaler un problème dans l'application.",
     ],
   },
   {
     heading: "6. Frais",
     paragraphs: [
-      "L'usage de la Plateforme est gratuit en publication comme en achat. Une commission de 5 % est prélevée sur la part du vendeur lors d'une vente finalisée dans l'app. L'abonnement MyStreet+ (1,99 €/mois) et les boosts à l'unité (de 0,99 € à 14,99 €) sont optionnels.",
+      "L'usage de la Plateforme est gratuit en publication comme en achat. Une commission de 5 % est prélevée sur la part du vendeur lors d'une vente finalisée dans l'app. Les boosts à l'unité (de 0,99 € à 14,99 €) sont optionnels.",
       "Les tarifs en vigueur sont publiés sur mystreet.fr/pricing. Toute modification fait l'objet d'une notification trente jours avant entrée en vigueur.",
     ],
   },
@@ -99,7 +100,7 @@ export default function TermsPage() {
             <span className="font-serif italic text-primary">d'utilisation.</span>
           </h1>
           <p className="mt-4 text-caption text-n-500">
-            Dernière mise à jour : 15 mars 2026
+            Dernière mise à jour : 23 août 2026
           </p>
         </Container>
       </Section>

@@ -18,7 +18,7 @@ import {
   requireUser,
   serviceClient,
 } from '../_shared/supabase.ts';
-import Stripe from 'npm:stripe@^22.3.0';
+import Stripe from 'npm:stripe@22.6.0';
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
 // NOTE: this Express + Account-Links flow (stripe.accounts.create({type:'express'})
@@ -39,6 +39,27 @@ function resolveCountry(raw: unknown): string {
   return DEFAULT_CONNECT_COUNTRY;
 }
 
+// Fallback base used when a caller supplies neither returnUrl/refreshUrl NOR
+// a usable `origin` header — the mobile app is exactly this case (React
+// Native's fetch never sends `Origin`, so `req.headers.get('origin')` is
+// null there). Without this guard the old code built the literal string
+// "null/seller/dashboard", which Stripe's accountLinks.create() rejects with
+// `url_invalid` ("Not a valid URL"), breaking onboarding for every mobile
+// caller. Stripe's Account Links API requires a real http(s) URL — it
+// rejects a custom app URI scheme (mystreet://...) the exact same way, so
+// this fallback (and the mobile client's own explicit value — see
+// connectApi.startOnboarding) must be an https URL too, not a deep link. The
+// seller just manually switches back to the app afterward; the webhook
+// keeps payout_accounts in sync regardless of what this page does.
+const MOBILE_APP_RETURN_BASE =
+  Deno.env.get('MOBILE_APP_RETURN_BASE') ?? 'https://mystreet-web-five.vercel.app/stripe/return';
+
+function resolveRedirectUrl(explicit: unknown, origin: string | null, path: string): string {
+  if (typeof explicit === 'string' && explicit.length > 0) return explicit;
+  if (origin && /^https?:\/\//i.test(origin)) return `${origin}${path}`;
+  return MOBILE_APP_RETURN_BASE;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -53,12 +74,13 @@ Deno.serve(async (req: Request) => {
     const svc = serviceClient();
     const stripe = new Stripe(STRIPE_SECRET_KEY, {
       apiVersion: '2023-10-16',
-      httpClient: Deno,
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
     const body = await req.json().catch(() => ({}));
-    const returnUrl = body.returnUrl ?? `${req.headers.get('origin')}/seller/dashboard`;
-    const refreshUrl = body.refreshUrl ?? `${req.headers.get('origin')}/seller/onboarding`;
+    const origin = req.headers.get('origin');
+    const returnUrl = resolveRedirectUrl(body.returnUrl, origin, '/seller/dashboard');
+    const refreshUrl = resolveRedirectUrl(body.refreshUrl, origin, '/seller/onboarding');
 
     // Check if user already has a Connect account
     const { data: existingAccount } = await svc
@@ -152,6 +174,12 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     if (err instanceof HttpError) return json({ error: err.message }, err.status);
+    // Was previously swallowed entirely — the caught exception never reached
+    // Stripe's own logs (nothing to see there if the throw happens before
+    // the API call goes out), and never reached Supabase's function logs
+    // either since nothing logged it. Log it so the actual cause is visible
+    // in the Supabase dashboard's Edge Function logs.
+    console.error('connect-onboarding failed:', err);
     return json({ error: 'internal_error' }, 500);
   }
 });

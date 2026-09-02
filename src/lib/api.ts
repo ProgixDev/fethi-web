@@ -415,7 +415,13 @@ export const publicUsersApi = {
 // Listings (admin)
 // ---------------------------------------------------------------------------
 
-export type ListingStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD" | "ARCHIVED";
+export type ListingStatus =
+  | "DRAFT"
+  | "PENDING_REVIEW"
+  | "ACTIVE"
+  | "PAUSED"
+  | "SOLD"
+  | "ARCHIVED";
 
 export type OwnerInfo = {
   id: string;
@@ -594,6 +600,62 @@ export const reportsApi = {
 };
 
 // ---------------------------------------------------------------------------
+// Support inbox (SCR-028) — staff queue over support_tickets / support_ticket_messages.
+// ---------------------------------------------------------------------------
+
+export type SupportTicketStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+export type SupportSenderRole = "USER" | "STAFF";
+
+export type SupportTicket = {
+  id: string;
+  userId: string;
+  requesterName: string;
+  subject: string;
+  status: SupportTicketStatus;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  lastSenderRole: SupportSenderRole | null;
+  unreadByStaff: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SupportTicketMessage = {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  senderRole: SupportSenderRole;
+  body: string;
+  createdAt: string;
+};
+
+export type SupportTicketFilters = {
+  status?: SupportTicketStatus;
+  page?: number;
+  size?: number;
+};
+
+export const supportApi = {
+  // Same-origin admin route handlers (cookie session), like reportsApi —
+  // wired to WEB-022's /api/admin/support*.
+  list: (filters: SupportTicketFilters = {}) =>
+    internalRequest<PageResponse<SupportTicket>>(`/support${toQuery(filters)}`),
+  get: (id: string) => internalRequest<SupportTicket>(`/support/${id}`),
+  listMessages: (id: string) =>
+    internalRequest<SupportTicketMessage[]>(`/support/${id}/messages`),
+  reply: (id: string, body: string) =>
+    internalRequest<SupportTicketMessage>(`/support/${id}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    }),
+  setStatus: (id: string, status: SupportTicketStatus) =>
+    internalRequest<SupportTicket>(`/support/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+};
+
+// ---------------------------------------------------------------------------
 // Audit log (admin) — real `staff_audit_log` trail (SCR-004), written by
 // users/listings/reports/categories mutations.
 // ---------------------------------------------------------------------------
@@ -699,16 +761,6 @@ export const kycApi = {
    */
   get: (userId: string) =>
     internalRequest<KycDetail>(`/kyc/${userId}`),
-
-  /**
-   * Refresh KYC status from Stripe.
-   * Calls the Edge Function to fetch fresh data.
-   */
-  refresh: (userId: string) =>
-    internalRequest<KycDetail>(`/kyc/${userId}`, {
-      method: "POST",
-      body: JSON.stringify({ action: "refresh" }),
-    }),
 
   /**
    * Resend onboarding link for incomplete Connect accounts.

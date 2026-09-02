@@ -12,7 +12,8 @@
   source for blog/help/careers.
 - Special Conditions / Rules: Copy must preserve September 2026 Lille launch,
   5 percent seller-side commission, MyStreet+ pricing, and no fabricated legal
-  entity.
+  entity. Rental copy must describe contact-only listings and must not promise
+  booking, calendars, deposits, insurance, or in-app rental payment.
 - Additional Notes: Marketing surfaces use Lenis smooth scroll and should later
   receive real Lille photography.
 
@@ -140,4 +141,3 @@ The page should still render and expose contact/help routes.
 - Which CMS/content source will own blog, help, and careers content?
 - Will waitlist capture happen directly in Supabase or through a separate email
   tool?
-

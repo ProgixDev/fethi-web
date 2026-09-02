@@ -96,7 +96,7 @@ export default function ServicesPage() {
             <div className="rounded-xl border border-n-100 bg-paper p-6">
               <ShieldCheck className="h-6 w-6 text-accent" />
               <h3 className="mt-4 text-h3 font-medium text-ink">Identité vérifiée</h3>
-              <p className="mt-2 text-body-sm text-n-600">Pièce d'identité contrôlée pour tout prestataire au-dessus de 30 € la mission.</p>
+              <p className="mt-2 text-body-sm text-n-600">Vérification d'identité demandée à tout prestataire avant de recevoir le paiement d'une mission.</p>
             </div>
             <div className="rounded-xl border border-n-100 bg-paper p-6">
               <MessageCircle className="h-6 w-6 text-accent" />

@@ -150,8 +150,8 @@ export default function ModerationPage() {
   return (
     <div className="container-admin py-8 space-y-6">
       <PageHeader
-        crumbs={[{ href: "/dashboard", label: "Tableau de bord" }, { label: "Modération" }]}
-        title="Modération"
+        crumbs={[{ href: "/dashboard", label: "Tableau de bord" }, { label: "Signalements" }]}
+        title="Signalements"
         description={`${open + inReview} signalements en cours de traitement.`}
       />
 

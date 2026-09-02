@@ -10,7 +10,14 @@ import { errorResponse, gateStaff } from '@/lib/admin-route';
 import { createAdminRepositories } from '@/lib/repositories';
 import type { ListingStatus } from '@/lib/api';
 
-const ALLOWED: ListingStatus[] = ['DRAFT', 'ACTIVE', 'PAUSED', 'SOLD', 'ARCHIVED'];
+const ALLOWED: ListingStatus[] = [
+  'DRAFT',
+  'PENDING_REVIEW',
+  'ACTIVE',
+  'PAUSED',
+  'SOLD',
+  'ARCHIVED',
+];
 
 type Ctx = { params: Promise<{ id: string }> };
 
