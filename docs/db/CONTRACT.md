@@ -7,6 +7,16 @@ SCRs in `docs/db/decisions/` are the change history.
 ## Listings
 
 - `listing_type` is `VENTE`, `LOCATION`, or `SERVICE`.
+- Since SCR-029: `listing_status` gained `PENDING_REVIEW`, inserted between
+  `DRAFT` and `ACTIVE`. A newly-submitted listing lands in `PENDING_REVIEW`
+  and stays invisible to the public (existing RLS already restricts public
+  reads to `status = 'ACTIVE'`) until a staff member approves it (→ `ACTIVE`)
+  or rejects it (→ `ARCHIVED`) from the admin moderation queue. Editing an
+  already-`ACTIVE` listing, and owner pause/unpause, do **not** re-enter
+  `PENDING_REVIEW` — only first-time creation is gated. As of this SCR
+  landing, mobile has not yet switched its create-listing default from
+  `ACTIVE` to `PENDING_REVIEW`, so the gate is dormant in production until
+  that follow-up mobile change ships (see "Mobile must" below).
 - Outside `DRAFT`, VENTE requires `price_cents` and SERVICE requires either
   `hourly_rate_cents` or `flat_rate_cents`.
 - Since SCR-027, LOCATION is a contact-only classified ad and requires no

@@ -511,6 +511,36 @@ cancel`); raw clients have no write policy on order/offer status. (2) Open-or-re
   here. No code action yet — types land with WEB-001.
 
 <!-- New entries above this line, newest first. -->
+## 2026-09-01 · SCR-029 · Pre-publish listing moderation gate — issue #68
+
+- **What:** `listing_status` enum gained `PENDING_REVIEW` (between `DRAFT`
+  and `ACTIVE`). No RLS change — existing `listings_select_active` already
+  restricts public reads to `status = 'ACTIVE'`, so a `PENDING_REVIEW`
+  listing is automatically invisible to the public and visible only to its
+  owner + staff. Admin can now approve (`PENDING_REVIEW` → `ACTIVE`) or
+  reject (`PENDING_REVIEW` → `ARCHIVED`) from `/listings/pending` or
+  `/listings/moderation`, both audited (SCR-004).
+- **Mobile must (follow-up task, not yet built):** `sell/review.tsx` (via
+  `listingsApi.create` in `src/shared/lib/api.ts`, which currently defaults
+  `status` to `ACTIVE` — see doc comment ~line 1722) must default new
+  listings to `PENDING_REVIEW` instead, and the seller-facing copy after
+  submission should say the listing is "en cours de validation" / under
+  review rather than implying it's already live. Do **not** change the
+  behavior of `my-listings/[id]/edit.tsx`'s republish call — edits to an
+  already-`ACTIVE` listing should keep it `ACTIVE`, only fresh creation is
+  gated. Until this ships, the gate is dormant: no listing reaches
+  `PENDING_REVIEW` and current behavior (immediate `ACTIVE` publish) is
+  unchanged. Vendor the regenerated types + `applied-scrs.json` (SCR-029
+  now included) first; the mobile task is gated on that per
+  `scripts/check-scr.mjs`.
+- **DB now enforces the gate, not just the admin UI:** a
+  `before update of status` trigger rejects any client attempt to set
+  `status: 'ACTIVE'` on a `DRAFT`/`PENDING_REVIEW` listing via
+  `listingsApi.update()` (error code `LISTING_NOT_APPROVED`, Postgres
+  `42501`). If a future mobile screen ever adds an owner-facing "publish my
+  draft" action, it must go through the normal `ACTIVE`-on-`INSERT` path (or
+  wait for staff approval), not an `update()` call — the update path is
+  guarded server-side now.
 ## 2026-08-23 · SCR-025 · Held seller proceeds — issue #35
 
 - **What:** Card PaymentIntents are now platform charges. A successful webhook

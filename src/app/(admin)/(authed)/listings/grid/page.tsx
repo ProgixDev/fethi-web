@@ -12,6 +12,7 @@ function eur(c: number | null | undefined) { return c == null ? "—" : `${(c / 
 const toneByStatus: Record<Listing["status"], React.ComponentProps<typeof Pill>["tone"]> = {
   ACTIVE: "success",
   DRAFT: "neutral",
+  PENDING_REVIEW: "accent",
   PAUSED: "warning",
   SOLD: "neutral",
   ARCHIVED: "neutral",

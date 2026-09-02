@@ -415,7 +415,13 @@ export const publicUsersApi = {
 // Listings (admin)
 // ---------------------------------------------------------------------------
 
-export type ListingStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD" | "ARCHIVED";
+export type ListingStatus =
+  | "DRAFT"
+  | "PENDING_REVIEW"
+  | "ACTIVE"
+  | "PAUSED"
+  | "SOLD"
+  | "ARCHIVED";
 
 export type OwnerInfo = {
   id: string;

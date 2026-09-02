@@ -25,6 +25,7 @@ type ListingRow = Database['public']['Tables']['listings']['Row'];
 
 const LISTING_STATUSES: ListingStatus[] = [
   'DRAFT',
+  'PENDING_REVIEW',
   'ACTIVE',
   'PAUSED',
   'SOLD',
@@ -146,11 +147,13 @@ export class ListingsRepository extends BaseRepository {
   }
 
   /**
-   * Moderation queue — listings that need staff attention. Until WEB-008 lands
-   * the `reports` feed, the queue is driven by listing state: DRAFT (awaiting
-   * review), PAUSED (soft-hidden), ARCHIVED (taken down). When `reports` exists
-   * this method will additionally surface reported listings (joined on
-   * target_id). `reportsCount` is 0 today and becomes the live count then.
+   * Moderation queue — listings that need staff attention. PENDING_REVIEW
+   * (WEB-023) is the pre-publish approval gate: a listing lands here on first
+   * submission and needs an explicit approve/reject before it can become
+   * ACTIVE. DRAFT/PAUSED/ARCHIVED are the older reactive takedown states.
+   * Until WEB-008 lands the `reports` feed, the queue does not surface
+   * reported listings (joined on target_id); `reportsCount` is 0 today and
+   * becomes the live count then.
    */
   async moderationQueue(
     filters: { status?: ListingStatus; page?: number; size?: number } = {},
@@ -160,7 +163,12 @@ export class ListingsRepository extends BaseRepository {
     const from = page * size;
     const to = from + size - 1;
 
-    const queueStatuses: ListingStatus[] = ['DRAFT', 'PAUSED', 'ARCHIVED'];
+    const queueStatuses: ListingStatus[] = [
+      'PENDING_REVIEW',
+      'DRAFT',
+      'PAUSED',
+      'ARCHIVED',
+    ];
     let query = this.db.from('listings').select(SELECT, { count: 'exact' });
     if (filters.status && queueStatuses.includes(filters.status)) {
       query = query.eq('status', filters.status);
@@ -232,13 +240,17 @@ export class ListingsRepository extends BaseRepository {
 
     if (current.status !== next) {
       const action =
-        next === 'PAUSED'
-          ? 'listing.pause'
-          : next === 'ARCHIVED'
-            ? 'listing.archive'
-            : next === 'ACTIVE'
-              ? 'listing.restore'
-              : `listing.status.${next.toLowerCase()}`;
+        current.status === 'PENDING_REVIEW' && next === 'ACTIVE'
+          ? 'listing.approve'
+          : current.status === 'PENDING_REVIEW' && next === 'ARCHIVED'
+            ? 'listing.reject'
+            : next === 'PAUSED'
+              ? 'listing.pause'
+              : next === 'ARCHIVED'
+                ? 'listing.archive'
+                : next === 'ACTIVE'
+                  ? 'listing.restore'
+                  : `listing.status.${next.toLowerCase()}`;
       await new AuditRepository(this.db).record({
         actorId,
         action,

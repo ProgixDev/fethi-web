@@ -24,6 +24,7 @@ import { formatDate, initials } from "@/lib/utils/format";
 const statusTone: Record<ListingStatus, React.ComponentProps<typeof Pill>["tone"]> = {
   ACTIVE: "success",
   DRAFT: "neutral",
+  PENDING_REVIEW: "accent",
   PAUSED: "warning",
   SOLD: "neutral",
   ARCHIVED: "neutral",
@@ -32,6 +33,7 @@ const statusTone: Record<ListingStatus, React.ComponentProps<typeof Pill>["tone"
 const statusLabel: Record<ListingStatus, string> = {
   ACTIVE: "Actif",
   DRAFT: "Brouillon",
+  PENDING_REVIEW: "En attente de validation",
   PAUSED: "En pause",
   SOLD: "Vendu",
   ARCHIVED: "Archivé",
@@ -126,28 +128,46 @@ export default function ListingDetailAdminPage() {
         description={`${listing.categoryLabel ?? "—"} · ${listing.listingType} · ${listing.neighborhood ?? "—"}`}
         actions={
           <div className="flex gap-2">
-            {listing.status === "ACTIVE" ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setStatus("PAUSED")}
-                disabled={actionPending}
-              >
-                Mettre en pause
-              </Button>
-            ) : listing.status === "PAUSED" ? (
-              <Button size="sm" onClick={() => setStatus("ACTIVE")} disabled={actionPending}>
-                Réactiver
-              </Button>
-            ) : null}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setStatus("ARCHIVED")}
-              disabled={actionPending || listing.status === "ARCHIVED"}
-            >
-              Archiver
-            </Button>
+            {listing.status === "PENDING_REVIEW" ? (
+              <>
+                <Button size="sm" onClick={() => setStatus("ACTIVE")} disabled={actionPending}>
+                  Approuver
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => setStatus("ARCHIVED")}
+                  disabled={actionPending}
+                >
+                  Rejeter
+                </Button>
+              </>
+            ) : (
+              <>
+                {listing.status === "ACTIVE" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setStatus("PAUSED")}
+                    disabled={actionPending}
+                  >
+                    Mettre en pause
+                  </Button>
+                ) : listing.status === "PAUSED" ? (
+                  <Button size="sm" onClick={() => setStatus("ACTIVE")} disabled={actionPending}>
+                    Réactiver
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setStatus("ARCHIVED")}
+                  disabled={actionPending || listing.status === "ARCHIVED"}
+                >
+                  Archiver
+                </Button>
+              </>
+            )}
           </div>
         }
       />
